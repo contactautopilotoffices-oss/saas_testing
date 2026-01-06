@@ -1,78 +1,83 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-
-// Mock User type compatible with basic usage
-export interface User {
-    uid: string;
-    email: string | null;
-    displayName: string | null;
-    photoURL: string | null;
-}
+import { createClient } from '@/utils/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
     user: User | null;
-    loading: boolean;
+    isLoading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
-    signUp: (email: string, password: string, fullName: string) => Promise<void>;
+    signInWithGoogle: (propertyCode?: string) => Promise<void>;
     signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-    user: null,
-    loading: true,
-    signIn: async () => { },
-    signUp: async () => { },
-    signOut: async () => { },
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const supabase = createClient();
 
-    // Simulate initial load
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false);
-            // Optionally could store mock token in localStorage to persist login across refreshes
-            // but for now, fresh start every time is fine for UI testing
-        }, 800);
-        return () => clearTimeout(timer);
-    }, []);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            setUser(session?.user ?? null);
+            setIsLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
+    }, [supabase]);
 
     const signIn = async (email: string, password: string) => {
-        setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setUser({ uid: 'mock-user-123', email, displayName: 'Mock User', photoURL: null });
-        setLoading(false);
+        // DEVELOPMENT BYPASS: Allow Master Admin credentials for testing
+        if ((email === 'masterooshi@gmail.com' || email === 'ranganathanlohitaksha@gmail.com') && password === 'panda1234%') {
+            console.log('Master Admin bypass triggered');
+            // In a real app, we'd still want a session. 
+            // For now, we'll let the Supabase call proceed but handle the error for this specific user if it fails
+            try {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) {
+                    // If Supabase fails (user doesn't exist), we can set a mock user state manually 
+                    // but Supabase's auth state is managed internally. 
+                    // Better to just tell the user to create the user in Supabase dashboard.
+                    throw error;
+                }
+            } catch (err) {
+                throw err;
+            }
+            return;
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
     };
 
-    const signUp = async (email: string, password: string, fullName: string) => {
-        setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setUser({ uid: 'mock-user-' + Date.now(), email, displayName: fullName, photoURL: null });
-        setLoading(false);
+    const signInWithGoogle = async (propertyCode?: string) => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/api/auth/callback`,
+                queryParams: propertyCode ? { state: propertyCode } : {}
+            }
+        });
+        if (error) throw error;
     };
 
     const signOut = async () => {
-        setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setUser(null);
-        setLoading(false);
+        await supabase.auth.signOut();
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
-            {loading ? (
-                <div className="flex h-screen items-center justify-center bg-white">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                </div>
-            ) : (
-                children
-            )}
+        <AuthContext.Provider value={{ user, isLoading, signIn, signInWithGoogle, signOut }}>
+            {children}
         </AuthContext.Provider>
     );
 }
 
-export const useAuth = () => useContext(AuthContext);
-
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};

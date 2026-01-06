@@ -150,12 +150,13 @@ export default function HeroSection() {
             {/* Content Overlay */}
             <div className="absolute inset-0 z-20 flex flex-col justify-between p-8 md:p-12 lg:p-16">
                 <header className="flex justify-between items-center w-full pointer-events-auto">
-                    <div className={cn("text-white font-bold text-xl tracking-wider", fontHeading)}>AUTOPILOT</div>
-                    <div className="flex gap-6 items-center">
-                        <Link href="/login" className="text-white/60 hover:text-white text-sm transition-colors font-medium">Log In</Link>
-                        <Link href="/signup">
-                            <button className="px-5 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-md text-white border border-white/10 rounded-sm text-xs font-semibold transition-all uppercase tracking-widest hover:border-white/20">
-                                Sign Up
+                    <div className={cn("text-white font-black text-3xl tracking-tighter uppercase italic", fontHeading)}>
+                        AUTO<span className="text-white/40">PILOT</span>
+                    </div>
+                    <div className="flex gap-8 items-center">
+                        <Link href="/login">
+                            <button className="px-8 py-3 bg-white text-black font-black rounded-sm hover:bg-zinc-200 transition-colors text-[10px] uppercase tracking-[0.2em] shadow-2xl">
+                                Log In
                             </button>
                         </Link>
                     </div>

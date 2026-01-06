@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { dashboardService, DashboardSummary } from '@/services/dashboardService';
-import { authService } from '@/services/authService';
+import { useAuth } from '@/context/AuthContext';
 import TicketSLATile from '@/components/dashboard/TicketSLATile';
 import EmployeeHeatmapTile from '@/components/dashboard/EmployeeHeatmapTile';
 import StatTile from '@/components/dashboard/StatTile';
@@ -11,11 +11,14 @@ import UserManagementTable from '@/components/users/UserManagementTable';
 
 export default function DashboardOverview() {
     const [summary, setSummary] = useState<DashboardSummary | null>(null);
-    const currentUser = authService.getCurrentUser();
+    const { user } = useAuth();
+
+    // Default property ID for demo if user has no assigned property in metadata
+    const propertyId = user?.user_metadata?.property_id || 'prop-1';
 
     useEffect(() => {
-        dashboardService.getSummary(currentUser.property_id).then(setSummary);
-    }, [currentUser.property_id]);
+        dashboardService.getSummary(propertyId).then(setSummary);
+    }, [propertyId]);
 
     if (!summary) return <div className="p-8 flex items-center justify-center min-h-[60vh] text-slate-400 font-medium">Initializing Dashboard...</div>;
 
@@ -26,7 +29,7 @@ export default function DashboardOverview() {
                     <h1 className="text-4xl font-display font-black text-slate-900 tracking-tighter">OVERVIEW</h1>
                     <p className="text-slate-400 font-medium flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        Property: <span className="text-slate-600 font-bold">{currentUser.property_id}</span>
+                        Property: <span className="text-slate-600 font-bold">{propertyId}</span>
                     </p>
                 </div>
                 <div className="flex gap-4">

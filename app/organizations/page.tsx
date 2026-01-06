@@ -3,13 +3,24 @@
 import React from 'react';
 import Link from 'next/link';
 import { Building2, ChevronRight, Plus } from 'lucide-react';
+import { useAppSession } from '@/hooks/useAppSession';
+import { useRouter } from 'next/navigation';
 
 const MOCK_ORGS = [
-    { id: 'autopilot-offices', name: 'Autopilot Offices', slug: 'autopilot-offices', type: 'Owner' },
-    { id: 'realty-hub', name: 'Realty Hub', slug: 'realty-hub', type: 'Partner' }
+    { id: 'autopilot-offices', name: 'Autopilot Offices', code: 'autopilot-offices', type: 'Owner' },
+    { id: 'realty-hub', name: 'Realty Hub', code: 'realty-hub', type: 'Partner' }
 ];
 
 export default function OrganizationsPage() {
+    const { session, isLoading } = useAppSession();
+    const router = useRouter();
+
+    React.useEffect(() => {
+        if (!isLoading && session?.role === 'master_admin') {
+            router.push('/master');
+        }
+    }, [session, isLoading, router]);
+
     return (
         <div className="min-h-screen bg-[#fafbfc] p-12">
             <div className="max-w-4xl mx-auto space-y-12">
@@ -22,7 +33,7 @@ export default function OrganizationsPage() {
                     {MOCK_ORGS.map((org) => (
                         <Link
                             key={org.id}
-                            href={`/${org.slug}/dashboard`}
+                            href={`/${org.code}/dashboard`}
                             className="group bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all duration-500 flex flex-col justify-between h-64"
                         >
                             <div className="flex justify-between items-start">
