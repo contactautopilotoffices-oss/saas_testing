@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -20,14 +21,67 @@ const LoginPage = () => {
         setLoading(true);
         setError('');
         try {
-            await signIn(email, password);
-            // REDIRECTION LOGIC: Master Admin routing
-            if (email === 'masterooshi@gmail.com' || email === 'ranganathanlohitaksha@gmail.com') {
+            const { data: { user }, error: signInError } = await signIn(email, password);
+            if (signInError || !user) throw new Error(signInError?.message || 'Login failed');
+
+            // 1. Check Master Admin Status
+            const supabase = createClient();
+
+            // Debug: Check user ID
+            console.log('User logged in:', user.id);
+
+            const { data: masterData } = await supabase
+                .from('users')
+                .select('is_master_admin')
+                .eq('id', user.id)
+                .single();
+
+            if (masterData?.is_master_admin) {
+                console.log('Redirecting to Master Dashboard');
                 router.push('/master');
-            } else {
-                router.push('/organizations');
+                return;
             }
+
+            // 2. Step-by-Step Organization Lookup (More Robust than Joins)
+
+            // Step A: Find Membership
+            const { data: membership, error: memError } = await supabase
+                .from('organization_memberships')
+                .select('organization_id')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (memError) {
+                console.error('Membership Fetch Error:', memError);
+                throw new Error('Failed to verify organization membership.');
+            }
+
+            if (!membership?.organization_id) {
+                console.error('No membership found for user:', user.id);
+                // Throwing error instead of redirecting to /organizations as requested
+                throw new Error('No organization assigned to your account. Please contact support.');
+            }
+            console.log('Found membership for user:', user.id, 'Organization ID:', membership.organization_id);
+
+            // Step B: Find Organization Code (Schema update: 'slug' column)
+            const { data: org, error: orgError } = await supabase
+                .from('organizations')
+                .select('slug') // CHANGED from 'code' to 'slug' based on screenshot
+                .eq('id', membership.organization_id)
+                .is('deleted_at', null) // Filter out deleted orgs
+                .single();
+
+            if (orgError || !org) {
+                console.error('Org Fetch Error:', orgError);
+                throw new Error('Organization details could not be found.');
+            }
+            console.log('Found org slug:', org.slug);
+
+            console.log('Redirecting to Org Dashboard:', org.slug);
+            router.push(`/${org.slug}/dashboard`);
+
         } catch (err: any) {
+            console.error('Login Error:', err);
             setError(err.message || 'Invalid credentials. Please try again.');
         } finally {
             setLoading(false);

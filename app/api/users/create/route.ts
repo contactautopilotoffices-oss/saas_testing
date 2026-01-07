@@ -7,8 +7,9 @@ interface CreateUserRequest {
     password?: string
     full_name: string
     organization_id: string
-    role?: 'member' | 'admin' | 'owner'
+    role?: string // matches app_role enum: 'master_admin' | 'org_super_admin' | 'property_admin' | 'staff' | 'tenant'
     username?: string
+    create_master_admin?: boolean
 }
 
 /**
@@ -27,14 +28,17 @@ export async function POST(request: NextRequest) {
             password,
             full_name,
             organization_id,
-            role = 'member',
+            role = 'staff', // Default to a valid enum value if not provided
             username
         } = body
 
-        // Validation
-        if (!email || !full_name || !organization_id) {
+        // Validation: email and full_name are always required.
+        // organization_id is required UNLESS we are creating a master admin.
+        const createMasterAdmin = body.create_master_admin === true;
+
+        if (!email || !full_name || (!organization_id && !createMasterAdmin)) {
             return NextResponse.json(
-                { error: 'Missing required fields: email, full_name, organization_id' },
+                { error: 'Missing required fields: email, full_name, and organization_id (unless creating master admin)' },
                 { status: 400 }
             )
         }
@@ -57,15 +61,36 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Check if current user is org admin
-        const { data: isAdmin, error: permError } = await supabase
-            .rpc('current_user_is_org_admin', { org_uuid: organization_id })
+        // Check if current user is a master admin
+        const { data: masterAdminData } = await supabase
+            .from('users')
+            .select('is_master_admin')
+            .eq('id', currentUser.id)
+            .single()
 
-        if (permError || !isAdmin) {
-            return NextResponse.json(
-                { error: 'Forbidden. You must be an organization admin to create users.' },
-                { status: 403 }
-            )
+        const isCurrentMasterAdmin = masterAdminData?.is_master_admin
+
+        // Permission Check
+        if (createMasterAdmin) {
+            if (!isCurrentMasterAdmin) {
+                return NextResponse.json(
+                    { error: 'Forbidden. Only Master Admins can create other Master Admins.' },
+                    { status: 403 }
+                )
+            }
+        } else {
+            // If not creating master admin, check if org admin (or master admin)
+            if (!isCurrentMasterAdmin) {
+                const { data: isAdmin, error: permError } = await supabase
+                    .rpc('current_user_is_org_admin', { org_uuid: organization_id })
+
+                if (permError || !isAdmin) {
+                    return NextResponse.json(
+                        { error: 'Forbidden. You must be an organization admin or master admin to create users.' },
+                        { status: 403 }
+                    )
+                }
+            }
         }
 
         // Use admin client for user creation (bypasses RLS)
@@ -83,7 +108,7 @@ export async function POST(request: NextRequest) {
                 full_name,
                 username: username || email.split('@')[0],
                 created_by: currentUser.id,
-                organization_id,
+                organization_id: organization_id || null,
             }
         })
 
@@ -111,19 +136,34 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // The database trigger will auto-create user_profiles
-        // Now create organization membership
-        const { error: memberError } = await adminClient
-            .from('organization_members')
-            .insert({
-                organization_id,
-                user_id: userData.user.id,
-                role,
-            })
+        // If creating a master admin, update the user record
+        if (createMasterAdmin) {
+            const { error: updateError } = await adminClient
+                .from('users')
+                .update({ is_master_admin: true })
+                .eq('id', userData.user.id)
 
-        if (memberError) {
-            console.error('Membership creation error:', memberError)
-            // Don't fail - user was created, membership can be fixed manually
+            if (updateError) {
+                console.error('Failed to set master admin flag:', updateError)
+                // Just log it, user is created but not master admin yet. Manual fix might be needed.
+            }
+        }
+
+        // The database trigger will auto-create user_profiles
+        // Now create organization membership IF an organization_id was provided
+        if (organization_id) {
+            const { error: memberError } = await adminClient
+                .from('organization_memberships')
+                .insert({
+                    organization_id,
+                    user_id: userData.user.id,
+                    role,
+                })
+
+            if (memberError) {
+                console.error('Membership creation error:', memberError)
+                // Don't fail - user was created, membership can be fixed manually
+            }
         }
 
         return NextResponse.json({
@@ -133,12 +173,11 @@ export async function POST(request: NextRequest) {
                 id: userData.user.id,
                 email: userData.user.email,
                 full_name,
-                role,
+                role: createMasterAdmin ? 'master_admin' : role,
             },
             // Only include temp password in response if it was generated
             ...(password ? {} : { temp_password: userPassword }),
         })
-
     } catch (error) {
         console.error('Create user API error:', error)
         return NextResponse.json(

@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import {
     ShieldCheck, Users, Building2, AlertTriangle, Activity,
-    Globe, LayoutGrid, Settings, Trash2, Key, RefreshCcw,
-    CheckCircle2, XCircle, Search, Filter, ExternalLink, MoreVertical,
-    Plus, X, Copy, Eye, EyeOff
+    LayoutGrid, Settings, Trash2, RefreshCcw,
+    CheckCircle2, AlertCircle, Search, Plus, ExternalLink, XCircle, Filter,
+    Key, Eye, EyeOff, Globe, Copy, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 type Tab = 'overview' | 'organizations' | 'users' | 'modules' | 'settings';
 
@@ -32,15 +33,19 @@ interface SystemUser {
     phone: string | null;
     created_at: string;
     organization_memberships?: { role: string; organization_id: string; is_active?: boolean }[];
+    property_memberships?: { role: string; property: { name: string; code: string }; is_active?: boolean }[];
+    is_master_admin?: boolean;
 }
 
 const MasterAdminDashboard = () => {
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [searchQuery, setSearchQuery] = useState('');
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [users, setUsers] = useState<SystemUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
+    const [showCreateUserModal, setShowCreateUserModal] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const supabase = createClient();
 
@@ -51,35 +56,77 @@ const MasterAdminDashboard = () => {
 
     useEffect(() => {
         fetchOrganizations();
-        fetchUsers();
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'users') {
+            fetchUsers();
+        }
+    }, [activeTab]);
 
     const fetchOrganizations = async () => {
         setIsLoading(true);
         const { data, error } = await supabase
             .from('organizations')
-            .select(`
-        *,
-        properties (count),
-        organization_memberships (count)
-      `);
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        if (!error && data) {
-            setOrganizations(data);
+        if (error) {
+            console.error('Error fetching organizations:', error);
+            setIsLoading(false);
+            return;
         }
+
+        setOrganizations(data ?? []);
         setIsLoading(false);
     };
 
     const fetchUsers = async () => {
-        const { data, error } = await supabase
-            .from('users')
-            .select(`
-        *,
-        organization_memberships (role, organization_id)
-      `);
+        setIsLoading(true);
+        try {
+            // Use the secure Admin API endpoint to bypass client-side RLS issues
+            const response = await fetch('/api/admin/users');
 
-        if (!error && data) {
-            setUsers(data);
+            if (!response.ok) {
+                // Determine error message based on status
+                if (response.status === 403) throw new Error('You do not have permission to view users.');
+                if (response.status === 401) throw new Error('Session expired. Please log in again.');
+                throw new Error('Failed to fetch users.');
+            }
+
+            const data = await response.json();
+            setUsers(data || []);
+        } catch (err: any) {
+            console.error('Error fetching users:', err);
+            showToast(
+                err.message || 'Failed to load users',
+                'error',
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteUser = async (userId: string) => {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+
+        try {
+            const response = await fetch('/api/users/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to delete user');
+            }
+
+            showToast('User deleted successfully.');
+            fetchUsers();
+        } catch (error: any) {
+            showToast(error.message || 'Failed to delete user', 'error');
         }
     };
 
@@ -188,11 +235,22 @@ const MasterAdminDashboard = () => {
                 </nav>
 
                 <div className="pt-8 border-t border-slate-100">
-                    <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                    <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 mb-4">
                         <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Status</p>
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-xs font-bold text-slate-700">Production Mode</span>
+                        </div>
+                    </div>
+
+                    {/* User Profile Section */}
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {user?.email?.[0].toUpperCase() || 'M'}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="font-bold text-sm text-slate-900 truncate">{user?.user_metadata?.full_name || 'Master Admin'}</span>
+                            <span className="text-xs text-slate-400 truncate w-40">{user?.email}</span>
                         </div>
                     </div>
                 </div>
@@ -225,6 +283,14 @@ const MasterAdminDashboard = () => {
                                 <Plus className="w-4 h-4" /> New Org
                             </button>
                         )}
+                        {activeTab === 'users' && (
+                            <button
+                                onClick={() => setShowCreateUserModal(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                            >
+                                <Plus className="w-4 h-4" /> New User
+                            </button>
+                        )}
                     </div>
                 </header>
 
@@ -251,6 +317,8 @@ const MasterAdminDashboard = () => {
                                 organizations={organizations}
                                 onUpdateRole={handleUpdateUserRole}
                                 onToggleStatus={handleToggleUserStatus}
+                                onDeleteUser={handleDeleteUser}
+                                onAddUser={() => setShowCreateUserModal(true)}
                             />
                         )}
                         {activeTab === 'modules' && (
@@ -298,6 +366,14 @@ const MasterAdminDashboard = () => {
                         onCreated={() => {
                             fetchOrganizations();
                         }}
+                        showToast={showToast}
+                    />
+                )}
+                {showCreateUserModal && (
+                    <CreateUserModal
+                        onClose={() => setShowCreateUserModal(false)}
+                        onCreated={fetchUsers}
+                        organizations={organizations}
                         showToast={showToast}
                     />
                 )}
@@ -413,11 +489,11 @@ const OrganizationsList = ({ organizations, isLoading, onSoftDelete, onRestore }
                                     </div>
                                 </td>
                                 <td className="px-8 py-6">
-                                    <span className="text-sm font-black text-slate-700">{org.properties?.[0]?.count || 0} Entities</span>
+                                    <span className="text-sm font-black text-slate-700">0 Entities</span>
                                 </td>
                                 <td className="px-8 py-6">
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-xs font-bold text-slate-600">{org.organization_memberships?.[0]?.count || 0} Users</span>
+                                        <span className="text-xs font-bold text-slate-600">0 Users</span>
                                         <div className="w-20 h-1 bg-slate-100 rounded-full overflow-hidden">
                                             <div className="h-full bg-slate-400 rounded-full" style={{ width: '45%' }} />
                                         </div>
@@ -515,80 +591,170 @@ const OrganizationsList = ({ organizations, isLoading, onSoftDelete, onRestore }
 };
 
 // Sub-component: User Directory with Role Management
-const UserDirectory = ({ users, organizations, onUpdateRole, onToggleStatus }: {
+const UserDirectory = ({ users, organizations, onUpdateRole, onToggleStatus, onDeleteUser, onAddUser }: {
     users: SystemUser[];
     organizations: Organization[];
     onUpdateRole: (userId: string, role: string, orgId: string) => void;
     onToggleStatus: (userId: string, orgId: string, current: boolean) => void;
+    onDeleteUser: (userId: string) => void;
+    onAddUser: () => void;
 }) => {
     const roleOptions = ['master_admin', 'org_super_admin', 'property_admin', 'staff', 'tenant'];
+    const [selectedOrgFilter, setSelectedOrgFilter] = useState<string>('all');
+
+    const filteredUsers = selectedOrgFilter === 'all'
+        ? users
+        : users.filter(u => u.organization_memberships?.some(m => m.organization_id === selectedOrgFilter));
 
     return (
         <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
             <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-black text-slate-900">System Users ({users.length})</h3>
-                <button className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl uppercase tracking-widest flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                    <Users className="w-4 h-4" /> Export Audit Log
-                </button>
+                <div className="flex items-center gap-4">
+                    <h3 className="text-xl font-black text-slate-900">System Users ({filteredUsers.length})</h3>
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <select
+                            value={selectedOrgFilter}
+                            onChange={(e) => setSelectedOrgFilter(e.target.value)}
+                            className="pl-10 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-slate-100 appearance-none cursor-pointer"
+                        >
+                            <option value="all">All Organizations</option>
+                            {organizations.map(org => (
+                                <option key={org.id} value={org.id}>{org.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onAddUser}
+                        className="px-5 py-2.5 bg-emerald-500 text-white font-bold text-xs rounded-xl uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100"
+                    >
+                        <Plus className="w-4 h-4" /> Add User
+                    </button>
+                    <button className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl uppercase tracking-widest flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                        <Users className="w-4 h-4" /> Export Audit Log
+                    </button>
+                </div>
             </div>
 
             <div className="space-y-4">
-                {users.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 italic">No users found in the system.</div>
+                {filteredUsers.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 italic">No users found for this selection.</div>
                 ) : (
-                    users.map((user) => {
-                        const membership = user.organization_memberships?.[0];
-                        const isActive = membership?.is_active ?? true;
+                    filteredUsers.map((user) => {
+                        const isMasterAdmin = user.is_master_admin === true;
+
+                        // Collect all memberships to display
+                        // We want to show specific org memberships if filtered, or ALL memberships if 'all' is selected
+                        const orgMemberships = user.organization_memberships?.filter(m => selectedOrgFilter === 'all' || m.organization_id === selectedOrgFilter) || [];
+                        // Property memberships are not filtered by Org ID currently in the UI filter (as it only lists Orgs), 
+                        // but strictly speaking properties belong to orgs. For now, show all prop memberships if filter is 'all', 
+                        // or filter them if we had org_id on them (we don't in the frontend, only in DB).
+                        // Let's just show all property memberships for now to ensure visibility.
+                        const propMemberships = user.property_memberships || [];
+
+                        const hasMemberships = orgMemberships.length > 0 || propMemberships.length > 0;
+
                         return (
                             <div key={user.id} className="flex items-center justify-between p-6 border border-slate-50 rounded-3xl hover:border-slate-200 transition-all group">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 relative">
                                         <Users className="w-6 h-6" />
-                                        {!isActive && (
-                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white flex items-center justify-center">
-                                                <XCircle className="w-2.5 h-2.5 text-white" />
-                                            </div>
-                                        )}
+                                        {/* Show suspended if specific checks fail? Global active check is hard with multiple roles. */}
                                     </div>
                                     <div>
                                         <h4 className="font-black text-slate-900 flex items-center gap-2">
-                                            {user.full_name}
-                                            {!isActive && <span className="text-[10px] bg-rose-50 text-rose-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Suspended</span>}
+                                            {user.full_name || 'Unknown User'}
+                                            {user.is_master_admin && (
+                                                <span className="text-[9px] bg-slate-900 text-white px-1.5 py-0.5 rounded-md uppercase tracking-widest border border-slate-900 flex items-center gap-1">
+                                                    <ShieldCheck className="w-3 h-3" /> Master
+                                                </span>
+                                            )}
                                         </h4>
                                         <p className="text-xs font-medium text-slate-400">{user.email}</p>
+
+                                        {/* Context Badges (Where do they belong?) */}
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {isMasterAdmin && (
+                                                <span className="text-xs text-indigo-600 font-bold italic">
+                                                    Platform-level access
+                                                </span>
+                                            )}
+
+                                            {!isMasterAdmin && !hasMemberships && (
+                                                <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
+                                                    Unassigned
+                                                </span>
+                                            )}
+
+                                            {orgMemberships.map((m, idx) => {
+                                                const orgName = organizations.find(o => o.id === m.organization_id)?.name || 'Unknown Org';
+                                                return (
+                                                    <span key={`org-${idx}`} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 flex items-center gap-1">
+                                                        <Building2 className="w-3 h-3" /> {orgName}
+                                                    </span>
+                                                );
+                                            })}
+
+                                            {propMemberships.map((m, idx) => (
+                                                <span key={`prop-${idx}`} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 flex items-center gap-1">
+                                                    <Building2 className="w-3 h-3" /> {m.property?.name || 'Unknown Property'}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* Roles Column */}
                                 <div className="flex items-center gap-8">
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Role</span>
-                                        <select
-                                            value={membership?.role || 'tenant'}
-                                            disabled={!isActive}
-                                            onChange={(e) => {
-                                                if (membership?.organization_id) {
-                                                    onUpdateRole(user.id, e.target.value, membership.organization_id);
-                                                }
-                                            }}
-                                            className="text-sm font-bold text-slate-900 focus:outline-none bg-transparent cursor-pointer border border-slate-200 rounded-lg px-3 py-1 disabled:opacity-50"
-                                        >
-                                            {roleOptions.map(role => (
-                                                <option key={role} value={role}>{role.replace('_', ' ').toUpperCase()}</option>
-                                            ))}
-                                        </select>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Assigned Roles</span>
+
+                                        {isMasterAdmin && (
+                                            <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded uppercase font-black">
+                                                MASTER ADMIN
+                                            </span>
+                                        )}
+
+                                        {orgMemberships.map((m, idx) => (
+                                            <div key={`org-role-${idx}`} className="flex items-center gap-2">
+                                                <span className="text-[10px] text-slate-400 font-medium">Org:</span>
+                                                <select
+                                                    value={m.role}
+                                                    onChange={(e) => onUpdateRole(user.id, e.target.value, m.organization_id)}
+                                                    className="text-sm font-bold text-emerald-700 bg-transparent cursor-pointer border-b border-dotted border-emerald-300 focus:outline-none"
+                                                >
+                                                    {roleOptions.map(role => (
+                                                        <option key={role} value={role}>{role.replace('_', ' ').toUpperCase()}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ))}
+
+                                        {propMemberships.map((m, idx) => (
+                                            <div key={`prop-role-${idx}`} className="flex items-center gap-2">
+                                                <span className="text-[10px] text-slate-400 font-medium">Prop:</span>
+                                                <span className="text-sm font-bold text-blue-700 border-b border-dotted border-blue-300">
+                                                    {m.role?.replace('_', ' ').toUpperCase()}
+                                                </span>
+                                            </div>
+                                        ))}
+
+                                        {!isMasterAdmin && !hasMemberships && (
+                                            <span className="text-xs text-slate-300 italic">No Role</span>
+                                        )}
                                     </div>
+
+                                    {/* Actions */}
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {/* Status Toggles Logic - complex for multiple roles, maybe just show delete for now */}
                                         <button
-                                            onClick={() => {
-                                                if (membership?.organization_id) {
-                                                    onToggleStatus(user.id, membership.organization_id, isActive);
-                                                }
-                                            }}
-                                            className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${isActive
-                                                ? 'text-rose-500 hover:bg-rose-50'
-                                                : 'text-emerald-500 hover:bg-emerald-50'
-                                                }`}
+                                            onClick={() => onDeleteUser(user.id)}
+                                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                            title="Delete User"
                                         >
-                                            {isActive ? 'Suspend' : 'Activate'}
+                                            <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
@@ -993,6 +1159,225 @@ const SystemSettings = ({ onRestore }: { onRestore: (secret: string) => Promise<
                 </div>
             </div>
         </div>
+    );
+};
+
+// Sub-component: Create User Modal
+const CreateUserModal = ({ onClose, onCreated, organizations, showToast }: {
+    onClose: () => void;
+    onCreated: () => void;
+    organizations: Organization[];
+    showToast: (msg: string, type: 'success' | 'error') => void;
+}) => {
+    const [email, setEmail] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [manualPassword, setManualPassword] = useState(''); // New State
+    const [selectedOrgId, setSelectedOrgId] = useState(organizations[0]?.id || '');
+    const [role, setRole] = useState('staff');
+    const [isCreating, setIsCreating] = useState(false);
+    const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+
+    const handleCreate = async () => {
+        const isMasterAdmin = role === 'master_admin';
+        if (!email || !fullName || (!isMasterAdmin && !selectedOrgId)) return;
+
+        setIsCreating(true);
+
+        try {
+            const response = await fetch('/api/users/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    password: manualPassword || undefined, // Send if present
+                    full_name: fullName,
+                    organization_id: isMasterAdmin ? undefined : selectedOrgId,
+                    role: isMasterAdmin ? 'staff' : role,
+                    create_master_admin: isMasterAdmin
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to create user');
+            }
+
+            if (data.temp_password) {
+                // Auto-generated case
+                setGeneratedPassword(data.temp_password);
+                showToast(`User created with auto-generated password.`, 'success');
+            } else {
+                // Manual password case (API doesn't return it back)
+                // We show what the admin typed just for confirmation, or just a success message.
+                // Let's reuse the success view but with the manual password.
+                setGeneratedPassword(manualPassword);
+                showToast(`User created with manual password.`, 'success');
+            }
+
+        } catch (error: any) {
+            showToast(error.message || 'Failed to create user', 'error');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const handleCopyPassword = () => {
+        if (generatedPassword) {
+            navigator.clipboard.writeText(generatedPassword);
+            showToast('Password copied to clipboard', 'success');
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        >
+            <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl"
+            >
+                {generatedPassword ? (
+                    <div className="space-y-6 text-center">
+                        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+                            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black text-slate-900 mb-2">User Created!</h3>
+                            <p className="text-sm text-slate-500">
+                                Share these credentials with the user securely. <br />
+                                <span className="text-rose-500 font-bold">This password will not be shown again.</span>
+                            </p>
+                        </div>
+
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-left space-y-4">
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Email</p>
+                                <p className="font-bold text-slate-900">{email}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Password</p>
+                                <div className="flex items-center gap-2">
+                                    <code className="bg-white px-3 py-2 rounded-lg border border-slate-200 font-mono text-lg font-bold text-slate-800 flex-1">
+                                        {generatedPassword}
+                                    </code>
+                                    <button
+                                        onClick={handleCopyPassword}
+                                        className="p-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                                        title="Copy Password"
+                                    >
+                                        <Copy className="w-5 h-5 text-slate-600" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                onCreated();
+                                onClose();
+                            }}
+                            className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors"
+                        >
+                            Done
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        {/* Header */}
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 mb-1">Add New User</h3>
+                                <p className="text-sm text-slate-500">Create a new user and assign roles.</p>
+                            </div>
+                            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
+                        </div>
+
+                        {/* Form */}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="John Doe"
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-100"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700">Email Address</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="john@example.com"
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-100"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700">Password <span className="text-slate-400 font-medium text-xs">(Optional)</span></label>
+                                    <input
+                                        type="text"
+                                        value={manualPassword}
+                                        onChange={(e) => setManualPassword(e.target.value)}
+                                        placeholder="Auto-generate"
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-100"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Role</label>
+                                <select
+                                    value={role}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-100 bg-white"
+                                >
+                                    <option value="tenant">Tenant</option>
+                                    <option value="staff">Staff</option>
+                                    <option value="property_admin">Property Admin</option>
+                                    <option value="org_super_admin">Org Super Admin</option>
+                                    <option value="master_admin">Master Admin (Platform)</option>
+                                </select>
+                            </div>
+
+                            {role !== 'master_admin' && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700">Organization</label>
+                                    <select
+                                        value={selectedOrgId}
+                                        onChange={(e) => setSelectedOrgId(e.target.value)}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-100 bg-white"
+                                    >
+                                        {organizations.map(org => (
+                                            <option key={org.id} value={org.id}>{org.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleCreate}
+                                disabled={isCreating || !email || !fullName || (role !== 'master_admin' && !selectedOrgId)}
+                                className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                            >
+                                {isCreating ? 'Creating...' : 'Create User'}
+                            </button>
+                        </div>
+                    </>
+                )}
+            </motion.div>
+        </motion.div>
     );
 };
 
