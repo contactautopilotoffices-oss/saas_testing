@@ -11,6 +11,8 @@ import PropertyManagement from './PropertyManagement';
 import UserManagement from './UserManagement';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import SignOutModal from '@/components/ui/SignOutModal';
 
 type SubTab = 'dashboard' | 'properties' | 'requests' | 'alerts' | 'users' | 'analytics';
 
@@ -26,6 +28,8 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
     const [isSidebarOpen] = useState(true);
     const [properties, setProperties] = useState<Property[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const { signOut } = useAuth();
     const supabase = createClient();
 
     useEffect(() => {
@@ -147,12 +151,21 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
                 </div>
 
                 <div className="p-4 border-t border-zinc-800/50">
-                    <button className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-zinc-500 hover:text-white hover:bg-zinc-800/50 transition-all">
+                    <button
+                        onClick={() => setShowSignOutModal(true)}
+                        className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-zinc-500 hover:text-white hover:bg-zinc-800/50 transition-all"
+                    >
                         <LogOut className="w-5 h-5" />
                         {isSidebarOpen && <span className="text-sm font-black tracking-tight">Sign Out</span>}
                     </button>
                 </div>
             </aside>
+
+            <SignOutModal
+                isOpen={showSignOutModal}
+                onClose={() => setShowSignOutModal(false)}
+                onConfirm={signOut}
+            />
 
             {/* Main Panel */}
             <main className="flex-1 flex flex-col bg-[#0c0c0e] relative overflow-hidden">

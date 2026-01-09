@@ -2,17 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-    LayoutDashboard, Building2, Users, Ticket, Settings,
-    Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check
+    LayoutDashboard, Building2, Users, Ticket, Settings, UserCircle,
+    Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
+    Coffee, IndianRupee, FileDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import { HapticCard } from '@/components/ui/HapticCard';
+import UserDirectory from './UserDirectory';
+import SignOutModal from '@/components/ui/SignOutModal';
 
 // Types
-type Tab = 'overview' | 'properties' | 'users' | 'tickets' | 'settings';
+type Tab = 'overview' | 'properties' | 'requests' | 'users' | 'visitors' | 'cafeteria' | 'settings' | 'profile' | 'revenue';
 
 interface Property {
     id: string;
@@ -63,6 +66,7 @@ const OrgAdminDashboard = () => {
     const [showUserModal, setShowUserModal] = useState(false);
     const [editingUser, setEditingUser] = useState<OrgUser | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
+    const [showSignOutModal, setShowSignOutModal] = useState(false);
 
     const supabase = createClient();
 
@@ -74,7 +78,7 @@ const OrgAdminDashboard = () => {
 
     useEffect(() => {
         if (org) {
-            if (activeTab === 'properties') fetchProperties();
+            fetchProperties(); // ALWAYS fetch properties for the dropdown
             if (activeTab === 'users') fetchOrgUsers();
         }
     }, [activeTab, org]);
@@ -303,13 +307,6 @@ const OrgAdminDashboard = () => {
         fetchOrgUsers();
     };
 
-    const navItems: { id: Tab, label: string, icon: any }[] = [
-        { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'properties', label: 'Properties', icon: Building2 },
-        { id: 'users', label: 'User Directory', icon: Users },
-        { id: 'tickets', label: 'Ticketing', icon: Ticket },
-        { id: 'settings', label: 'Settings', icon: Settings },
-    ];
 
     if (!org && !isLoading) return (
         <div className="p-10 text-center">
@@ -334,23 +331,129 @@ const OrgAdminDashboard = () => {
                     </div>
                 </div>
 
-                <nav className="space-y-2 flex-1 px-4">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm ${activeTab === item.id
-                                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'
-                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                                }`}
-                        >
-                            <item.icon className="w-4 h-4" />
-                            {item.label}
-                        </button>
-                    ))}
+                <nav className="flex-1 px-4 overflow-y-auto">
+                    {/* Core Operations */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                            Core Operations
+                        </p>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => setActiveTab('overview')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <LayoutDashboard className="w-4 h-4" />
+                                Dashboard
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('requests')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <Ticket className="w-4 h-4" />
+                                Requests
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Management Hub */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                            Management Hub
+                        </p>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => setActiveTab('users')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <Users className="w-4 h-4" />
+                                User Management
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('properties')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'properties'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <Building2 className="w-4 h-4" />
+                                Property Management
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('visitors')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <UsersRound className="w-4 h-4" />
+                                Visitor Management
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('cafeteria')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'cafeteria'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <Coffee className="w-4 h-4" />
+                                Cafeteria Management
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('revenue')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'revenue'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <IndianRupee className="w-4 h-4" />
+                                Vendor Revenue
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* System & Personal */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                            System & Personal
+                        </p>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => setActiveTab('settings')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <Settings className="w-4 h-4" />
+                                Settings
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('profile')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <UserCircle className="w-4 h-4" />
+                                Profile
+                            </button>
+                        </div>
+                    </div>
                 </nav>
 
-                <div className="pt-8 border-t border-slate-100 p-6">
+                <div className="pt-6 border-t border-slate-100 p-6">
                     {/* User Profile Section */}
                     <div className="flex items-center gap-3 px-2 mb-6">
                         <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-slate-200">
@@ -367,18 +470,20 @@ const OrgAdminDashboard = () => {
                     </div>
 
                     <button
-                        onClick={() => {
-                            if (window.confirm('Are you sure you want to log out?')) {
-                                signOut();
-                            }
-                        }}
-                        className="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl w-full transition-all duration-300 text-sm font-bold group"
+                        onClick={() => setShowSignOutModal(true)}
+                        className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
                     >
                         <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         Sign Out
                     </button>
                 </div>
             </aside>
+
+            <SignOutModal
+                isOpen={showSignOutModal}
+                onClose={() => setShowSignOutModal(false)}
+                onConfirm={signOut}
+            />
 
             {/* Main Content */}
             <main className={`flex-1 ml-72 overflow-y-auto min-h-screen ${activeTab === 'overview' ? '' : 'p-8 lg:p-12'}`}>
@@ -406,7 +511,8 @@ const OrgAdminDashboard = () => {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {activeTab === 'overview' && <OverviewTab propertiesCount={properties.length} usersCount={orgUsers.length} />}
+                        {activeTab === 'overview' && <OverviewTab properties={properties} />}
+                        {activeTab === 'revenue' && <RevenueTab properties={properties} />}
                         {activeTab === 'properties' && (
                             <PropertiesTab
                                 properties={properties}
@@ -415,43 +521,83 @@ const OrgAdminDashboard = () => {
                                 onDelete={handleDeleteProperty}
                             />
                         )}
+                        {activeTab === 'requests' && (
+                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+                                <Ticket className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Requests Management</h3>
+                                <p className="text-slate-500">Request management module coming soon.</p>
+                            </div>
+                        )}
                         {activeTab === 'users' && (
-                            <UsersTab
-                                users={orgUsers}
+                            <UserDirectory
                                 orgId={org?.id}
-                                allProperties={properties} // Pass all properties
-                                onEdit={(u: any) => { setEditingUser(u); setShowUserModal(true); }}
-                                onDelete={handleDeleteUser}
+                                properties={properties.map(p => ({ id: p.id, name: p.name }))}
+                                onUserUpdated={fetchOrgUsers}
                             />
                         )}
-                        {activeTab === 'tickets' && <div className="text-slate-400 font-bold italic">Ticketing Module Loading...</div>}
+                        {activeTab === 'visitors' && (
+                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+                                <UsersRound className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Visitor Management</h3>
+                                <p className="text-slate-500">Visitor management module coming soon.</p>
+                            </div>
+                        )}
+                        {activeTab === 'cafeteria' && (
+                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+                                <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Cafeteria Management</h3>
+                                <p className="text-slate-500">Cafeteria management module coming soon.</p>
+                            </div>
+                        )}
+                        {activeTab === 'settings' && (
+                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+                                <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Settings</h3>
+                                <p className="text-slate-500">System settings coming soon.</p>
+                            </div>
+                        )}
+                        {activeTab === 'profile' && (
+                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+                                <UserCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Profile</h3>
+                                <p className="text-slate-500">Profile management coming soon.</p>
+                            </div>
+                        )}
                     </motion.div>
                 </AnimatePresence>
             </main>
 
             {/* Modals */}
-            {(showCreatePropModal || editingProperty) && (
-                <PropertyModal
-                    property={editingProperty}
-                    onClose={() => { setShowCreatePropModal(false); setEditingProperty(null); }}
-                    onSave={editingProperty ? (data: any) => handleUpdateProperty(editingProperty.id, data) : handleCreateProperty}
-                />
-            )}
+            {
+                (showCreatePropModal || editingProperty) && (
+                    <PropertyModal
+                        property={editingProperty}
+                        onClose={() => { setShowCreatePropModal(false); setEditingProperty(null); }}
+                        onSave={editingProperty ? (data: any) => handleUpdateProperty(editingProperty.id, data) : handleCreateProperty}
+                    />
+                )
+            }
 
-            {showUserModal && (
-                <UserModal
-                    user={editingUser}
-                    onClose={() => { setShowUserModal(false); setEditingUser(null); }}
-                    onSave={(data: any) => editingUser && handleUpdateUser(editingUser.user_id, data)}
-                />
-            )}
-        </div>
+            {
+                showUserModal && (
+                    <UserModal
+                        user={editingUser}
+                        onClose={() => { setShowUserModal(false); setEditingUser(null); }}
+                        onSave={(data: any) => editingUser && handleUpdateUser(editingUser.user_id, data)}
+                    />
+                )
+            }
+        </div >
     );
 };
 
 // Sub-components
-const OverviewTab = ({ propertiesCount, usersCount }: { propertiesCount: number, usersCount: number }) => {
-    const [selectedProperty, setSelectedProperty] = useState('All Properties');
+const OverviewTab = ({ properties }: { properties: Property[] }) => {
+    const [selectedPropertyId, setSelectedPropertyId] = useState('all');
+
+    const activeProperty = selectedPropertyId === 'all'
+        ? null
+        : properties.find(p => p.id === selectedPropertyId);
 
     // Mock data for the dashboard
     const kpiData = {
@@ -495,14 +641,17 @@ const OverviewTab = ({ propertiesCount, usersCount }: { propertiesCount: number,
                         <h1 className="text-3xl font-black text-white">Unified Dashboard</h1>
                         <select
                             className="bg-slate-800 text-white text-sm font-bold px-4 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                            value={selectedProperty}
-                            onChange={(e) => setSelectedProperty(e.target.value)}
+                            value={selectedPropertyId}
+                            onChange={(e) => setSelectedPropertyId(e.target.value)}
                         >
-                            <option>All Properties</option>
-                            <option>SS Plaza</option>
-                            <option>Green Oasis</option>
+                            <option value="all">All Properties</option>
+                            {properties.map(prop => (
+                                <option key={prop.id} value={prop.id}>{prop.name}</option>
+                            ))}
                         </select>
-                        <span className="bg-slate-700 text-white text-xs font-bold px-3 py-1 rounded-lg">{propertiesCount}</span>
+                        <span className="bg-slate-700 text-white text-xs font-bold px-3 py-1 rounded-lg">
+                            {selectedPropertyId === 'all' ? properties.length : 1}
+                        </span>
                     </div>
                     <Search className="w-6 h-6 text-slate-400 cursor-pointer hover:text-white transition-colors" />
                 </div>
@@ -587,11 +736,15 @@ const OverviewTab = ({ propertiesCount, usersCount }: { propertiesCount: number,
                     <div className="lg:col-span-4">
                         <div className="bg-yellow-400 rounded-3xl p-6 h-full relative overflow-hidden">
                             <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center text-white font-bold text-sm">
-                                {propertiesCount}
+                                {properties.length}
                             </div>
 
-                            <h3 className="text-2xl font-black text-slate-900 mb-2">SS Plaza</h3>
-                            <div className="text-red-600 text-sm font-bold mb-6">(Property Name)</div>
+                            <h3 className="text-2xl font-black text-slate-900 mb-2 truncate">
+                                {activeProperty ? activeProperty.name : 'All Properties'}
+                            </h3>
+                            <div className="text-red-600 text-sm font-bold mb-6 truncate">
+                                {activeProperty ? `Property: ${activeProperty.code}` : 'Multi-Property View'}
+                            </div>
 
                             {/* Building Image Placeholder */}
                             <div className="bg-yellow-500/50 rounded-2xl h-40 mb-6 flex items-center justify-center">
@@ -705,25 +858,25 @@ const OverviewTab = ({ propertiesCount, usersCount }: { propertiesCount: number,
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {procurementData.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50/50">
+                                {(selectedPropertyId === 'all' ? properties : properties.filter(p => p.id === selectedPropertyId)).map((item, idx) => (
+                                    <tr key={item.id} className="hover:bg-slate-50/50">
                                         <td className="py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-12 h-12 bg-slate-200 rounded-xl flex items-center justify-center">
                                                     <Building2 className="w-6 h-6 text-slate-400" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-bold text-slate-900">{item.property}</div>
-                                                    <div className="text-xs text-slate-400">{item.address}</div>
+                                                    <div className="font-bold text-slate-900">{item.name}</div>
+                                                    <div className="text-xs text-slate-400">{item.address || 'No address provided'}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-4 font-bold text-slate-600">{item.spoc}</td>
-                                        <td className="py-4 font-bold text-slate-900">₹ {item.cost}</td>
-                                        <td className="py-4 font-bold text-slate-600">{item.views} views</td>
+                                        <td className="py-4 font-bold text-slate-600">Admin</td>
+                                        <td className="py-4 font-bold text-slate-900">₹ 0.00</td>
+                                        <td className="py-4 font-bold text-slate-600">0 views</td>
                                         <td className="py-4">
                                             <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg">
-                                                {item.status}
+                                                Active
                                             </span>
                                         </td>
                                         <td className="py-4">
@@ -997,5 +1150,151 @@ const UserModal = ({ user, onClose, onSave }: any) => {
         </div>
     );
 }
+
+const RevenueTab = ({ properties }: { properties: any[] }) => {
+    const [vendors, setVendors] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedProperty, setSelectedProperty] = useState('all');
+    const supabase = createClient();
+
+    useEffect(() => {
+        fetchRevenueData();
+    }, [selectedProperty]);
+
+    const fetchRevenueData = async () => {
+        setIsLoading(true);
+        try {
+            let query = supabase.from('vendors').select('*, properties(name), vendor_daily_revenue(*)');
+            if (selectedProperty !== 'all') {
+                query = query.eq('property_id', selectedProperty);
+            }
+            const { data, error } = await query;
+            if (error) throw error;
+            setVendors(data || []);
+        } catch (err) {
+            console.error('Error fetching revenue:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleExportAll = () => {
+        const headers = ['Property', 'Shop Name', 'Owner', 'Commission %', 'Revenue', 'Commission Due'];
+        const rows = vendors.map(v => {
+            const rev = v.vendor_daily_revenue?.reduce((sum: number, r: any) => sum + r.revenue_amount, 0) || 0;
+            const comm = (rev * (v.commission_rate / 100)).toFixed(2);
+            return [v.properties?.name, v.shop_name, v.owner_name, v.commission_rate + '%', rev, comm];
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `organization_revenue_report.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    if (isLoading) return <div className="p-12 text-center text-slate-400 font-bold italic">Gathering intelligence...</div>;
+
+    const totalRevenue = vendors.reduce((acc, v) => acc + (v.vendor_daily_revenue?.reduce((sum: number, r: any) => sum + r.revenue_amount, 0) || 0), 0);
+    const totalCommission = vendors.reduce((acc, v) => {
+        const rev = v.vendor_daily_revenue?.reduce((sum: number, r: any) => sum + r.revenue_amount, 0) || 0;
+        return acc + (rev * (v.commission_rate / 100));
+    }, 0);
+
+    return (
+        <div className="space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div>
+                    <h2 className="text-xl font-black text-slate-900 leading-tight">Revenue Analytics</h2>
+                    <p className="text-slate-500 text-sm font-medium">Cross-property financial oversight.</p>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <select
+                        value={selectedProperty}
+                        onChange={(e) => setSelectedProperty(e.target.value)}
+                        className="flex-1 md:flex-none p-3.5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-slate-900 text-xs focus:ring-2 focus:ring-blue-100 outline-none"
+                    >
+                        <option value="all">All Properties</option>
+                        {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <button
+                        onClick={handleExportAll}
+                        className="p-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-slate-800 transition-all flex items-center gap-2"
+                    >
+                        <FileDown className="w-4 h-4" /> Export All
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 relative z-10">Total Revenue</p>
+                    <p className="text-3xl font-black text-slate-900 relative z-10">₹{totalRevenue.toLocaleString()}</p>
+                </div>
+                <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 relative z-10">Total Commission</p>
+                    <p className="text-3xl font-black text-emerald-600 relative z-10">₹{totalCommission.toLocaleString()}</p>
+                </div>
+                <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 relative z-10">Total Vendors</p>
+                    <p className="text-3xl font-black text-slate-900 relative z-10">{vendors.length}</p>
+                </div>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50/50 border-b border-slate-100">
+                            <tr>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Property / Shop</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Comm %</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Revenue</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Commission</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {vendors.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-16 text-center text-slate-400 font-bold italic">No vendor data available.</td>
+                                </tr>
+                            ) : (
+                                vendors.map((v) => {
+                                    const rev = v.vendor_daily_revenue?.reduce((sum: number, r: any) => sum + r.revenue_amount, 0) || 0;
+                                    const comm = rev * (v.commission_rate / 100);
+                                    return (
+                                        <tr key={v.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-8 py-6">
+                                                <div>
+                                                    <p className="font-black text-slate-900 text-sm group-hover:text-blue-600 transition-colors uppercase tracking-tight">{v.shop_name}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{v.properties?.name}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 text-sm font-bold text-slate-600">{v.owner_name}</td>
+                                            <td className="px-8 py-6 text-center">
+                                                <span className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-wider">{v.commission_rate}%</span>
+                                            </td>
+                                            <td className="px-8 py-6 text-right font-black text-sm text-slate-900">₹{rev.toLocaleString()}</td>
+                                            <td className="px-8 py-6 text-right font-black text-sm text-emerald-600">₹{comm.toLocaleString()}</td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default OrgAdminDashboard;

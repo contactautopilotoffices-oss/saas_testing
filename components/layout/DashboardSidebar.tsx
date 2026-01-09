@@ -5,11 +5,15 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { LayoutDashboard, Users, Ticket, Package, Settings, LogOut } from 'lucide-react';
 import CapabilityWrapper from '../auth/CapabilityWrapper';
+import { useAuth } from '@/context/AuthContext';
+import SignOutModal from '../ui/SignOutModal';
 
 export default function DashboardSidebar() {
     const pathname = usePathname();
     const params = useParams();
     const orgId = params.orgId as string;
+    const { signOut } = useAuth();
+    const [showSignOutModal, setShowSignOutModal] = React.useState(false);
 
     const NAV_ITEMS = [
         { label: 'Overview', href: `/${orgId}/dashboard`, icon: LayoutDashboard, domain: 'dashboards' as const },
@@ -33,8 +37,8 @@ export default function DashboardSidebar() {
                         <Link
                             href={item.href}
                             className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group ${pathname === item.href
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                 }`}
                         >
                             <item.icon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${pathname === item.href ? 'text-emerald-400' : 'text-slate-400'}`} />
@@ -59,10 +63,19 @@ export default function DashboardSidebar() {
                     <Settings className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">Settings</span>
                 </Link>
-                <button className="w-full flex items-center gap-4 px-4 py-2.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors">
+                <button
+                    onClick={() => setShowSignOutModal(true)}
+                    className="w-full flex items-center gap-4 px-4 py-2.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
+                >
                     <LogOut className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">Logout</span>
                 </button>
+
+                <SignOutModal
+                    isOpen={showSignOutModal}
+                    onClose={() => setShowSignOutModal(false)}
+                    onConfirm={signOut}
+                />
             </div>
         </aside>
     );

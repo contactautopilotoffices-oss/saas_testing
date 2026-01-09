@@ -14,6 +14,7 @@ import OrgPropertyDashboard from './OrgPropertyDashboard';
 import TicketsView from './TicketsView';
 import InviteLinkGenerator from './InviteLinkGenerator';
 import { HapticCard } from '@/components/ui/HapticCard';
+import SignOutModal from '@/components/ui/SignOutModal';
 
 type Tab = 'overview' | 'organizations' | 'tickets' | 'users' | 'invite-links' | 'modules' | 'settings';
 
@@ -52,6 +53,7 @@ const MasterAdminDashboard = () => {
     const [showCreateUserModal, setShowCreateUserModal] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null); // For drill-down
+    const [showSignOutModal, setShowSignOutModal] = useState(false);
     const supabase = createClient();
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -262,11 +264,7 @@ const MasterAdminDashboard = () => {
                     </div>
 
                     <button
-                        onClick={() => {
-                            if (window.confirm('Are you sure you want to log out?')) {
-                                signOut();
-                            }
-                        }}
+                        onClick={() => setShowSignOutModal(true)}
                         className="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl w-full transition-all duration-300 text-sm font-bold group"
                     >
                         <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -274,6 +272,12 @@ const MasterAdminDashboard = () => {
                     </button>
                 </div>
             </div>
+
+            <SignOutModal
+                isOpen={showSignOutModal}
+                onClose={() => setShowSignOutModal(false)}
+                onConfirm={signOut}
+            />
 
             {/* Main Content */}
             <main className="flex-1 p-12 overflow-y-auto">
@@ -550,8 +554,8 @@ const OverviewGrid = () => {
                                                     {item.count || item.expires}
                                                 </span>
                                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.status === 'Urgent' ? 'bg-rose-100 text-rose-600' :
-                                                        item.delta?.startsWith('+') ? 'bg-emerald-100 text-emerald-600' :
-                                                            'bg-slate-100 text-slate-500'
+                                                    item.delta?.startsWith('+') ? 'bg-emerald-100 text-emerald-600' :
+                                                        'bg-slate-100 text-slate-500'
                                                     }`}>
                                                     {item.delta || item.status}
                                                 </span>

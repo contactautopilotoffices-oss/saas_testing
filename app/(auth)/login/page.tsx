@@ -109,7 +109,25 @@ function AuthContent() {
                     .maybeSingle();
 
                 if (propertyMembership) {
-                    router.push(`/property/${propertyMembership.property_id}/dashboard`);
+                    const role = propertyMembership.role;
+                    const propertyId = propertyMembership.property_id;
+
+                    if (role === 'property_admin') {
+                        router.push(`/property/${propertyId}/dashboard`);
+                    } else if (role === 'staff') {
+                        router.push(`/property/${propertyId}/staff`);
+                    } else if (role === 'tenant') {
+                        router.push(`/property/${propertyId}/tenant`);
+                    } else if (role === 'security') {
+                        router.push(`/property/${propertyId}/security`);
+                    } else if (role === 'mst') {
+                        router.push(`/property/${propertyId}/mst`);
+                    } else if (role === 'vendor') {
+                        router.push(`/property/${propertyId}/vendor`);
+                    } else {
+                        // Default fallback for unknown roles
+                        router.push(`/property/${propertyId}/dashboard`);
+                    }
                     return;
                 }
 

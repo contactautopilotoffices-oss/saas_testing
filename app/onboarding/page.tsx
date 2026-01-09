@@ -22,7 +22,10 @@ const AUTOPILOT_ORG_ID = process.env.NEXT_PUBLIC_AUTOPILOT_ORG_ID;
 const AVAILABLE_ROLES = [
     { id: 'property_admin', label: 'Property Admin', desc: 'Manage property operations & staff', icon: '🏢' },
     { id: 'staff', label: 'Staff Member', desc: 'Handle tickets & facility tasks', icon: '👷' },
+    { id: 'mst', label: 'MST', desc: 'Maintenance & Support Team member', icon: '🔧' },
+    { id: 'security', label: 'Security', desc: 'Property security & access control', icon: '🛡️' },
     { id: 'tenant', label: 'Tenant / Resident', desc: 'Raise requests & view updates', icon: '🏠' },
+    { id: 'vendor', label: 'Vendor', desc: 'Manage shop revenue & orders', icon: '🍔' },
 ];
 
 // Fireworks particle component
@@ -236,6 +239,34 @@ export default function OnboardingPage() {
                 if (!membershipError.message.toLowerCase().includes('duplicate key')) {
                     console.error('Membership insert failed:', membershipError);
                     throw membershipError;
+                }
+            }
+
+            // 1.5️⃣ Insert into vendors if role is vendor
+            if (selectedRole === 'vendor') {
+                const { data: dbUser } = await supabase
+                    .from('users')
+                    .select('full_name')
+                    .eq('id', authUser.id)
+                    .maybeSingle();
+
+                const { error: vendorError } = await supabase
+                    .from('vendors')
+                    .insert({
+                        user_id: authUser.id,
+                        property_id: finalPropId,
+                        shop_name: `${userName}'s Shop`, // Temporary name
+                        owner_name: dbUser?.full_name || userName,
+                        commission_rate: 10, // Default 10%
+                        is_active: true
+                    });
+
+                if (vendorError) {
+                    // Ignore duplicate key errors
+                    if (!vendorError.message.toLowerCase().includes('duplicate key')) {
+                        console.error('Vendor record creation failed:', vendorError);
+                        throw vendorError;
+                    }
                 }
             }
 
