@@ -18,6 +18,8 @@ interface GeneratorFormData {
     tank_capacity_litres: number;
     fuel_efficiency_lphr: number;
     status: 'active' | 'standby' | 'maintenance';
+    last_maintenance_date?: string;
+    next_maintenance_date?: string;
 }
 
 const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
@@ -36,6 +38,8 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
         tank_capacity_litres: existingGenerator?.tank_capacity_litres || 1000,
         fuel_efficiency_lphr: existingGenerator?.fuel_efficiency_lphr || 15,
         status: existingGenerator?.status || 'active',
+        last_maintenance_date: existingGenerator?.last_maintenance_date || '',
+        next_maintenance_date: existingGenerator?.next_maintenance_date || '',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -183,6 +187,28 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     <option value="standby">Standby</option>
                                     <option value="maintenance">Maintenance</option>
                                 </select>
+                            </label>
+                        </div>
+
+                        {/* Maintenance Dates */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="flex flex-col gap-1.5">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Last Maintenance</span>
+                                <input
+                                    type="date"
+                                    value={formData.last_maintenance_date || ''}
+                                    onChange={(e) => updateField('last_maintenance_date', e.target.value)}
+                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Next Maintenance</span>
+                                <input
+                                    type="date"
+                                    value={formData.next_maintenance_date || ''}
+                                    onChange={(e) => updateField('next_maintenance_date', e.target.value)}
+                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                                />
                             </label>
                         </div>
 

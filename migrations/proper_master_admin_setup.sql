@@ -10,7 +10,7 @@ ADD COLUMN IF NOT EXISTS is_master_admin boolean DEFAULT false;
 -- We explicitly set the flag for your accounts so you don't lose access
 UPDATE users 
 SET is_master_admin = true 
-WHERE email IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com');
+WHERE email = 'ranganathanlohitaksha@gmail.com';
 
 -- 3. Update the check function to use the DATABASE COLUMN
 -- SECURITY DEFINER is critical here: it allows this function to bypass RLS

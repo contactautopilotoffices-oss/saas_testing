@@ -21,7 +21,7 @@ STABLE
 AS $$
   SELECT (
     COALESCE(auth.jwt() ->> 'email', '')
-    IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+    = 'ranganathanlohitaksha@gmail.com'
   );
 $$;
 

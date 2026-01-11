@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import {
     Users, Clock, LogIn, LogOut, Search, FileDown,
-    ChevronRight, CheckCircle2, XCircle, User, Truck, Building2
+    CheckCircle2, User, Truck, Building2, X, Calendar, ChevronDown
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface VMSAdminDashboardProps {
     propertyId: string;
@@ -25,26 +25,42 @@ interface VisitorLog {
     status: string;
 }
 
+type DateFilter = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
+
 const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => {
     const [visitors, setVisitors] = useState<VisitorLog[]>([]);
     const [stats, setStats] = useState({ total_today: 0, checked_in: 0, checked_out: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'checked_in' | 'checked_out'>('all');
+    const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+    const [customDate, setCustomDate] = useState('');
+    const [selectedVisitor, setSelectedVisitor] = useState<VisitorLog | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
 
     useEffect(() => {
         fetchVisitors();
-        // Auto-refresh every 30 seconds
         const interval = setInterval(fetchVisitors, 30000);
         return () => clearInterval(interval);
-    }, [propertyId, statusFilter]);
+    }, [propertyId, statusFilter, dateFilter, customDate]);
 
     const fetchVisitors = async () => {
         try {
-            const params = new URLSearchParams({
-                date: 'today',
-                status: statusFilter,
-            });
+            const params = new URLSearchParams({ status: statusFilter });
+
+            // Apply date filter
+            if (dateFilter === 'today') {
+                params.append('date', 'today');
+            } else if (dateFilter === 'yesterday') {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                params.append('date', yesterday.toISOString().split('T')[0]);
+            } else if (dateFilter === 'week') {
+                params.append('date', 'week');
+            } else if (dateFilter === 'custom' && customDate) {
+                params.append('date', customDate);
+            }
+
             if (searchQuery) params.append('search', searchQuery);
 
             const response = await fetch(`/api/vms/${propertyId}?${params}`);
@@ -66,8 +82,29 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
         fetchVisitors();
     };
 
-    const handleExport = async () => {
-        // Generate CSV
+    const handleForceCheckout = async (visitor: VisitorLog) => {
+        if (!confirm(`Force checkout ${visitor.name}?`)) return;
+
+        setActionLoading(true);
+        try {
+            const response = await fetch(`/api/vms/${propertyId}/force-checkout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ visitor_log_id: visitor.id }),
+            });
+
+            if (response.ok) {
+                fetchVisitors();
+                setSelectedVisitor(null);
+            }
+        } catch (err) {
+            console.error('Force checkout error:', err);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleExport = () => {
         const headers = ['Visitor ID', 'Name', 'Category', 'Mobile', 'Coming From', 'Whom to Meet', 'Check-in', 'Check-out', 'Status'];
         const rows = visitors.map(v => [
             v.visitor_id,
@@ -85,13 +122,21 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
             + headers.join(",") + "\n"
             + rows.map(e => e.join(",")).join("\n");
 
-        const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
+        link.setAttribute("href", encodeURI(csvContent));
         link.setAttribute("download", `visitors_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const getDuration = (checkin: string, checkout: string | null) => {
+        const start = new Date(checkin);
+        const end = checkout ? new Date(checkout) : new Date();
+        const diffMs = end.getTime() - start.getTime();
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
     };
 
     const getCategoryIcon = (category: string) => {
@@ -122,28 +167,21 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
         <div className="space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm"
-                >
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                    className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
                             <Users className="w-6 h-6 text-indigo-600" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Today's Visitors</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Visitors</p>
                             <p className="text-3xl font-black text-slate-900">{stats.total_today}</p>
                         </div>
                     </div>
                 </motion.div>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm"
-                >
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                    className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
                             <LogIn className="w-6 h-6 text-emerald-600" />
@@ -155,12 +193,8 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                     </div>
                 </motion.div>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm"
-                >
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center">
                             <LogOut className="w-6 h-6 text-rose-600" />
@@ -181,7 +215,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                         <p className="text-slate-500 text-xs font-medium mt-1">Real-time visitor tracking</p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         {/* Search */}
                         <form onSubmit={handleSearch} className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -189,10 +223,35 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search by Visitor ID or Name"
-                                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-slate-400 focus:ring-0 w-64"
+                                placeholder="Search by ID or Name"
+                                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-slate-400 focus:ring-0 w-48"
                             />
                         </form>
+
+                        {/* Date Filter */}
+                        <div className="relative">
+                            <select
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                                className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                            >
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="custom">Custom Date</option>
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        </div>
+
+                        {dateFilter === 'custom' && (
+                            <input
+                                type="date"
+                                value={customDate}
+                                onChange={(e) => setCustomDate(e.target.value)}
+                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                            />
+                        )}
 
                         {/* Status Filter */}
                         <div className="flex border border-slate-200 rounded-xl overflow-hidden">
@@ -227,15 +286,16 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Visitor</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Whom to Meet</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Time In</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {visitors.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
-                                        No visitors found for today.
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
+                                        No visitors found.
                                     </td>
                                 </tr>
                             ) : (
@@ -247,15 +307,23 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                                     <img
                                                         src={visitor.photo_url}
                                                         alt={visitor.name}
-                                                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100"
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 cursor-pointer"
+                                                        onClick={() => setSelectedVisitor(visitor)}
                                                     />
                                                 ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                                                    <div
+                                                        className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer"
+                                                        onClick={() => setSelectedVisitor(visitor)}
+                                                    >
                                                         <User className="w-5 h-5 text-slate-400" />
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <p className="font-bold text-slate-900 text-sm">{visitor.name}</p>
+                                                    <p className="font-bold text-slate-900 text-sm cursor-pointer hover:text-indigo-600"
+                                                        onClick={() => setSelectedVisitor(visitor)}
+                                                    >
+                                                        {visitor.name}
+                                                    </p>
                                                     <p className="text-[10px] text-slate-400 font-mono">{visitor.visitor_id}</p>
                                                 </div>
                                             </div>
@@ -268,10 +336,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-600 font-medium">{visitor.whom_to_meet}</td>
                                         <td className="px-6 py-4 text-sm text-slate-600">
-                                            {new Date(visitor.checkin_time).toLocaleTimeString('en-IN', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })}
+                                            {getDuration(visitor.checkin_time, visitor.checkout_time)}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             {visitor.status === 'checked_in' ? (
@@ -284,6 +349,17 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                                 </span>
                                             )}
                                         </td>
+                                        <td className="px-6 py-4 text-center">
+                                            {visitor.status === 'checked_in' && (
+                                                <button
+                                                    onClick={() => handleForceCheckout(visitor)}
+                                                    disabled={actionLoading}
+                                                    className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100 transition-all disabled:opacity-50"
+                                                >
+                                                    Force Out
+                                                </button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -291,6 +367,112 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                     </table>
                 </div>
             </div>
+
+            {/* Visitor Detail Modal */}
+            <AnimatePresence>
+                {selectedVisitor && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+                        onClick={() => setSelectedVisitor(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.9 }}
+                            className="bg-white rounded-3xl w-full max-w-md overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header with Photo */}
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white relative">
+                                <button
+                                    onClick={() => setSelectedVisitor(null)}
+                                    className="absolute top-4 right-4 p-1 rounded-full bg-white/20 hover:bg-white/30"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                                <div className="flex items-center gap-4">
+                                    {selectedVisitor.photo_url ? (
+                                        <img
+                                            src={selectedVisitor.photo_url}
+                                            alt={selectedVisitor.name}
+                                            className="w-20 h-20 rounded-2xl object-cover border-4 border-white/30"
+                                        />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center">
+                                            <User className="w-10 h-10" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className="text-2xl font-black">{selectedVisitor.name}</h3>
+                                        <p className="text-white/70 font-mono text-sm">{selectedVisitor.visitor_id}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Details */}
+                            <div className="p-6 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</p>
+                                        <p className="text-slate-900 font-medium capitalize">{selectedVisitor.category}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mobile</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.mobile || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coming From</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.coming_from || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Whom to Meet</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.whom_to_meet}</p>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-100 pt-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check-in</p>
+                                            <p className="text-slate-900 font-medium">
+                                                {new Date(selectedVisitor.checkin_time).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</p>
+                                            <p className="text-slate-900 font-bold">
+                                                {getDuration(selectedVisitor.checkin_time, selectedVisitor.checkout_time)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {selectedVisitor.checkout_time && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check-out</p>
+                                            <p className="text-slate-900 font-medium">
+                                                {new Date(selectedVisitor.checkout_time).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Actions */}
+                                {selectedVisitor.status === 'checked_in' && (
+                                    <button
+                                        onClick={() => handleForceCheckout(selectedVisitor)}
+                                        disabled={actionLoading}
+                                        className="w-full py-3 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-all disabled:opacity-50"
+                                    >
+                                        {actionLoading ? 'Processing...' : 'Force Checkout'}
+                                    </button>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -64,6 +64,8 @@ const DieselAnalyticsDashboard: React.FC = () => {
     const [trendData, setTrendData] = useState<{ date: string; value: number }[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [period, setPeriod] = useState<'7D' | '30D'>('7D');
+    const [tankCapacity, setTankCapacity] = useState(1000);
+    const [nextMaintenanceDate, setNextMaintenanceDate] = useState<Date | null>(null);
 
     // Fetch data
     const fetchData = useCallback(async () => {
@@ -79,30 +81,59 @@ const DieselAnalyticsDashboard: React.FC = () => {
                 .single();
             setProperty(propData);
 
+            // Fetch generators for tank capacity and maintenance date
+            const gensRes = await fetch(`/api/properties/${propertyId}/generators`);
+            const generators = await gensRes.json() || [];
+            const totalTankCapacity = generators.reduce((sum: number, g: any) => sum + (g.tank_capacity_litres || 1000), 0);
+            const nextMaintenance = generators
+                .filter((g: any) => g.next_maintenance_date)
+                .map((g: any) => new Date(g.next_maintenance_date))
+                .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0];
+
             // Fetch today's readings
-            const today = new Date().toISOString().split('T')[0];
             const todayRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=today`);
             const todayData = await todayRes.json();
             const todayTotal = (todayData || []).reduce((sum: number, r: any) =>
                 sum + (r.computed_consumed_litres || 0), 0);
 
-            // Fetch month's readings
+            // Fetch this month's readings
             const monthRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=month`);
             const monthData = await monthRes.json();
             const monthTotal = (monthData || []).reduce((sum: number, r: any) =>
+                sum + (r.computed_consumed_litres || 0), 0);
+
+            // Fetch previous month's readings for comparison
+            const prevMonthStart = new Date();
+            prevMonthStart.setMonth(prevMonthStart.getMonth() - 2);
+            const prevMonthEnd = new Date();
+            prevMonthEnd.setMonth(prevMonthEnd.getMonth() - 1);
+            const prevMonthRes = await fetch(
+                `/api/properties/${propertyId}/diesel-readings?startDate=${prevMonthStart.toISOString().split('T')[0]}&endDate=${prevMonthEnd.toISOString().split('T')[0]}`
+            );
+            const prevMonthData = await prevMonthRes.json();
+            const prevMonthTotal = (prevMonthData || []).reduce((sum: number, r: any) =>
                 sum + (r.computed_consumed_litres || 0), 0);
 
             // Calculate daily average
             const uniqueDays = new Set((monthData || []).map((r: any) => r.reading_date)).size;
             const avgDaily = uniqueDays > 0 ? Math.round(monthTotal / uniqueDays) : 0;
 
+            // Calculate month-over-month change
+            const monthChange = prevMonthTotal > 0
+                ? Math.round(((monthTotal - prevMonthTotal) / prevMonthTotal) * 100)
+                : 0;
+
             setMetrics({
                 today: Math.round(todayTotal),
                 month: Math.round(monthTotal),
                 average: avgDaily,
                 todayChange: avgDaily > 0 ? Math.round(((todayTotal - avgDaily) / avgDaily) * 100) : 0,
-                monthChange: 2, // Placeholder - would compare to previous month
+                monthChange,
             });
+
+            // Store additional data for UI
+            setTankCapacity(totalTankCapacity);
+            setNextMaintenanceDate(nextMaintenance || null);
 
             // Calculate generator breakdown
             const genBreakdown: Record<string, { litres: number; name: string; capacity?: number }> = {};
@@ -130,11 +161,12 @@ const DieselAnalyticsDashboard: React.FC = () => {
                 .sort((a, b) => b.totalLitres - a.totalLitres);
             setBreakdown(breakdownArr);
 
-            // Build trend data (last 7 days)
-            const weekRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=week`);
-            const weekData = await weekRes.json();
+            // Build trend data based on selected period (7D or 30D)
+            const daysToFetch = period === '30D' ? 30 : 7;
+            const trendRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=${period === '30D' ? 'month' : 'week'}`);
+            const trendRawData = await trendRes.json();
             const dailyTotals: Record<string, number> = {};
-            (weekData || []).forEach((r: any) => {
+            (trendRawData || []).forEach((r: any) => {
                 const date = r.reading_date;
                 if (!dailyTotals[date]) dailyTotals[date] = 0;
                 dailyTotals[date] += r.computed_consumed_litres || 0;
@@ -142,7 +174,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
 
             // Fill in missing days
             const trend: { date: string; value: number }[] = [];
-            for (let i = 6; i >= 0; i--) {
+            for (let i = daysToFetch - 1; i >= 0; i--) {
                 const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
                 const dateStr = d.toISOString().split('T')[0];
                 trend.push({
@@ -170,11 +202,11 @@ const DieselAnalyticsDashboard: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [propertyId]);
+    }, [propertyId, period]);
 
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
+    }, [fetchData, period]);
 
     // Export to Excel
     const handleExport = () => {
@@ -280,7 +312,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
                         </div>
                         <div>
                             <p className="text-slate-900 text-4xl font-bold leading-tight tracking-tight">{metrics.month.toLocaleString()} L</p>
-                            <p className="text-slate-500 text-sm mt-1">On track for {Math.round(metrics.month * 1.2).toLocaleString()} L</p>
+                            <p className="text-slate-500 text-sm mt-1">On track for {Math.round((metrics.month / new Date().getDate()) * new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()).toLocaleString()} L</p>
                         </div>
                     </div>
                 </div>
@@ -480,7 +512,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
                 <div className="max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-4">
                     <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
                         <Calendar className="w-4 h-4" />
-                        <span>Next scheduled maintenance: <strong>Jan 15, 2027</strong></span>
+                        <span>Next scheduled maintenance: <strong>{nextMaintenanceDate ? nextMaintenanceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not scheduled'}</strong></span>
                     </div>
                     <div className="flex w-full md:w-auto gap-3">
                         <button

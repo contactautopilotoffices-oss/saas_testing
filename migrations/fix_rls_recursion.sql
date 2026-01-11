@@ -54,7 +54,7 @@ STABLE
 AS $$
   SELECT (
     (SELECT email FROM auth.users WHERE id = auth.uid()) 
-    IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+    = 'ranganathanlohitaksha@gmail.com'
   );
 $$;
 

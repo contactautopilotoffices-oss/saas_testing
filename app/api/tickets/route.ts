@@ -2,10 +2,76 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 
+// Classification keywords mapped to category codes
+const CLASSIFICATION_KEYWORDS: Record<string, string[]> = {
+    ac_breakdown: ['ac', 'air conditioning', 'cooling', 'hvac', 'cold', 'hot', 'temperature'],
+    power_outage: ['power', 'electricity', 'outage', 'blackout', 'no power', 'electrical'],
+    wifi_down: ['wifi', 'wi-fi', 'internet', 'network', 'connection', 'lan'],
+    lighting_issue: ['light', 'lighting', 'bulb', 'lamp', 'dark', 'tube light', 'led'],
+    dg_issue: ['dg', 'generator', 'diesel', 'backup power'],
+    chair_broken: ['chair', 'seat', 'broken chair', 'seating'],
+    desk_alignment: ['desk', 'table', 'workstation', 'furniture'],
+    water_leakage: ['leak', 'leakage', 'water leak', 'drip', 'seepage'],
+    no_water_supply: ['no water', 'water supply', 'tap not working', 'dry tap'],
+    washroom_issue: ['washroom', 'toilet', 'bathroom', 'restroom', 'loo', 'flush'],
+    lift_breakdown: ['lift', 'elevator', 'not working'],
+    stuck_lift: ['stuck', 'trapped', 'lift stuck'],
+    fire_alarm_l2: ['fire', 'alarm', 'smoke', 'fire alarm'],
+    deep_cleaning: ['deep clean', 'cleaning', 'sanitize', 'housekeeping'],
+    painting: ['paint', 'painting', 'wall', 'repaint'],
+};
+
+// Extract floor number from description
+function extractFloorNumber(description: string): number | null {
+    const floorPatterns = [
+        /(\d+)(?:st|nd|rd|th)\s*floor/i,
+        /floor\s*(\d+)/i,
+        /(\d+)\s*floor/i,
+    ];
+
+    for (const pattern of floorPatterns) {
+        const match = description.match(pattern);
+        if (match) return parseInt(match[1], 10);
+    }
+    if (description.toLowerCase().includes('ground floor')) return 0;
+    if (description.toLowerCase().includes('basement')) return -1;
+    return null;
+}
+
+// Classification engine
+function classifyTicket(description: string): {
+    categoryCode: string | null;
+    confidence: number;
+    isVague: boolean;
+} {
+    const lowerDesc = description.toLowerCase();
+    let bestMatch: { code: string; score: number } | null = null;
+
+    for (const [code, keywords] of Object.entries(CLASSIFICATION_KEYWORDS)) {
+        let score = 0;
+        for (const keyword of keywords) {
+            if (lowerDesc.includes(keyword)) {
+                score += keyword.split(' ').length * 10;
+            }
+        }
+        if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+            bestMatch = { code, score };
+        }
+    }
+
+    if (!bestMatch) {
+        return { categoryCode: null, confidence: 0, isVague: true };
+    }
+
+    const confidence = Math.min(100, bestMatch.score + (description.length > 20 ? 20 : 0));
+    const isVague = confidence < 40 || description.length < 10;
+
+    return { categoryCode: bestMatch.code, confidence, isVague };
+}
+
 /**
  * GET /api/tickets
- * 
- * Fetch tickets for the current user's organization, or all tickets if Master Admin
+ * Fetch tickets with filters
  */
 export async function GET(request: NextRequest) {
     try {
@@ -16,41 +82,35 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Check if Master Admin
-        const adminClient = createAdminClient();
-        const { data: userRecord } = await adminClient
-            .from('users')
-            .select('is_master_admin')
-            .eq('id', user.id)
-            .single();
-
-        const isMasterAdmin = userRecord?.is_master_admin === true;
-
-        // Get query parameters
         const searchParams = request.nextUrl.searchParams;
+        const propertyId = searchParams.get('propertyId') || searchParams.get('property_id');
+        const organizationId = searchParams.get('organizationId') || searchParams.get('organization_id');
         const status = searchParams.get('status');
-        const organizationId = searchParams.get('organization_id');
+        const isInternal = searchParams.get('isInternal');
+        const assignedTo = searchParams.get('assignedTo');
+        const createdBy = searchParams.get('createdBy');
 
         let query = supabase
             .from('tickets')
             .select(`
         *,
+        category:issue_categories(id, code, name, icon),
+        skill_group:skill_groups(id, code, name),
+        creator:users!created_by(id, full_name, email),
+        assignee:users!assigned_to(id, full_name, email),
         organization:organizations(id, name, code),
-        property:properties(id, name, code),
-        raised_by_user:users!tickets_raised_by_fkey(id, full_name, email),
-        assigned_to_user:users!tickets_assigned_to_fkey(id, full_name, email),
-        ticket_comments(count)
+        property:properties(id, name, code)
       `)
             .order('created_at', { ascending: false });
 
-        // Apply filters
-        if (status) {
-            query = query.eq('status', status);
+        if (propertyId) query = query.eq('property_id', propertyId);
+        if (organizationId) query = query.eq('organization_id', organizationId);
+        if (status) query = query.eq('status', status);
+        if (isInternal !== null && isInternal !== undefined) {
+            query = query.eq('is_internal', isInternal === 'true');
         }
-
-        if (organizationId) {
-            query = query.eq('organization_id', organizationId);
-        }
+        if (assignedTo) query = query.eq('assigned_to', assignedTo);
+        if (createdBy) query = query.eq('created_by', createdBy);
 
         const { data: tickets, error: fetchError } = await query;
 
@@ -59,8 +119,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 });
         }
 
-        return NextResponse.json(tickets || []);
-
+        return NextResponse.json({ tickets: tickets || [] });
     } catch (error) {
         console.error('Tickets API error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -69,8 +128,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/tickets
- * 
- * Create a new support ticket
+ * Create a new ticket with plain-language classification
  */
 export async function POST(request: NextRequest) {
     try {
@@ -82,32 +140,96 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { organization_id, property_id, title, description, category, priority } = body;
+        const {
+            description,
+            property_id,
+            propertyId,
+            organization_id,
+            organizationId,
+            is_internal,
+            isInternal,
+            photo_url,
+            photoUrl,
+            title,
+            category,
+            priority: userPriority,
+        } = body;
 
-        if (!organization_id || !title || !description || !category) {
+        const propId = property_id || propertyId;
+        const orgId = organization_id || organizationId;
+        const internal = is_internal ?? isInternal ?? false;
+        const photo = photo_url || photoUrl;
+
+        if (!description || !propId || !orgId) {
             return NextResponse.json(
-                { error: 'Missing required fields' },
+                { error: 'Missing required fields: description, propertyId, organizationId' },
                 { status: 400 }
             );
+        }
+
+        // Classify the ticket using rules engine
+        const classification = classifyTicket(description);
+        const floorNumber = extractFloorNumber(description);
+
+        // Get category and skill group
+        let categoryId = null;
+        let skillGroupId = null;
+        let slaHours = 24;
+        let priority = userPriority || 'medium';
+
+        if (classification.categoryCode) {
+            const { data: categoryData } = await supabase
+                .from('issue_categories')
+                .select('id, skill_group_id, sla_hours, priority')
+                .eq('property_id', propId)
+                .eq('code', classification.categoryCode)
+                .single();
+
+            if (categoryData) {
+                categoryId = categoryData.id;
+                skillGroupId = categoryData.skill_group_id;
+                slaHours = categoryData.sla_hours || 24;
+                priority = categoryData.priority || priority;
+            }
+        }
+
+        // Generate ticket number
+        const { data: ticketNumber } = await supabase.rpc('generate_ticket_number', {
+            p_property_id: propId,
+        });
+
+        // Determine initial status
+        let status = 'open';
+        if (classification.isVague) {
+            status = 'waitlist';
         }
 
         // Create the ticket
         const { data: ticket, error: insertError } = await supabase
             .from('tickets')
             .insert({
-                organization_id,
-                property_id,
-                raised_by: user.id,
-                title,
+                ticket_number: ticketNumber || `TKT-${Date.now()}`,
+                property_id: propId,
+                organization_id: orgId,
+                title: title || description.slice(0, 100),
                 description,
-                category,
-                priority: priority || 'medium',
-                status: 'open'
+                category_id: categoryId,
+                skill_group_id: skillGroupId,
+                priority,
+                status,
+                created_by: user.id,
+                sla_hours: slaHours,
+                confidence_score: classification.confidence,
+                classification_source: classification.categoryCode ? 'rules' : 'manual',
+                is_vague: classification.isVague,
+                is_internal: internal,
+                floor_number: floorNumber,
+                photo_before_url: photo,
             })
             .select(`
         *,
-        organization:organizations(id, name, code),
-        property:properties(id, name, code)
+        category:issue_categories(id, code, name, icon),
+        skill_group:skill_groups(id, code, name)
       `)
             .single();
 
@@ -116,8 +238,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
         }
 
-        return NextResponse.json(ticket, { status: 201 });
-
+        return NextResponse.json({
+            success: true,
+            ticket,
+            classification: {
+                category: classification.categoryCode,
+                confidence: classification.confidence,
+                isVague: classification.isVague,
+            },
+        }, { status: 201 });
     } catch (error) {
         console.error('Create ticket API error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

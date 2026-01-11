@@ -3,16 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Ticket, Bell, Settings, LogOut, Plus,
-    CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle
+    CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle, Fuel
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import SignOutModal from '@/components/ui/SignOutModal';
+import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
 
 // Types
-type Tab = 'overview' | 'requests' | 'visitors' | 'cafeteria' | 'settings' | 'profile';
+type Tab = 'overview' | 'requests' | 'visitors' | 'diesel' | 'cafeteria' | 'settings' | 'profile';
 
 interface Property {
     id: string;
@@ -144,6 +145,16 @@ const TenantDashboard = () => {
                                 Visitor Management
                             </button>
                             <button
+                                onClick={() => setActiveTab('diesel')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'diesel'
+                                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <Fuel className="w-4 h-4" />
+                                Diesel Logger
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('cafeteria')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'cafeteria'
                                     ? 'bg-[#f28c33] text-white shadow-lg shadow-orange-500/25'
@@ -230,6 +241,7 @@ const TenantDashboard = () => {
                                 <p className="text-slate-500">Manage your pre-registered visitors and invites.</p>
                             </div>
                         )}
+                        {activeTab === 'diesel' && <DieselStaffDashboard />}
                         {activeTab === 'cafeteria' && (
                             <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
                                 <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-4" />

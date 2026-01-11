@@ -45,10 +45,10 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
         }
     }, [stream]);
 
-    // Compress image to < 50KB
+    // Compress image to WebP format (< 50KB target)
     const compressImage = async (canvas: HTMLCanvasElement): Promise<Blob> => {
         return new Promise((resolve) => {
-            let quality = 0.7;
+            let quality = 0.8; // WebP handles quality better than JPEG
             const tryCompress = () => {
                 canvas.toBlob(
                     (blob) => {
@@ -62,13 +62,14 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
                             }
                         }
                     },
-                    'image/jpeg',
+                    'image/webp', // WebP: ~30% smaller than JPEG at same quality
                     quality
                 );
             };
             tryCompress();
         });
     };
+
 
     // Capture photo
     const capturePhoto = async () => {
@@ -100,9 +101,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
 
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-        // Compress and get blob
+        // Compress and get blob (WebP format)
         const blob = await compressImage(canvas);
-        const imageUrl = canvas.toDataURL('image/jpeg', 0.7);
+        const imageUrl = canvas.toDataURL('image/webp', 0.8);
 
         setCapturedImage(imageUrl);
         setCapturedBlob(blob);

@@ -4,17 +4,6 @@
 -- Designed for safe re-runs without breaking data.
 -- =========================================================
 
--- ---------------------------------------------------------
--- 1. IDENTIFIER ALIGNMENT (slug -> code)
--- ---------------------------------------------------------
-DO $$
-BEGIN
-  -- If 'slug' exists in 'organizations' but 'code' does not, rename it
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'slug') 
-     AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'code') THEN
-    ALTER TABLE organizations RENAME COLUMN slug TO code;
-  END IF;
-END $$;
 
 -- ---------------------------------------------------------
 -- 2. ENUMS (Guarded DO blocks)
@@ -71,13 +60,13 @@ DROP POLICY IF EXISTS org_read_policy ON organizations;
 CREATE POLICY org_read_policy ON organizations FOR SELECT USING (
   EXISTS(SELECT 1 FROM organization_memberships om WHERE om.user_id = auth.uid() AND om.organization_id = organizations.id)
   OR EXISTS(SELECT 1 FROM organization_memberships om WHERE om.user_id = auth.uid() AND om.role = 'master_admin')
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS master_admin_org_all ON organizations;
 CREATE POLICY master_admin_org_all ON organizations FOR ALL USING (
   EXISTS(SELECT 1 FROM organization_memberships om WHERE om.user_id = auth.uid() AND om.role = 'master_admin')
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- Property Policies
@@ -85,13 +74,13 @@ DROP POLICY IF EXISTS prop_read_policy ON properties;
 CREATE POLICY prop_read_policy ON properties FOR SELECT USING (
   EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = properties.id)
   OR EXISTS(SELECT 1 FROM organization_memberships om WHERE om.user_id = auth.uid() AND om.organization_id = properties.organization_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS master_admin_prop_all ON properties;
 CREATE POLICY master_admin_prop_all ON properties FOR ALL USING (
   EXISTS(SELECT 1 FROM organization_memberships om WHERE om.user_id = auth.uid() AND om.role = 'master_admin')
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- Activity Policies
@@ -108,7 +97,7 @@ CREATE POLICY org_super_policy ON property_activities FOR ALL USING (
 DROP POLICY IF EXISTS master_admin_policy ON property_activities;
 CREATE POLICY master_admin_policy ON property_activities FOR ALL USING (
   EXISTS(SELECT 1 FROM organization_memberships om WHERE om.user_id = auth.uid() AND om.role = 'master_admin')
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- ---------------------------------------------------------
@@ -133,6 +122,8 @@ CREATE TABLE IF NOT EXISTS generators (
   tank_capacity_litres integer DEFAULT 1000,
   fuel_efficiency_lphr numeric DEFAULT 15, -- Litres per hour (for alerts)
   status text DEFAULT 'active',            -- 'active' | 'standby' | 'maintenance'
+  last_maintenance_date date,              -- Last service date
+  next_maintenance_date date,              -- Scheduled next service
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -171,7 +162,7 @@ CREATE POLICY generators_property_read ON generators FOR SELECT USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = generators.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS generators_admin_write ON generators;
@@ -180,7 +171,7 @@ CREATE POLICY generators_admin_write ON generators FOR ALL USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = generators.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- RLS for Diesel Readings
@@ -192,13 +183,13 @@ CREATE POLICY diesel_readings_property_read ON diesel_readings FOR SELECT USING 
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = diesel_readings.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS diesel_readings_staff_insert ON diesel_readings;
 CREATE POLICY diesel_readings_staff_insert ON diesel_readings FOR INSERT WITH CHECK (
   EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = diesel_readings.property_id AND pm.is_active)
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS diesel_readings_admin_update ON diesel_readings;
@@ -207,7 +198,7 @@ CREATE POLICY diesel_readings_admin_update ON diesel_readings FOR UPDATE USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = diesel_readings.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- ---------------------------------------------------------
@@ -304,7 +295,7 @@ CREATE POLICY vendors_property_read ON vendors FOR SELECT USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = vendors.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS vendors_admin_write ON vendors;
@@ -313,7 +304,7 @@ CREATE POLICY vendors_admin_write ON vendors FOR ALL USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = vendors.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- RLS for Vendor Daily Revenue
@@ -326,13 +317,13 @@ CREATE POLICY vendor_revenue_read ON vendor_daily_revenue FOR SELECT USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = vendor_daily_revenue.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS vendor_revenue_insert ON vendor_daily_revenue;
 CREATE POLICY vendor_revenue_insert ON vendor_daily_revenue FOR INSERT WITH CHECK (
   EXISTS(SELECT 1 FROM vendors v WHERE v.id = vendor_daily_revenue.vendor_id AND v.user_id = auth.uid())
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- RLS for Commission Cycles
@@ -345,7 +336,7 @@ CREATE POLICY commission_cycles_read ON commission_cycles FOR SELECT USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = commission_cycles.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- RLS for Vendor Payments
@@ -358,7 +349,7 @@ CREATE POLICY vendor_payments_read ON vendor_payments FOR SELECT USING (
             JOIN properties p ON p.id = cc.property_id
             JOIN property_memberships pm ON pm.property_id = p.id
             WHERE cc.id = vendor_payments.cycle_id AND pm.user_id = auth.uid() AND pm.role IN ('property_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- ---------------------------------------------------------
@@ -442,7 +433,7 @@ CREATE POLICY visitor_logs_read ON visitor_logs FOR SELECT USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = visitor_logs.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS visitor_logs_insert ON visitor_logs;
@@ -466,17 +457,303 @@ CREATE POLICY vms_tickets_read ON vms_tickets FOR SELECT USING (
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = vms_tickets.property_id AND om.role IN ('org_super_admin', 'master_admin'))
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 DROP POLICY IF EXISTS vms_tickets_insert ON vms_tickets;
 CREATE POLICY vms_tickets_insert ON vms_tickets FOR INSERT WITH CHECK (
   EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = vms_tickets.property_id)
-  OR (SELECT email FROM auth.users WHERE id = auth.uid()) IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
 -- ---------------------------------------------------------
--- 10. CACHE REFRESH
+-- 11. REQUEST TICKETING MODULE (Skill-Grouped Auto-Assignment)
+-- ---------------------------------------------------------
+
+-- Skill Groups Table (MST Technical, MST Plumbing, Vendor)
+CREATE TABLE IF NOT EXISTS skill_groups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid REFERENCES properties(id) ON DELETE CASCADE,
+  code text NOT NULL,                           -- 'mst_technical', 'mst_plumbing', 'vendor'
+  name text NOT NULL,                           -- 'MST (Technical)', 'MST (Plumbing)', 'Vendor'
+  description text,
+  is_manual_assign boolean DEFAULT false,       -- Vendor = true (manual escalation)
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(property_id, code)
+);
+
+-- Issue Categories Table (Maps to Skill Groups)
+CREATE TABLE IF NOT EXISTS issue_categories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid REFERENCES properties(id) ON DELETE CASCADE,
+  code text NOT NULL,                           -- 'ac_breakdown', 'water_leakage'
+  name text NOT NULL,                           -- 'AC Breakdown', 'Water Leakage'
+  skill_group_id uuid REFERENCES skill_groups(id) ON DELETE SET NULL,
+  sla_hours integer DEFAULT 24,                 -- SLA deadline in hours
+  priority text DEFAULT 'medium',               -- 'low', 'medium', 'high', 'urgent'
+  icon text,                                    -- Optional icon name
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(property_id, code)
+);
+
+-- Tickets Table (Main Request Table)
+CREATE TABLE IF NOT EXISTS tickets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_number text UNIQUE NOT NULL,           -- Auto-generated: TKT-PROP-00001
+  property_id uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  category_id uuid REFERENCES issue_categories(id) ON DELETE SET NULL,
+  skill_group_id uuid REFERENCES skill_groups(id) ON DELETE SET NULL,
+  title text NOT NULL,
+  description text,
+  location text,                                -- Unit/floor/area
+  priority text DEFAULT 'medium',               -- 'low', 'medium', 'high', 'urgent'
+  status text DEFAULT 'open',                   -- 'open', 'assigned', 'in_progress', 'resolved', 'closed', 'waitlist'
+  created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  assigned_to uuid REFERENCES users(id) ON DELETE SET NULL,
+  assigned_at timestamptz,
+  sla_hours integer,                            -- Copied from category at creation
+  sla_deadline timestamptz,                     -- Calculated: assigned_at + sla_hours
+  sla_started boolean DEFAULT false,            -- SLA only starts on assignment
+  sla_breached boolean DEFAULT false,           -- Set true if deadline passed
+  resolved_at timestamptz,
+  closed_at timestamptz,
+  resolution_notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Safe column additions for tickets table (if table exists from previous schema)
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS category_id uuid REFERENCES issue_categories(id) ON DELETE SET NULL;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS skill_group_id uuid REFERENCES skill_groups(id) ON DELETE SET NULL;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_hours integer;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_deadline timestamptz;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_started boolean DEFAULT false;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_breached boolean DEFAULT false;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS resolution_notes text;
+
+-- Ticketic v2.0: Enhanced fields for load balancer, SLA management, classification, photos
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS response_sla_hours integer;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS resolution_sla_hours integer;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_paused boolean DEFAULT false;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_paused_at timestamptz;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_pause_reason text;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS total_paused_minutes integer DEFAULT 0;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS confidence_score integer DEFAULT 0;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS classification_source text DEFAULT 'manual';
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS is_vague boolean DEFAULT false;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS is_internal boolean DEFAULT false;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS photo_before_url text;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS photo_after_url text;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS accepted_at timestamptz;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS work_started_at timestamptz;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS floor_number integer;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS rating integer;
+
+-- Resolver Stats Table (for load balancer scoring)
+CREATE TABLE IF NOT EXISTS resolver_stats (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  property_id uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  skill_group_id uuid REFERENCES skill_groups(id) ON DELETE SET NULL,
+  current_floor integer DEFAULT 1,
+  avg_resolution_minutes integer DEFAULT 60,
+  total_resolved integer DEFAULT 0,
+  is_available boolean DEFAULT true,
+  last_ticket_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, property_id, skill_group_id)
+);
+
+-- SLA Templates Table (Super Admin customizable)
+CREATE TABLE IF NOT EXISTS sla_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id uuid REFERENCES organizations(id) ON DELETE CASCADE,
+  property_id uuid REFERENCES properties(id) ON DELETE CASCADE,
+  category_code text NOT NULL,
+  response_sla_hours integer DEFAULT 1,
+  resolution_sla_hours integer DEFAULT 24,
+  priority text DEFAULT 'medium',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(property_id, category_code)
+);
+
+-- Indexes for resolver stats and SLA templates
+CREATE INDEX IF NOT EXISTS idx_resolver_stats_user ON resolver_stats(user_id);
+CREATE INDEX IF NOT EXISTS idx_resolver_stats_property ON resolver_stats(property_id);
+CREATE INDEX IF NOT EXISTS idx_resolver_stats_available ON resolver_stats(is_available);
+CREATE INDEX IF NOT EXISTS idx_sla_templates_property ON sla_templates(property_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_is_internal ON tickets(is_internal);
+CREATE INDEX IF NOT EXISTS idx_tickets_confidence ON tickets(confidence_score);
+
+-- Ticket Comments Table
+CREATE TABLE IF NOT EXISTS ticket_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id uuid NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  comment text NOT NULL,
+  is_internal boolean DEFAULT false,            -- Internal notes vs public comments
+  created_at timestamptz DEFAULT now()
+);
+
+-- Ticket Activity Log (Audit Trail)
+CREATE TABLE IF NOT EXISTS ticket_activity_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id uuid NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  action text NOT NULL,                         -- 'created', 'assigned', 'status_change', 'comment', etc.
+  old_value text,
+  new_value text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Ticket Number Counter (per property)
+CREATE TABLE IF NOT EXISTS ticket_counters (
+  property_id uuid PRIMARY KEY REFERENCES properties(id) ON DELETE CASCADE,
+  last_number integer DEFAULT 0
+);
+
+-- Function to generate unique ticket number
+CREATE OR REPLACE FUNCTION generate_ticket_number(p_property_id uuid)
+RETURNS text AS $$
+DECLARE
+  v_counter integer;
+  v_property_code text;
+BEGIN
+  SELECT code INTO v_property_code FROM properties WHERE id = p_property_id;
+  
+  INSERT INTO ticket_counters (property_id, last_number)
+  VALUES (p_property_id, 1)
+  ON CONFLICT (property_id) 
+  DO UPDATE SET last_number = ticket_counters.last_number + 1
+  RETURNING last_number INTO v_counter;
+  
+  RETURN 'TKT-' || UPPER(COALESCE(v_property_code, 'REQ')) || '-' || LPAD(v_counter::text, 5, '0');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to find least-loaded resolver using scoring formula
+-- Score = (CurrentTasks × 0.6) + (ProximityToIssue × 0.2) + (HistoricalSpeed × 0.2)
+-- Ticket is assigned to resolver with LOWEST score
+CREATE OR REPLACE FUNCTION find_best_resolver(
+  p_property_id uuid,
+  p_skill_group_id uuid,
+  p_floor_number integer DEFAULT 1
+) RETURNS uuid AS $$
+DECLARE
+  v_resolver_id uuid;
+BEGIN
+  SELECT rs.user_id INTO v_resolver_id
+  FROM resolver_stats rs
+  JOIN property_memberships pm ON pm.user_id = rs.user_id AND pm.property_id = rs.property_id
+  LEFT JOIN (
+    SELECT assigned_to, COUNT(*) as active_count
+    FROM tickets
+    WHERE property_id = p_property_id 
+      AND skill_group_id = p_skill_group_id
+      AND status IN ('assigned', 'in_progress')
+    GROUP BY assigned_to
+  ) t ON t.assigned_to = rs.user_id
+  WHERE rs.property_id = p_property_id
+    AND (rs.skill_group_id = p_skill_group_id OR rs.skill_group_id IS NULL)
+    AND rs.is_available = true
+    AND pm.is_active = true
+    AND pm.role IN ('staff')
+  ORDER BY (
+    -- Score = (CurrentTasks × 0.6) + (ProximityToIssue × 0.2) + (HistoricalSpeed × 0.2)
+    (COALESCE(t.active_count, 0) * 0.6) +
+    (ABS(COALESCE(rs.current_floor, 1) - COALESCE(p_floor_number, 1)) * 0.2) +
+    (LEAST(COALESCE(rs.avg_resolution_minutes, 60) / 60.0, 10) * 0.2)
+  ) ASC,
+  RANDOM()
+  LIMIT 1;
+  
+  RETURN v_resolver_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Legacy function for backward compatibility
+CREATE OR REPLACE FUNCTION find_least_loaded_resolver(
+  p_property_id uuid,
+  p_skill_group_id uuid
+) RETURNS uuid AS $$
+BEGIN
+  RETURN find_best_resolver(p_property_id, p_skill_group_id, 1);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to auto-assign ticket on creation
+CREATE OR REPLACE FUNCTION auto_assign_ticket()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_skill_group skill_groups%ROWTYPE;
+  v_resolver_id uuid;
+BEGIN
+  -- Get skill group details
+  SELECT * INTO v_skill_group FROM skill_groups WHERE id = NEW.skill_group_id;
+  
+  -- If manual assignment required (Vendor), put in waitlist
+  IF v_skill_group.is_manual_assign THEN
+    NEW.status := 'waitlist';
+    NEW.sla_started := false;
+    RETURN NEW;
+  END IF;
+  
+  -- Find least-loaded resolver
+  v_resolver_id := find_least_loaded_resolver(NEW.property_id, NEW.skill_group_id);
+  
+  IF v_resolver_id IS NOT NULL THEN
+    NEW.assigned_to := v_resolver_id;
+    NEW.assigned_at := now();
+    NEW.status := 'assigned';
+    NEW.sla_started := true;
+    NEW.sla_deadline := now() + (NEW.sla_hours || ' hours')::interval;
+  ELSE
+    -- No available resolver, put in waitlist
+    NEW.status := 'waitlist';
+    NEW.sla_started := false;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for auto-assignment (wrapped in DO block for safe execution)
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS trigger_auto_assign_ticket ON tickets;
+  
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tickets' AND column_name = 'skill_group_id') THEN
+    CREATE TRIGGER trigger_auto_assign_ticket
+      BEFORE INSERT ON tickets
+      FOR EACH ROW
+      EXECUTE FUNCTION auto_assign_ticket();
+  END IF;
+END $$;
+
+-- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_tickets_property ON tickets(property_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_org ON tickets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
+CREATE INDEX IF NOT EXISTS idx_tickets_assigned_to ON tickets(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_tickets_skill_group ON tickets(skill_group_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at);
+CREATE INDEX IF NOT EXISTS idx_tickets_sla_deadline ON tickets(sla_deadline);
+CREATE INDEX IF NOT EXISTS idx_ticket_comments_ticket ON ticket_comments(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_activity_ticket ON ticket_activity_log(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_skill_groups_property ON skill_groups(property_id);
+CREATE INDEX IF NOT EXISTS idx_issue_categories_property ON issue_categories(property_id);
+CREATE INDEX IF NOT EXISTS idx_issue_categories_skill_group ON issue_categories(skill_group_id);
+
+-- ---------------------------------------------------------
+-- 12. CACHE REFRESH
 -- ---------------------------------------------------------
 NOTIFY pgrst, 'reload schema';
 

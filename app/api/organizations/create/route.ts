@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
         // Check if current user is master admin
         // Option 1: Check by email (hardcoded master admins)
-        const masterAdminEmails = ['masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com']
+        const masterAdminEmails = ['ranganathanlohitaksha@gmail.com']
         const isMasterByEmail = masterAdminEmails.includes(currentUser.email || '')
 
         // Option 2: Check by role in organization_memberships

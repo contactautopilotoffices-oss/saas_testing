@@ -2,23 +2,27 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-    LayoutDashboard, Ticket, Bell, Settings, LogOut, Plus,
-    CheckCircle2, Clock, AlertCircle, Coffee, UserCircle, Wrench
+    LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
+    LogOut, Bell, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
+    ClipboardList, FolderKanban, Moon, Sun, ChevronRight, RefreshCw, Cog, X,
+    AlertOctagon, BarChart3, FileText, Wrench
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import SignOutModal from '@/components/ui/SignOutModal';
+import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
 
 // Types
-type Tab = 'overview' | 'requests' | 'cafeteria' | 'settings' | 'profile';
+type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'alerts' | 'visitors' | 'diesel' | 'cafeteria' | 'settings';
 
 interface Property {
     id: string;
     name: string;
     code: string;
     address: string;
+    organization_id?: string;
 }
 
 const MstDashboard = () => {
@@ -28,11 +32,13 @@ const MstDashboard = () => {
     const propertyId = params?.propertyId as string;
 
     // State
-    const [activeTab, setActiveTab] = useState<Tab>('overview');
+    const [activeTab, setActiveTab] = useState<Tab>('dashboard');
     const [property, setProperty] = useState<Property | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true);
+    const [showQuickActions, setShowQuickActions] = useState(true);
 
     const supabase = createClient();
 
@@ -61,81 +67,181 @@ const MstDashboard = () => {
     };
 
     if (isLoading) return (
-        <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC]">
+        <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
             <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-slate-200 border-t-emerald-600 rounded-full animate-spin" />
-                <p className="text-slate-500 font-bold">Loading maintenance portal...</p>
+                <div className="w-12 h-12 border-4 border-emerald-900 border-t-emerald-500 rounded-full animate-spin" />
+                <p className="text-slate-400 font-medium">Loading maintenance portal...</p>
             </div>
         </div>
     );
 
     if (!property) return (
-        <div className="p-10 text-center">
-            <h2 className="text-xl font-bold text-red-600">Error Loading Dashboard</h2>
-            <p className="text-slate-600 mt-2">{errorMsg || 'Property not found.'}</p>
-            <button onClick={() => router.back()} className="mt-4 text-emerald-600 font-bold hover:underline">Go Back</button>
+        <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
+            <div className="text-center">
+                <h2 className="text-xl font-bold text-red-400">Error Loading Dashboard</h2>
+                <p className="text-slate-400 mt-2">{errorMsg || 'Property not found.'}</p>
+                <button onClick={() => router.back()} className="mt-4 text-emerald-400 font-bold hover:underline">Go Back</button>
+            </div>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-[#F8F9FC] flex font-inter text-slate-900">
-            {/* Sidebar */}
-            <aside className="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 transition-all duration-300">
-                <div className="p-8 pb-4">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-emerald-200">
-                            <Wrench className="w-6 h-6" />
+        <div className="min-h-screen bg-[#0f1419] flex font-inter text-white">
+            {/* Dark Sidebar */}
+            <aside className="w-56 bg-[#161b22] flex flex-col fixed h-full z-10 border-r border-[#21262d]">
+                {/* Logo */}
+                <div className="p-4 border-b border-[#21262d]">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                            <Wrench className="w-4 h-4" />
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm leading-tight text-slate-900 truncate max-w-[160px]">{property?.name}</h2>
-                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Maintenance Portal</p>
+                            <h2 className="font-bold text-sm text-white">AUTOPILOT</h2>
+                            <p className="text-[10px] text-slate-500">Maintenance Portal</p>
                         </div>
                     </div>
                 </div>
 
-                <nav className="flex-1 px-4 overflow-y-auto">
-                    {/* Core Operations */}
-                    <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
-                            Core Operations
+                {/* Search */}
+                <div className="px-3 py-3">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                        <input
+                            type="text"
+                            placeholder="Search features... (Ctr"
+                            className="w-full pl-8 pr-3 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-xs text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        />
+                    </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="px-3 pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Quick Actions</span>
+                        <button onClick={() => setShowQuickActions(!showQuickActions)} className="text-slate-500 hover:text-slate-300">
+                            <X className="w-3 h-3" />
+                        </button>
+                    </div>
+                    {showQuickActions && (
+                        <div className="grid grid-cols-2 gap-1.5">
+                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                                <Plus className="w-3 h-3" />
+                                New Request
+                            </button>
+                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                                <Cog className="w-3 h-3" />
+                                Manage Pro...
+                            </button>
+                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                                <AlertOctagon className="w-3 h-3" />
+                                Emergency ...
+                            </button>
+                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                                <FileText className="w-3 h-3" />
+                                Quick Report
+                            </button>
+                            <button className="col-span-2 flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                                <BarChart3 className="w-3 h-3" />
+                                System Stat...
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 px-3 overflow-y-auto">
+                    {/* Daily Work */}
+                    <div className="mb-4">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
+                            <span className="w-0.5 h-2.5 bg-emerald-500 rounded-full" />
+                            Daily Work
                         </p>
-                        <div className="space-y-1">
+                        <div className="space-y-0.5">
                             <button
-                                onClick={() => setActiveTab('overview')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                onClick={() => setActiveTab('dashboard')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'dashboard'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
                                 Dashboard
                             </button>
                             <button
+                                onClick={() => setActiveTab('tasks')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'tasks'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    }`}
+                            >
+                                <ClipboardList className="w-4 h-4" />
+                                My Tasks
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('projects')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'projects'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    }`}
+                            >
+                                <FolderKanban className="w-4 h-4" />
+                                My Project Work
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('requests')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'requests'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
-                                Work Orders
+                                Requests
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('alerts')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'alerts'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    }`}
+                            >
+                                <Bell className="w-4 h-4" />
+                                Alerts
                             </button>
                         </div>
                     </div>
 
-                    {/* Management Hub */}
-                    <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
-                            Management Hub
+                    {/* Operations */}
+                    <div className="mb-4">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
+                            <span className="w-0.5 h-2.5 bg-emerald-500 rounded-full" />
+                            Operations
                         </p>
-                        <div className="space-y-1">
+                        <div className="space-y-0.5">
+                            <button
+                                onClick={() => setActiveTab('visitors')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'visitors'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    }`}
+                            >
+                                <UsersRound className="w-4 h-4" />
+                                Visitors
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('diesel')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'diesel'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    }`}
+                            >
+                                <Fuel className="w-4 h-4" />
+                                Diesel Logger
+                            </button>
                             <button
                                 onClick={() => setActiveTab('cafeteria')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'cafeteria'
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'cafeteria'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
                                 <Coffee className="w-4 h-4" />
@@ -143,104 +249,82 @@ const MstDashboard = () => {
                             </button>
                         </div>
                     </div>
-
-                    {/* System & Personal */}
-                    <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
-                            System & Personal
-                        </p>
-                        <div className="space-y-1">
-                            <button
-                                onClick={() => setActiveTab('settings')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <Settings className="w-4 h-4" />
-                                Settings
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('profile')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <UserCircle className="w-4 h-4" />
-                                Profile
-                            </button>
-                        </div>
-                    </div>
                 </nav>
 
-                <div className="pt-6 border-t border-slate-100 p-6">
-                    {/* User Profile Section */}
-                    <div className="flex items-center gap-3 px-2 mb-6">
-                        <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-slate-200">
-                            {user?.email?.[0].toUpperCase() || 'M'}
-                        </div>
-                        <div className="flex flex-col overflow-hidden">
-                            <span className="font-bold text-sm text-slate-900 truncate">
-                                {user?.user_metadata?.full_name || 'MST Staff'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 truncate font-medium">
-                                {user?.email}
-                            </span>
-                        </div>
-                    </div>
-
+                {/* Footer */}
+                <div className="border-t border-[#21262d] p-3">
                     <button
                         onClick={() => setShowSignOutModal(true)}
-                        className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
+                        className="flex items-center gap-2 px-2 py-2 text-slate-500 hover:text-red-400 rounded-lg w-full transition-colors text-xs font-medium"
                     >
-                        <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        <LogOut className="w-4 h-4" />
                         Sign Out
                     </button>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-72 min-h-screen p-8 lg:p-12 overflow-y-auto">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                    >
-                        {activeTab === 'overview' && <OverviewTab />}
-                        {activeTab === 'requests' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Ticket className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Work Orders</h3>
-                                <p className="text-slate-500">Maintenance tasks and repairs assigned to you.</p>
+            <div className="flex-1 ml-56 flex flex-col min-h-screen">
+                {/* Top Header */}
+                <header className="h-14 bg-[#161b22] border-b border-[#21262d] flex items-center justify-between px-6 sticky top-0 z-10">
+                    <div className="flex items-center gap-4">
+                        <button className="text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-md bg-[#21262d]">
+                            <RefreshCw className="w-3 h-3 inline mr-1.5" />
+                            Refresh page
+                        </button>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                className="w-64 pl-10 pr-4 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsDarkMode(!isDarkMode)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#21262d] text-slate-400 hover:text-white transition-colors"
+                        >
+                            {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                        </button>
+                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#21262d] text-slate-400 hover:text-white transition-colors">
+                            <Bell className="w-4 h-4" />
+                        </button>
+                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#21262d] text-slate-400 hover:text-white transition-colors">
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                        <div className="flex items-center gap-2 pl-3 border-l border-[#30363d]">
+                            <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                {user?.email?.[0].toUpperCase() || 'U'}
                             </div>
-                        )}
-                        {activeTab === 'cafeteria' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Cafeteria</h3>
-                                <p className="text-slate-500">Property cafeteria services.</p>
-                            </div>
-                        )}
-                        {activeTab === 'settings' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Settings</h3>
-                                <p className="text-slate-500">Maintenance portal settings.</p>
-                            </div>
-                        )}
-                        {activeTab === 'profile' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <UserCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Profile</h3>
-                                <p className="text-slate-500">Member profile information.</p>
-                            </div>
-                        )}
-                    </motion.div>
-                </AnimatePresence>
-            </main>
+                            <span className="text-xs text-slate-400">{user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Page Content */}
+                <main className="flex-1 p-6 overflow-y-auto">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {activeTab === 'dashboard' && <DashboardTab />}
+                            {activeTab === 'tasks' && <TasksTab />}
+                            {activeTab === 'projects' && <ProjectsTab />}
+                            {activeTab === 'requests' && <RequestsTab />}
+                            {activeTab === 'alerts' && <AlertsTab />}
+                            {activeTab === 'visitors' && <VisitorsTab />}
+                            {activeTab === 'diesel' && <DieselStaffDashboard />}
+                            {activeTab === 'cafeteria' && <CafeteriaTab />}
+                        </motion.div>
+                    </AnimatePresence>
+                </main>
+            </div>
 
             <SignOutModal
                 isOpen={showSignOutModal}
@@ -251,23 +335,125 @@ const MstDashboard = () => {
     );
 };
 
-const OverviewTab = () => (
-    <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-                { label: 'Active Tasks', value: '4', icon: Wrench, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { label: 'Pending Repairs', value: '3', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-                { label: 'Urgent Tickets', value: '1', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
-                { label: 'Completed Today', value: '6', icon: CheckCircle2, color: 'text-blue-600', bg: 'bg-blue-50' },
-            ].map((stat, i) => (
-                <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                    <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
-                        <stat.icon className="w-6 h-6" />
-                    </div>
-                    <p className="text-slate-500 text-sm font-medium">{stat.label}</p>
-                    <h3 className="text-2xl font-black text-slate-900 mt-1">{stat.value}</h3>
+// Dashboard Tab
+const DashboardTab = () => (
+    <div className="space-y-6">
+        {/* Header */}
+        <div>
+            <h1 className="text-2xl font-bold text-white">Maintenance Dashboard</h1>
+            <p className="text-slate-500 text-sm mt-1">Monitor and manage facility maintenance operations</p>
+        </div>
+
+        {/* Incoming Requests */}
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
+            <div className="mb-4">
+                <h2 className="text-base font-bold text-white">Incoming Work Orders</h2>
+                <p className="text-xs text-slate-500">Tasks available for you to accept</p>
+            </div>
+            <div className="flex items-center justify-center py-12 text-slate-500 text-sm">
+                No incoming work orders
+            </div>
+        </div>
+
+        {/* Dashboard Section */}
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
+            <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-bold text-white">Dashboard</h2>
+                <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-lg bg-[#21262d]">
+                    <Settings className="w-3 h-3" />
+                    Customize
+                </button>
+            </div>
+
+            {/* Work Orders Overview */}
+            <div className="bg-[#0d1117] border border-[#21262d] rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-white">Work Orders Overview</h3>
+                    <button className="text-slate-500 hover:text-white">
+                        <ChevronRight className="w-4 h-4 rotate-[-45deg]" />
+                    </button>
                 </div>
-            ))}
+                <div className="grid grid-cols-3 gap-6">
+                    <div className="text-center">
+                        <p className="text-3xl font-bold text-white">0</p>
+                        <p className="text-xs text-slate-500 mt-1">Total</p>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-3xl font-bold text-blue-400">0</p>
+                        <p className="text-xs text-slate-500 mt-1">Active</p>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-3xl font-bold text-emerald-400">0</p>
+                        <p className="text-xs text-slate-500 mt-1">Completed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+// Tasks Tab
+const TasksTab = () => (
+    <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-white">My Tasks</h1>
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+            <ClipboardList className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">No tasks assigned to you</p>
+        </div>
+    </div>
+);
+
+// Projects Tab
+const ProjectsTab = () => (
+    <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-white">My Project Work</h1>
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+            <FolderKanban className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">No projects assigned to you</p>
+        </div>
+    </div>
+);
+
+// Requests Tab
+const RequestsTab = () => (
+    <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-white">Requests</h1>
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+            <Ticket className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">No requests found</p>
+        </div>
+    </div>
+);
+
+// Alerts Tab
+const AlertsTab = () => (
+    <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-white">Alerts</h1>
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+            <Bell className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">No alerts at this time</p>
+        </div>
+    </div>
+);
+
+// Visitors Tab
+const VisitorsTab = () => (
+    <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-white">Visitors</h1>
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+            <UsersRound className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">Check-in and verify property visitors</p>
+        </div>
+    </div>
+);
+
+// Cafeteria Tab
+const CafeteriaTab = () => (
+    <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-white">Cafeteria</h1>
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+            <Coffee className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">Cafeteria management coming soon</p>
         </div>
     </div>
 );

@@ -30,7 +30,7 @@ export function useAppSession() {
             const org_id = user.user_metadata.org_id || 'default-org';
 
             // FORCE Master Admin role for these specific emails
-            if (user.email === 'masterooshi@gmail.com' || user.email === 'ranganathanlohitaksha@gmail.com') {
+            if (user.email === 'ranganathanlohitaksha@gmail.com') {
                 role = 'master_admin';
             }
 

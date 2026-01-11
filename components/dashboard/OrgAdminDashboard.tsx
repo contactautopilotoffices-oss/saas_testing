@@ -13,6 +13,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { HapticCard } from '@/components/ui/HapticCard';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/components/ui/SignOutModal';
+import ModernClock from '@/components/ui/ModernClock';
 
 // Types
 type Tab = 'overview' | 'properties' | 'requests' | 'users' | 'visitors' | 'cafeteria' | 'settings' | 'profile' | 'revenue';
@@ -510,7 +511,7 @@ const OrgAdminDashboard = () => {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {activeTab === 'overview' && <OverviewTab properties={properties} />}
+                        {activeTab === 'overview' && <OverviewTab properties={properties} orgId={org?.id || ''} />}
                         {activeTab === 'revenue' && <RevenueTab properties={properties} />}
                         {activeTab === 'properties' && (
                             <PropertiesTab
@@ -591,45 +592,103 @@ const OrgAdminDashboard = () => {
 };
 
 // Sub-components
-const OverviewTab = ({ properties }: { properties: Property[] }) => {
+const OverviewTab = ({ properties, orgId }: { properties: Property[], orgId: string }) => {
     const [selectedPropertyId, setSelectedPropertyId] = useState('all');
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Real data from org APIs
+    const [ticketSummary, setTicketSummary] = useState({
+        total_tickets: 0,
+        open_tickets: 0,
+        in_progress: 0,
+        resolved: 0,
+        sla_breached: 0,
+        avg_resolution_hours: 0,
+    });
+
+    const [dieselSummary, setDieselSummary] = useState({
+        total_consumption: 0,
+        change_percentage: 0,
+        properties: [] as any[],
+    });
+
+    const [vmsSummary, setVmsSummary] = useState({
+        total_visitors_today: 0,
+        checked_in: 0,
+        checked_out: 0,
+    });
+
+    const [vendorSummary, setVendorSummary] = useState({
+        total_revenue: 0,
+        total_commission: 0,
+        total_vendors: 0,
+    });
+
+    // Fetch all org summaries
+    useEffect(() => {
+        if (!orgId) return;
+
+        const fetchSummaries = async () => {
+            setIsLoading(true);
+
+            try {
+                // Tickets summary
+                const ticketsRes = await fetch(`/api/organizations/${orgId}/tickets-summary?period=month`);
+                if (ticketsRes.ok) {
+                    const data = await ticketsRes.json();
+                    setTicketSummary(data);
+                }
+
+                // Diesel summary
+                const dieselRes = await fetch(`/api/organizations/${orgId}/diesel-summary?period=month`);
+                if (dieselRes.ok) {
+                    const data = await dieselRes.json();
+                    setDieselSummary({
+                        total_consumption: data.total_consumption || 0,
+                        change_percentage: data.change_percentage || 0,
+                        properties: data.properties || [],
+                    });
+                }
+
+                // VMS summary
+                const vmsRes = await fetch(`/api/organizations/${orgId}/vms-summary?period=today`);
+                if (vmsRes.ok) {
+                    const data = await vmsRes.json();
+                    setVmsSummary({
+                        total_visitors_today: data.total_visitors || 0,
+                        checked_in: data.checked_in || 0,
+                        checked_out: data.checked_out || 0,
+                    });
+                }
+
+                // Vendor summary
+                const vendorRes = await fetch(`/api/organizations/${orgId}/vendor-summary?period=month`);
+                if (vendorRes.ok) {
+                    const data = await vendorRes.json();
+                    setVendorSummary({
+                        total_revenue: data.total_revenue || 0,
+                        total_commission: data.total_commission || 0,
+                        total_vendors: data.total_vendors || 0,
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching org summaries:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchSummaries();
+    }, [orgId]);
 
     const activeProperty = selectedPropertyId === 'all'
         ? null
         : properties.find(p => p.id === selectedPropertyId);
 
-    // Mock data for the dashboard
-    const kpiData = {
-        activeRequests: 96,
-        completed: 118,
-        completionRate: 55.1,
-        totalIn: 124,
-        totalOut: 539
-    };
-
-    const dieselData = {
-        thisMonth: 1269,
-        trend: -36,
-        compared: 'November'
-    };
-
-    const cafeteriaRevenue = {
-        amount: 100000,
-        trend: 49
-    };
-
-    // Fixed energy data to avoid hydration mismatch (no Math.random)
-    const energyData = [45, 72, 58, 89, 34, 67, 90, 45, 78, 52, 85, 60, 73, 88, 42, 65, 80];
-
-    const topPerformers = [
-        { name: 'Vishu Kumar', avatar: 'V' },
-        { name: 'KIRAN K', avatar: 'K' }
-    ];
-
-    const procurementData = [
-        { property: 'Green Oasis Residence', address: '3284 Skyview Lane, WA 68001', spoc: 'Naresh', cost: '6,92,000', views: 1251, status: 'Active' },
-        { property: 'SS Plaza', address: 'Main Street', spoc: 'Raj', cost: '4,50,000', views: 892, status: 'Active' }
-    ];
+    // Calculated metrics
+    const completionRate = ticketSummary.total_tickets > 0
+        ? Math.round((ticketSummary.resolved / ticketSummary.total_tickets) * 100 * 10) / 10
+        : 0;
 
     return (
         <div className="min-h-screen">
@@ -652,7 +711,10 @@ const OverviewTab = ({ properties }: { properties: Property[] }) => {
                             {selectedPropertyId === 'all' ? properties.length : 1}
                         </span>
                     </div>
-                    <Search className="w-6 h-6 text-slate-400 cursor-pointer hover:text-white transition-colors" />
+                    <div className="flex items-center gap-6">
+                        <Search className="w-6 h-6 text-slate-400 cursor-pointer hover:text-white transition-colors" />
+                        <ModernClock size={160} />
+                    </div>
                 </div>
 
                 {/* Breadcrumb */}
@@ -664,19 +726,19 @@ const OverviewTab = ({ properties }: { properties: Property[] }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     {/* Active Requests */}
                     <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                        <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Active Requests</div>
+                        <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Open Tickets</div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-green-400">{kpiData.activeRequests}</span>
-                            <span className="text-xs text-white/60 font-bold">7 urgent</span>
+                            <span className="text-4xl font-black text-green-400">{ticketSummary.open_tickets + ticketSummary.in_progress}</span>
+                            <span className="text-xs text-white/60 font-bold">{ticketSummary.sla_breached} SLA breached</span>
                         </div>
                     </div>
 
-                    {/* Completed */}
+                    {/* Resolved */}
                     <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                        <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Completed</div>
+                        <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Resolved</div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-white">{kpiData.completed}</span>
-                            <span className="text-xs text-white/60 font-bold">Avg 0m response</span>
+                            <span className="text-4xl font-black text-white">{ticketSummary.resolved}</span>
+                            <span className="text-xs text-white/60 font-bold">Avg {ticketSummary.avg_resolution_hours}h resolution</span>
                         </div>
                     </div>
 
@@ -684,8 +746,8 @@ const OverviewTab = ({ properties }: { properties: Property[] }) => {
                     <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
                         <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Completion Rate</div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-white">{kpiData.completionRate}%</span>
-                            <span className="text-xs text-white/60 font-bold">118 of 214 closed</span>
+                            <span className="text-4xl font-black text-white">{completionRate}%</span>
+                            <span className="text-xs text-white/60 font-bold">{ticketSummary.resolved} of {ticketSummary.total_tickets} closed</span>
                         </div>
                     </div>
                 </div>
@@ -701,32 +763,31 @@ const OverviewTab = ({ properties }: { properties: Property[] }) => {
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-black text-slate-900">Diesel Consumption</h3>
                             </div>
-                            <div className="text-red-500 text-xs font-bold mb-4">Diesel Management</div>
+                            <div className="text-amber-500 text-xs font-bold mb-4">This Month</div>
 
                             {/* Gauge Placeholder */}
                             <div className="flex justify-center mb-4">
-                                <div className="w-24 h-24 rounded-full border-8 border-cyan-400 border-t-transparent flex items-center justify-center">
-                                    <span className="text-xs font-bold text-slate-400">Gauge</span>
+                                <div className="w-24 h-24 rounded-full border-8 border-amber-400 border-t-transparent flex items-center justify-center">
+                                    <span className="text-lg font-black text-slate-900">{dieselSummary.total_consumption}</span>
                                 </div>
                             </div>
 
-                            <div className="text-slate-400 text-xs font-bold mb-1">This month</div>
-                            <div className="text-3xl font-black text-slate-900 mb-1">1,269 litres</div>
+                            <div className="text-slate-400 text-xs font-bold mb-1">Total consumption</div>
+                            <div className="text-3xl font-black text-slate-900 mb-1">{dieselSummary.total_consumption.toLocaleString()} L</div>
                             <div className="flex items-center gap-2">
-                                <span className="text-rose-500 font-bold text-sm">{dieselData.trend}% ↓</span>
-                            </div>
-                            <div className="text-xs text-emerald-500 font-bold mt-2">
-                                ✓ 49 litres less consumed compared to {dieselData.compared}
+                                <span className={`font-bold text-sm ${dieselSummary.change_percentage >= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                    {dieselSummary.change_percentage >= 0 ? '+' : ''}{dieselSummary.change_percentage}%
+                                </span>
                             </div>
                         </div>
 
-                        {/* Cafeteria Revenue */}
+                        {/* Vendor Revenue */}
                         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-900 mb-2">Cafeteria Revenue</h3>
-                            <div className="text-slate-400 text-xs font-bold mb-2">November 2025</div>
-                            <div className="text-3xl font-black text-slate-900">₹ 1,00,000</div>
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="text-emerald-500 font-bold text-sm">+{cafeteriaRevenue.trend}% ↑</span>
+                            <h3 className="text-sm font-black text-slate-900 mb-2">Vendor Revenue</h3>
+                            <div className="text-slate-400 text-xs font-bold mb-2">This Month</div>
+                            <div className="text-3xl font-black text-slate-900">₹ {vendorSummary.total_revenue.toLocaleString()}</div>
+                            <div className="text-xs text-slate-500 mt-2">
+                                Commission: ₹ {vendorSummary.total_commission.toLocaleString()} from {vendorSummary.total_vendors} vendors
                             </div>
                         </div>
                     </div>
@@ -752,12 +813,12 @@ const OverviewTab = ({ properties }: { properties: Property[] }) => {
 
                             <div className="space-y-4">
                                 <div>
-                                    <div className="text-slate-700 text-xs font-bold">Total In</div>
-                                    <div className="text-2xl font-black text-slate-900">{kpiData.totalIn}</div>
+                                    <div className="text-slate-700 text-xs font-bold">Visitors Today</div>
+                                    <div className="text-2xl font-black text-slate-900">{vmsSummary.total_visitors_today}</div>
                                 </div>
                                 <div>
-                                    <div className="text-slate-700 text-xs font-bold">Total Out</div>
-                                    <div className="text-2xl font-black text-slate-900">{kpiData.totalOut}</div>
+                                    <div className="text-slate-700 text-xs font-bold">Checked In / Out</div>
+                                    <div className="text-2xl font-black text-slate-900">{vmsSummary.checked_in} / {vmsSummary.checked_out}</div>
                                 </div>
                             </div>
                         </div>
@@ -765,135 +826,124 @@ const OverviewTab = ({ properties }: { properties: Property[] }) => {
 
                     {/* Right Column */}
                     <div className="lg:col-span-5 space-y-6">
-                        {/* Top Performers */}
+                        {/* Property Breakdown */}
                         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-900 mb-4">Top Performers</h3>
-                            <div className="space-y-3">
-                                {topPerformers.map((person, idx) => (
-                                    <div key={idx} className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600 font-bold">
-                                            {person.avatar}
+                            <h3 className="text-sm font-black text-slate-900 mb-4">Tickets by Property</h3>
+                            <div className="space-y-3 max-h-48 overflow-y-auto">
+                                {(ticketSummary as any).properties?.slice(0, 5).map((prop: any, idx: number) => (
+                                    <div key={prop.property_id || idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                                        <div>
+                                            <div className="font-bold text-slate-900 text-sm">{prop.property_name}</div>
+                                            <div className="text-xs text-slate-500">{prop.open} open · {prop.resolved} resolved</div>
                                         </div>
-                                        <span className="font-bold text-slate-900">{person.name}</span>
+                                        <div className="text-right">
+                                            <div className="text-lg font-black text-slate-900">{prop.total}</div>
+                                            <div className="text-xs text-slate-400">total</div>
+                                        </div>
                                     </div>
                                 ))}
+                                {!(ticketSummary as any).properties?.length && (
+                                    <div className="text-center text-slate-400 py-4">No ticket data available</div>
+                                )}
                             </div>
-                            <button className="w-full mt-4 py-3 bg-slate-900 text-white font-bold rounded-xl text-sm hover:bg-slate-800 transition-colors">
-                                Search now
-                            </button>
                         </div>
 
-                        {/* EB Consumption */}
+                        {/* Module Summary */}
                         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-black text-slate-900">EB Consumption (Energy Consumption)</h3>
-                                <div className="flex gap-2 text-xs">
-                                    <button className="px-3 py-1 bg-slate-100 rounded-lg font-bold text-slate-600">Daily</button>
-                                    <button className="px-3 py-1 text-slate-400 font-bold">Monthly</button>
+                            <h3 className="text-sm font-black text-slate-900 mb-4">Module Summary</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-blue-50 rounded-xl">
+                                    <div className="text-xs font-bold text-blue-600 mb-1">Tickets</div>
+                                    <div className="text-2xl font-black text-blue-900">{ticketSummary.total_tickets}</div>
                                 </div>
-                            </div>
-
-                            <div className="text-emerald-500 text-xs font-bold mb-4">
-                                ✓ Energy Consumed logged
-                            </div>
-
-                            <div className="text-slate-600 text-sm mb-2">this month</div>
-                            <div className="flex items-baseline gap-2 mb-4">
-                                <span className="text-xl font-black text-slate-900">125.kwh</span>
-                                <span className="text-emerald-500 text-sm font-bold">more than december</span>
-                            </div>
-
-                            {/* Bar Chart */}
-                            <div className="text-red-500 text-xs font-bold mb-2">(Energy Consumed per day)</div>
-                            <div className="flex items-end gap-1 h-20">
-                                {energyData.map((value, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex-1 bg-yellow-400 rounded-t-sm transition-all hover:bg-yellow-500"
-                                        style={{ height: `${value}%` }}
-                                    />
-                                ))}
-                            </div>
-                            <div className="flex justify-between text-xs text-slate-400 mt-2">
-                                {Array.from({ length: 17 }, (_, i) => (
-                                    <span key={i}>{i + 1}</span>
-                                ))}
+                                <div className="p-4 bg-emerald-50 rounded-xl">
+                                    <div className="text-xs font-bold text-emerald-600 mb-1">Visitors</div>
+                                    <div className="text-2xl font-black text-emerald-900">{vmsSummary.total_visitors_today}</div>
+                                </div>
+                                <div className="p-4 bg-amber-50 rounded-xl">
+                                    <div className="text-xs font-bold text-amber-600 mb-1">Diesel (L)</div>
+                                    <div className="text-2xl font-black text-amber-900">{dieselSummary.total_consumption}</div>
+                                </div>
+                                <div className="p-4 bg-purple-50 rounded-xl">
+                                    <div className="text-xs font-bold text-purple-600 mb-1">Vendors</div>
+                                    <div className="text-2xl font-black text-purple-900">{vendorSummary.total_vendors}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Procurement Dashboard */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mt-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                            <input type="checkbox" className="w-4 h-4 rounded" />
-                            Procurement Dashboard
-                        </h3>
-                        <div className="flex gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
-                                <Search className="w-4 h-4" /> Search
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
-                                <Filter className="w-4 h-4" /> District
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
-                                <Building2 className="w-4 h-4" /> Property type
-                            </button>
-                        </div>
+            {/* Procurement Dashboard */}
+            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mt-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                        <input type="checkbox" className="w-4 h-4 rounded" />
+                        Procurement Dashboard
+                    </h3>
+                    <div className="flex gap-3">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
+                            <Search className="w-4 h-4" /> Search
+                        </button>
+                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
+                            <Filter className="w-4 h-4" /> District
+                        </button>
+                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
+                            <Building2 className="w-4 h-4" /> Property type
+                        </button>
                     </div>
+                </div>
 
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-slate-100">
-                                    <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Property Name</th>
-                                    <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">SPOC</th>
-                                    <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Cost</th>
-                                    <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Views</th>
-                                    <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                    <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {(selectedPropertyId === 'all' ? properties : properties.filter(p => p.id === selectedPropertyId)).map((item, idx) => (
-                                    <tr key={item.id} className="hover:bg-slate-50/50">
-                                        <td className="py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 bg-slate-200 rounded-xl flex items-center justify-center">
-                                                    <Building2 className="w-6 h-6 text-slate-400" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-slate-900">{item.name}</div>
-                                                    <div className="text-xs text-slate-400">{item.address || 'No address provided'}</div>
-                                                </div>
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-slate-100">
+                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Property Name</th>
+                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">SPOC</th>
+                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Cost</th>
+                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Views</th>
+                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {(selectedPropertyId === 'all' ? properties : properties.filter(p => p.id === selectedPropertyId)).map((item, idx) => (
+                                <tr key={item.id} className="hover:bg-slate-50/50">
+                                    <td className="py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-slate-200 rounded-xl flex items-center justify-center">
+                                                <Building2 className="w-6 h-6 text-slate-400" />
                                             </div>
-                                        </td>
-                                        <td className="py-4 font-bold text-slate-600">Admin</td>
-                                        <td className="py-4 font-bold text-slate-900">₹ 0.00</td>
-                                        <td className="py-4 font-bold text-slate-600">0 views</td>
-                                        <td className="py-4">
-                                            <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg">
-                                                Active
-                                            </span>
-                                        </td>
-                                        <td className="py-4">
-                                            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                                                <Settings className="w-4 h-4 text-slate-400" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900">{item.name}</div>
+                                                <div className="text-xs text-slate-400">{item.address || 'No address provided'}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="py-4 font-bold text-slate-600">Admin</td>
+                                    <td className="py-4 font-bold text-slate-900">₹ 0.00</td>
+                                    <td className="py-4 font-bold text-slate-600">0 views</td>
+                                    <td className="py-4">
+                                        <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg">
+                                            Active
+                                        </span>
+                                    </td>
+                                    <td className="py-4">
+                                        <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                            <Settings className="w-4 h-4 text-slate-400" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                        <span className="text-sm text-orange-500 font-bold">
-                            (Overview of Ongoing Payment and Procurement Activities)
-                        </span>
-                    </div>
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                    <span className="text-sm text-orange-500 font-bold">
+                        (Overview of Ongoing Payment and Procurement Activities)
+                    </span>
                 </div>
             </div>
         </div>

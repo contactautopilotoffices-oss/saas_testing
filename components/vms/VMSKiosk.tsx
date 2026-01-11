@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Truck, Building2, ArrowRight, ArrowLeft, LogIn, LogOut, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CameraCapture from './CameraCapture';
+import HostAutoComplete from './HostAutoComplete';
 
 interface VMSKioskProps {
     propertyId: string;
@@ -72,15 +73,7 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
         setError('');
 
         try {
-            // Upload photo to Supabase Storage if exists
-            let photoUrl = '';
-            if (photoBlob) {
-                const formDataUpload = new FormData();
-                formDataUpload.append('file', photoBlob, 'visitor.jpg');
-                // For now, we'll use base64 in the API (Supabase Storage integration can be added later)
-                photoUrl = formData.photo_url;
-            }
-
+            // First create visitor log (without photo)
             const response = await fetch(`/api/vms/${propertyId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -90,7 +83,7 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
                     mobile: formData.mobile ? `+91${formData.mobile}` : null,
                     coming_from: formData.coming_from,
                     whom_to_meet: formData.whom_to_meet,
-                    photo_url: photoUrl,
+                    photo_url: null, // Will be updated after upload
                 }),
             });
 
@@ -98,6 +91,18 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
 
             if (!response.ok) {
                 throw new Error(data.error || 'Check-in failed');
+            }
+
+            // Upload photo to Supabase Storage if exists
+            if (photoBlob && data.visitor_id) {
+                const photoFormData = new FormData();
+                photoFormData.append('file', photoBlob, `${data.visitor_id}.webp`);
+                photoFormData.append('visitor_id', data.visitor_id);
+
+                await fetch(`/api/vms/${propertyId}/photos`, {
+                    method: 'POST',
+                    body: photoFormData,
+                }).catch(console.error); // Non-blocking
             }
 
             setVisitorId(data.visitor_id);
@@ -200,8 +205,8 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
                                 key={cat.id}
                                 onClick={() => setCategory(cat.id as Category)}
                                 className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${category === cat.id
-                                        ? 'border-indigo-500 bg-indigo-50'
-                                        : 'border-slate-100 hover:border-slate-200'
+                                    ? 'border-indigo-500 bg-indigo-50'
+                                    : 'border-slate-100 hover:border-slate-200'
                                     }`}
                             >
                                 <div className={`w-12 h-12 ${cat.color} rounded-xl flex items-center justify-center text-white`}>
@@ -294,18 +299,11 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                Whom to Meet *
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.whom_to_meet}
-                                onChange={(e) => setFormData(prev => ({ ...prev, whom_to_meet: e.target.value }))}
-                                placeholder="Person or department"
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:border-indigo-500 focus:ring-0 transition-colors"
-                            />
-                        </div>
+                        <HostAutoComplete
+                            propertyId={propertyId}
+                            value={formData.whom_to_meet}
+                            onChange={(value) => setFormData(prev => ({ ...prev, whom_to_meet: value }))}
+                        />
 
                         {/* Camera */}
                         <div className="pt-4">

@@ -29,7 +29,7 @@ CREATE POLICY audit_logs_read_policy ON public.audit_logs
   TO authenticated
   USING (
     (SELECT email FROM auth.users WHERE id = auth.uid()) 
-    IN ('masterooshi@gmail.com', 'ranganathanlohitaksha@gmail.com')
+    = 'ranganathanlohitaksha@gmail.com'
   );
 
 -- 4. Re-create the organization triggers as they might have failed
