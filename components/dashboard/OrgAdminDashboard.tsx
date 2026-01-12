@@ -13,7 +13,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { HapticCard } from '@/components/ui/HapticCard';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/components/ui/SignOutModal';
-import ModernClock from '@/components/ui/ModernClock';
 
 // Types
 type Tab = 'overview' | 'properties' | 'requests' | 'users' | 'visitors' | 'cafeteria' | 'settings' | 'profile' | 'revenue';
@@ -713,7 +712,6 @@ const OverviewTab = ({ properties, orgId }: { properties: Property[], orgId: str
                     </div>
                     <div className="flex items-center gap-6">
                         <Search className="w-6 h-6 text-slate-400 cursor-pointer hover:text-white transition-colors" />
-                        <ModernClock size={160} />
                     </div>
                 </div>
 
