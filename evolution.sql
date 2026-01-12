@@ -100,6 +100,42 @@ CREATE POLICY master_admin_policy ON property_activities FOR ALL USING (
   OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
 );
 
+-- Users Table Policies (CRITICAL - was missing!)
+DROP POLICY IF EXISTS users_read_own ON users;
+CREATE POLICY users_read_own ON users FOR SELECT USING (
+  -- Users can read their own profile
+  auth.uid() = id
+  -- Users in same property can see each other
+  OR EXISTS(
+    SELECT 1 FROM property_memberships pm1, property_memberships pm2 
+    WHERE pm1.user_id = auth.uid() 
+    AND pm2.user_id = users.id 
+    AND pm1.property_id = pm2.property_id 
+    AND pm1.is_active AND pm2.is_active
+  )
+  -- Users in same org can see each other
+  OR EXISTS(
+    SELECT 1 FROM organization_memberships om1, organization_memberships om2 
+    WHERE om1.user_id = auth.uid() 
+    AND om2.user_id = users.id 
+    AND om1.organization_id = om2.organization_id
+  )
+  -- Super admin bypass
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
+);
+
+DROP POLICY IF EXISTS users_update_own ON users;
+CREATE POLICY users_update_own ON users FOR UPDATE USING (
+  auth.uid() = id
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
+);
+
+DROP POLICY IF EXISTS users_insert ON users;
+CREATE POLICY users_insert ON users FOR INSERT WITH CHECK (
+  auth.uid() = id
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'ranganathanlohitaksha@gmail.com'
+);
+
 -- ---------------------------------------------------------
 -- 5. PERFORMANCE (Indexes)
 -- ---------------------------------------------------------
@@ -167,7 +203,7 @@ CREATE POLICY generators_property_read ON generators FOR SELECT USING (
 
 DROP POLICY IF EXISTS generators_admin_write ON generators;
 CREATE POLICY generators_admin_write ON generators FOR ALL USING (
-  EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = generators.property_id AND pm.role IN ('property_admin'))
+  EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = generators.property_id AND pm.is_active)
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = generators.property_id AND om.role IN ('org_super_admin', 'master_admin'))
@@ -429,7 +465,7 @@ ALTER TABLE visitor_logs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS visitor_logs_read ON visitor_logs;
 CREATE POLICY visitor_logs_read ON visitor_logs FOR SELECT USING (
-  EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = visitor_logs.property_id AND pm.role IN ('property_admin', 'staff'))
+  EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = visitor_logs.property_id AND pm.is_active)
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = visitor_logs.property_id AND om.role IN ('org_super_admin', 'master_admin'))

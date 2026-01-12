@@ -15,6 +15,8 @@ import TicketsView from './TicketsView';
 import InviteLinkGenerator from './InviteLinkGenerator';
 import { HapticCard } from '@/components/ui/HapticCard';
 import SignOutModal from '@/components/ui/SignOutModal';
+import { useTheme } from '@/context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 type Tab = 'overview' | 'organizations' | 'tickets' | 'users' | 'invite-links' | 'modules' | 'settings';
 
@@ -44,6 +46,7 @@ interface SystemUser {
 
 const MasterAdminDashboard = () => {
     const { user, signOut } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [searchQuery, setSearchQuery] = useState('');
     const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -227,9 +230,9 @@ const MasterAdminDashboard = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-[#fafbfc] flex font-inter">
+        <div className="min-h-screen bg-background flex font-inter text-foreground">
             {/* Sidebar */}
-            <div className="w-72 bg-white border-r border-slate-100 flex flex-col p-8 sticky top-0 h-screen">
+            <div className="w-72 bg-sidebar border-r border-border flex flex-col p-8 sticky top-0 h-screen">
                 <div className="flex items-center gap-3 mb-12">
                     <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
                         <div className="w-5 h-5 border-2 border-white rounded-sm rotate-45"></div>
@@ -246,8 +249,8 @@ const MasterAdminDashboard = () => {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm ${activeTab === item.id
-                                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'
-                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                                ? 'bg-brand-orange text-white shadow-xl shadow-orange-500/20'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                                 }`}
                         >
                             <item.icon className="w-4 h-4" />
@@ -256,32 +259,49 @@ const MasterAdminDashboard = () => {
                     ))}
                 </nav>
 
-                <div className="pt-8 border-t border-slate-100">
-                    <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 mb-4">
-                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Status</p>
+                <div className="pt-8 border-t border-border">
+                    <button
+                        onClick={toggleTheme}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 font-bold text-sm text-muted-foreground hover:bg-muted mb-4 border border-border"
+                    >
+                        {theme === 'light' ? (
+                            <>
+                                <Moon className="w-4 h-4" />
+                                Dark Mode
+                            </>
+                        ) : (
+                            <>
+                                <Sun className="w-4 h-4" />
+                                Light Mode
+                            </>
+                        )}
+                    </button>
+
+                    <div className="bg-orange-500/10 p-4 rounded-2xl border border-orange-500/20 mb-4">
+                        <p className="text-[10px] font-black text-brand-orange uppercase tracking-widest mb-1">Status</p>
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-xs font-bold text-slate-700">Production Mode</span>
+                            <span className="text-xs font-bold text-foreground">Production Mode</span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3 px-2 mb-6">
-                        <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-slate-200">
+                        <div className="w-10 h-10 bg-brand-orange/10 rounded-full flex items-center justify-center text-brand-orange font-bold text-sm shadow-lg shadow-orange-500/10">
                             {user?.email?.[0].toUpperCase() || 'M'}
                         </div>
-                        <div className="flex flex-col overflow-hidden">
-                            <span className="font-bold text-sm text-slate-900 truncate">
+                        <div className="flex-1 overflow-hidden">
+                            <p className="font-bold text-sm text-foreground truncate">
                                 {user?.user_metadata?.full_name || 'Master Admin'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 truncate font-medium">
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate font-medium">
                                 {user?.email}
-                            </span>
+                            </p>
                         </div>
                     </div>
 
                     <button
                         onClick={() => setShowSignOutModal(true)}
-                        className="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl w-full transition-all duration-300 text-sm font-bold group"
+                        className="flex items-center gap-3 px-4 py-3.5 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded-2xl w-full transition-all duration-300 text-sm font-bold group"
                     >
                         <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         Sign Out
@@ -452,34 +472,34 @@ const OverviewGrid = () => {
         {
             id: 'licensed-entities',
             label: 'Licensed Entities',
-            value: '1,284',
+            value: '0',
             icon: Building2,
-            trend: '+12%',
+            trend: '-',
             color: 'text-blue-600',
             bg: 'bg-blue-50',
             analytics: {
                 title: 'Entity Growth',
                 items: [
-                    { region: 'North America', count: 542, delta: '+8%' },
-                    { region: 'Europe', count: 389, delta: '+15%' },
-                    { region: 'Asia Pacific', count: 353, delta: '+18%' },
+                    { region: 'North America', count: 0, delta: '-' },
+                    { region: 'Europe', count: 0, delta: '-' },
+                    { region: 'Asia Pacific', count: 0, delta: '-' },
                 ]
             }
         },
         {
             id: 'active-sessions',
             label: 'Active Sessions',
-            value: '45,092',
+            value: '0',
             icon: Activity,
-            trend: 'LIVE',
+            trend: '-',
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
             analytics: {
                 title: 'Session Heatmap',
                 items: [
-                    { time: 'Peak', count: '12:00 - 14:00', delta: '8.2k' },
-                    { time: 'Low', count: '03:00 - 05:00', delta: '1.4k' },
-                    { time: 'Avg Duration', count: '24 min', delta: '+2min' },
+                    { time: 'Peak', count: '-', delta: '0' },
+                    { time: 'Low', count: '-', delta: '0' },
+                    { time: 'Avg Duration', count: '-', delta: '-' },
                 ]
             }
         },
@@ -494,26 +514,24 @@ const OverviewGrid = () => {
             analytics: {
                 title: 'Threat Timeline',
                 items: [
-                    { label: 'Resolved Today', count: 3, delta: '100%' },
-                    { label: 'Blocked IPs', count: 12, delta: 'Active' },
-                    { label: 'Last Incident', count: '7d ago', delta: 'Resolved' },
+                    { label: 'Resolved Today', count: 0, delta: '-' },
+                    { label: 'Blocked IPs', count: 0, delta: '-' },
+                    { label: 'Last Incident', count: '-', delta: '-' },
                 ]
             }
         },
         {
             id: 'pending-deletions',
             label: 'Pending Deletions',
-            value: '3',
+            value: '0',
             icon: Trash2,
-            trend: 'COOLED',
+            trend: '-',
             color: 'text-rose-600',
             bg: 'bg-rose-50',
             analytics: {
                 title: 'Deletion Queue',
                 items: [
-                    { name: 'Acme Corp', expires: '23h left', status: 'Pending' },
-                    { name: 'Test Org', expires: '18h left', status: 'Pending' },
-                    { name: 'Demo Ltd', expires: '4h left', status: 'Urgent' },
+                    { name: 'No pending', expires: '-', status: '-' },
                 ]
             }
         },

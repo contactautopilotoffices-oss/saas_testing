@@ -3,6 +3,7 @@ import { Inter, Outfit } from "next/font/google"; // Outfit as proxy for "Söhne
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { GlobalProvider } from "@/context/GlobalContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,7 +30,7 @@ export default function RootLayout({
 
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable} light`}>
+    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
@@ -37,11 +38,13 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-background text-foreground antialiased overflow-x-hidden font-sans">
-        <AuthProvider>
-          <GlobalProvider>
-            {children}
-          </GlobalProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <GlobalProvider>
+              {children}
+            </GlobalProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

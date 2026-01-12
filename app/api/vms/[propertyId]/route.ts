@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+
+// Create admin client for operations that need to bypass RLS
+const getAdminClient = () => createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 // POST: Check-in a visitor
 export async function POST(
@@ -7,12 +15,12 @@ export async function POST(
     { params }: { params: Promise<{ propertyId: string }> }
 ) {
     const { propertyId } = await params;
-    const supabase = await createClient();
+    const supabaseAdmin = getAdminClient(); // Use admin client for check-in
     const body = await request.json();
 
     try {
         // Get property and org info
-        const { data: property, error: propError } = await supabase
+        const { data: property, error: propError } = await supabaseAdmin
             .from('properties')
             .select('organization_id, code')
             .eq('id', propertyId)
@@ -23,7 +31,7 @@ export async function POST(
         }
 
         // Generate visitor ID using database function
-        const { data: visitorIdData, error: idError } = await supabase
+        const { data: visitorIdData, error: idError } = await supabaseAdmin
             .rpc('generate_visitor_id', { p_property_id: propertyId });
 
         if (idError) {
@@ -34,7 +42,7 @@ export async function POST(
         const visitorId = visitorIdData;
 
         // Insert visitor log
-        const { data: visitor, error: insertError } = await supabase
+        const { data: visitor, error: insertError } = await supabaseAdmin
             .from('visitor_logs')
             .insert({
                 property_id: propertyId,
@@ -75,14 +83,14 @@ export async function GET(
     { params }: { params: Promise<{ propertyId: string }> }
 ) {
     const { propertyId } = await params;
-    const supabase = await createClient();
+    const supabaseAdmin = getAdminClient(); // Use admin client for listing
     const { searchParams } = new URL(request.url);
 
     const status = searchParams.get('status'); // 'checked_in' | 'checked_out' | 'all'
     const date = searchParams.get('date'); // 'today' | 'week' | specific date
     const search = searchParams.get('search'); // Visitor ID or name
 
-    let query = supabase
+    let query = supabaseAdmin
         .from('visitor_logs')
         .select('*')
         .eq('property_id', propertyId)
@@ -144,7 +152,7 @@ export async function PATCH(
     { params }: { params: Promise<{ propertyId: string }> }
 ) {
     const { propertyId } = await params;
-    const supabase = await createClient();
+    const supabaseAdmin = getAdminClient(); // Use admin client for checkout
     const body = await request.json();
 
     if (!body.visitor_id) {
@@ -152,7 +160,7 @@ export async function PATCH(
     }
 
     // Find visitor
-    const { data: visitor, error: findError } = await supabase
+    const { data: visitor, error: findError } = await supabaseAdmin
         .from('visitor_logs')
         .select('*')
         .eq('visitor_id', body.visitor_id)
@@ -168,7 +176,7 @@ export async function PATCH(
     }
 
     // Update checkout time
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('visitor_logs')
         .update({
             checkout_time: new Date().toISOString(),

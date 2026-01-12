@@ -13,6 +13,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import SignOutModal from '@/components/ui/SignOutModal';
 import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
+import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
+import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
+import { useTheme } from '@/context/ThemeContext';
 
 // Types
 type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'alerts' | 'visitors' | 'diesel' | 'cafeteria' | 'settings';
@@ -37,7 +40,7 @@ const StaffDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(true);
+    const { theme, toggleTheme } = useTheme();
     const [showQuickActions, setShowQuickActions] = useState(true);
 
     const supabase = createClient();
@@ -67,30 +70,30 @@ const StaffDashboard = () => {
     };
 
     if (isLoading) return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+        <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-blue-900 border-t-blue-500 rounded-full animate-spin" />
-                <p className="text-slate-400 font-medium">Loading staff dashboard...</p>
+                <div className="w-12 h-12 border-4 border-muted border-t-brand-orange rounded-full animate-spin" />
+                <p className="text-muted-foreground font-medium">Loading staff dashboard...</p>
             </div>
         </div>
     );
 
     if (!property) return (
-        <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
             <div className="text-center">
                 <h2 className="text-xl font-bold text-red-400">Error Loading Dashboard</h2>
-                <p className="text-slate-400 mt-2">{errorMsg || 'Property not found.'}</p>
-                <button onClick={() => router.back()} className="mt-4 text-blue-400 font-bold hover:underline">Go Back</button>
+                <p className="text-muted-foreground mt-2">{errorMsg || 'Property not found.'}</p>
+                <button onClick={() => router.back()} className="mt-4 text-brand-orange font-bold hover:underline">Go Back</button>
             </div>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-[#0f1419] flex font-inter text-white">
+        <div className="min-h-screen bg-background flex font-inter text-foreground">
             {/* Dark Sidebar */}
-            <aside className="w-56 bg-[#161b22] flex flex-col fixed h-full z-10 border-r border-[#21262d]">
+            <aside className="w-56 bg-sidebar flex flex-col fixed h-full z-10 border-r border-border">
                 {/* Logo */}
-                <div className="p-4 border-b border-[#21262d]">
+                <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                             SP
@@ -124,25 +127,40 @@ const StaffDashboard = () => {
                     </div>
                     {showQuickActions && (
                         <div className="grid grid-cols-2 gap-1.5">
-                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                            <button
+                                onClick={() => setActiveTab('requests')}
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                            >
                                 <Plus className="w-3 h-3" />
                                 New Request
                             </button>
-                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                            <button
+                                onClick={() => setActiveTab('visitors')}
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                            >
                                 <Cog className="w-3 h-3" />
-                                Manage Pro...
+                                Manage Visitors
                             </button>
-                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                            <button
+                                onClick={() => alert('URGENT: Emergency SOS Signal Broadcasted to all Staff.')}
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                            >
                                 <AlertOctagon className="w-3 h-3" />
-                                Emergency ...
+                                Emergency
                             </button>
-                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                            <button
+                                onClick={() => setActiveTab('diesel')}
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                            >
                                 <FileText className="w-3 h-3" />
                                 Quick Report
                             </button>
-                            <button className="col-span-2 flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                            <button
+                                onClick={() => alert('System Health: 100% Operational. All nodes synced.')}
+                                className="col-span-2 flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                            >
                                 <BarChart3 className="w-3 h-3" />
-                                System Stat...
+                                System Status
                             </button>
                         </div>
                     )}
@@ -180,8 +198,8 @@ const StaffDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('projects')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'projects'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    ? 'bg-brand-orange text-white'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }`}
                             >
                                 <FolderKanban className="w-4 h-4" />
@@ -190,8 +208,8 @@ const StaffDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'requests'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    ? 'bg-brand-orange text-white'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -200,8 +218,8 @@ const StaffDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('alerts')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'alerts'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    ? 'bg-brand-orange text-white'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }`}
                             >
                                 <Bell className="w-4 h-4" />
@@ -220,8 +238,8 @@ const StaffDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'visitors'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    ? 'bg-brand-orange text-white'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -240,8 +258,8 @@ const StaffDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('cafeteria')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'cafeteria'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
+                                    ? 'bg-brand-orange text-white'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }`}
                             >
                                 <Coffee className="w-4 h-4" />
@@ -252,10 +270,26 @@ const StaffDashboard = () => {
                 </nav>
 
                 {/* Footer */}
-                <div className="border-t border-[#21262d] p-3">
+                <div className="border-t border-border p-3 space-y-1">
+                    <button
+                        onClick={toggleTheme}
+                        className="flex items-center gap-2 px-2.5 py-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg w-full transition-colors text-xs font-medium"
+                    >
+                        {theme === 'light' ? (
+                            <>
+                                <Moon className="w-4 h-4" />
+                                <span>Dark Mode</span>
+                            </>
+                        ) : (
+                            <>
+                                <Sun className="w-4 h-4" />
+                                <span>Light Mode</span>
+                            </>
+                        )}
+                    </button>
                     <button
                         onClick={() => setShowSignOutModal(true)}
-                        className="flex items-center gap-2 px-2 py-2 text-slate-500 hover:text-red-400 rounded-lg w-full transition-colors text-xs font-medium"
+                        className="flex items-center gap-2 px-2.5 py-2 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg w-full transition-colors text-xs font-medium"
                     >
                         <LogOut className="w-4 h-4" />
                         Sign Out
@@ -266,18 +300,18 @@ const StaffDashboard = () => {
             {/* Main Content */}
             <div className="flex-1 ml-56 flex flex-col min-h-screen">
                 {/* Top Header */}
-                <header className="h-14 bg-[#161b22] border-b border-[#21262d] flex items-center justify-between px-6 sticky top-0 z-10">
+                <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-10">
                     <div className="flex items-center gap-4">
-                        <button className="text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-md bg-[#21262d]">
+                        <button className="text-xs text-muted-foreground hover:text-foreground border border-border px-3 py-1.5 rounded-md bg-muted transition-colors">
                             <RefreshCw className="w-3 h-3 inline mr-1.5" />
                             Refresh page
                         </button>
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input
                                 type="text"
                                 placeholder="Search..."
-                                className="w-64 pl-10 pr-4 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                                className="w-64 pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-orange"
                             />
                         </div>
                     </div>
@@ -316,9 +350,16 @@ const StaffDashboard = () => {
                             {activeTab === 'dashboard' && <DashboardTab />}
                             {activeTab === 'tasks' && <TasksTab />}
                             {activeTab === 'projects' && <ProjectsTab />}
-                            {activeTab === 'requests' && <RequestsTab />}
+                            {activeTab === 'requests' && property && user && (
+                                <TenantTicketingDashboard
+                                    propertyId={property.id}
+                                    organizationId={property.organization_id}
+                                    user={{ id: user.id, full_name: user.user_metadata?.full_name || 'Staff' }}
+                                    propertyName={property.name}
+                                />
+                            )}
                             {activeTab === 'alerts' && <AlertsTab />}
-                            {activeTab === 'visitors' && <VisitorsTab />}
+                            {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
                             {activeTab === 'diesel' && <DieselStaffDashboard />}
                             {activeTab === 'cafeteria' && <CafeteriaTab />}
                         </motion.div>

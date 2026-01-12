@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 const BUCKET_NAME = 'visitor-photos';
+
+// Create admin client for bypassing RLS
+const getAdminClient = () => createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 /**
  * POST /api/vms/[propertyId]/photos
@@ -13,7 +20,7 @@ export async function POST(
 ) {
     try {
         const { propertyId } = await params;
-        const supabase = await createClient();
+        const supabaseAdmin = getAdminClient();
 
         const formData = await request.formData();
         const file = formData.get('file') as File;
@@ -37,7 +44,7 @@ export async function POST(
         const filePath = `${propertyId}/${visitorId}.${fileExt}`;
 
         // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
             .from(BUCKET_NAME)
             .upload(filePath, file, {
                 cacheControl: '3600',
@@ -51,12 +58,12 @@ export async function POST(
         }
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseAdmin.storage
             .from(BUCKET_NAME)
             .getPublicUrl(filePath);
 
         // Update visitor_logs with photo URL
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseAdmin
             .from('visitor_logs')
             .update({ photo_url: publicUrl })
             .eq('visitor_id', visitorId)

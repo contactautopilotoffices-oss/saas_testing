@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * GET /api/vms/[propertyId]/hosts
  * Get searchable list of hosts (staff + tenants) for auto-complete
+ * Uses service role to allow anonymous kiosk access
  */
 export async function GET(
     request: NextRequest,
@@ -11,14 +12,25 @@ export async function GET(
 ) {
     try {
         const { propertyId } = await params;
-        const supabase = await createClient();
         const { searchParams } = new URL(request.url);
+
+        // Use service role client for anonymous kiosk access
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
 
         const search = searchParams.get('q') || '';
         const limit = parseInt(searchParams.get('limit') || '20');
 
         // Get property members who can receive visitors
-        let query = supabase
+        let query = supabaseAdmin
             .from('property_memberships')
             .select(`
         user_id,
@@ -26,6 +38,7 @@ export async function GET(
         user:users(id, full_name, email)
       `)
             .eq('property_id', propertyId)
+            .eq('is_active', true)
             .limit(limit);
 
         const { data: memberships, error } = await query;

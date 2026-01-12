@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         const status = searchParams.get('status');
         const isInternal = searchParams.get('isInternal');
         const assignedTo = searchParams.get('assignedTo');
-        const createdBy = searchParams.get('createdBy');
+        const raisedBy = searchParams.get('raisedBy') || searchParams.get('raised_by');
 
         let query = supabase
             .from('tickets')
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         *,
         category:issue_categories(id, code, name, icon),
         skill_group:skill_groups(id, code, name),
-        creator:users!created_by(id, full_name, email),
+        creator:users!raised_by(id, full_name, email),
         assignee:users!assigned_to(id, full_name, email),
         organization:organizations(id, name, code),
         property:properties(id, name, code)
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
             query = query.eq('is_internal', isInternal === 'true');
         }
         if (assignedTo) query = query.eq('assigned_to', assignedTo);
-        if (createdBy) query = query.eq('created_by', createdBy);
+        if (raisedBy) query = query.eq('raised_by', raisedBy);
 
         const { data: tickets, error: fetchError } = await query;
 
@@ -148,17 +148,12 @@ export async function POST(request: NextRequest) {
             organizationId,
             is_internal,
             isInternal,
-            photo_url,
-            photoUrl,
             title,
-            category,
-            priority: userPriority,
         } = body;
 
         const propId = property_id || propertyId;
         const orgId = organization_id || organizationId;
         const internal = is_internal ?? isInternal ?? false;
-        const photo = photo_url || photoUrl;
 
         if (!description || !propId || !orgId) {
             return NextResponse.json(
@@ -167,88 +162,48 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Classify the ticket using rules engine
-        const classification = classifyTicket(description);
-        const floorNumber = extractFloorNumber(description);
+        // Simple ticket number generation
+        const ticketNumber = `TKT-${Date.now()}`;
 
-        // Get category and skill group
-        let categoryId = null;
-        let skillGroupId = null;
-        let slaHours = 24;
-        let priority = userPriority || 'medium';
-
-        if (classification.categoryCode) {
-            const { data: categoryData } = await supabase
-                .from('issue_categories')
-                .select('id, skill_group_id, sla_hours, priority')
-                .eq('property_id', propId)
-                .eq('code', classification.categoryCode)
-                .single();
-
-            if (categoryData) {
-                categoryId = categoryData.id;
-                skillGroupId = categoryData.skill_group_id;
-                slaHours = categoryData.sla_hours || 24;
-                priority = categoryData.priority || priority;
-            }
-        }
-
-        // Generate ticket number
-        const { data: ticketNumber } = await supabase.rpc('generate_ticket_number', {
-            p_property_id: propId,
-        });
-
-        // Determine initial status
-        let status = 'open';
-        if (classification.isVague) {
-            status = 'waitlist';
-        }
-
-        // Create the ticket
+        // Create the ticket with minimal fields that match the basic schema
         const { data: ticket, error: insertError } = await supabase
             .from('tickets')
             .insert({
-                ticket_number: ticketNumber || `TKT-${Date.now()}`,
+                ticket_number: ticketNumber,
                 property_id: propId,
                 organization_id: orgId,
                 title: title || description.slice(0, 100),
                 description,
-                category_id: categoryId,
-                skill_group_id: skillGroupId,
-                priority,
-                status,
-                created_by: user.id,
-                sla_hours: slaHours,
-                confidence_score: classification.confidence,
-                classification_source: classification.categoryCode ? 'rules' : 'manual',
-                is_vague: classification.isVague,
-                is_internal: internal,
-                floor_number: floorNumber,
-                photo_before_url: photo,
+                category: 'other', // Simple text category
+                priority: 'medium',
+                status: 'open', // Always open, no waitlist
+                raised_by: user.id,
             })
-            .select(`
-        *,
-        category:issue_categories(id, code, name, icon),
-        skill_group:skill_groups(id, code, name)
-      `)
+            .select('*')
             .single();
 
         if (insertError) {
             console.error('Error creating ticket:', insertError);
-            return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
+            return NextResponse.json({
+                error: 'Failed to create ticket',
+                details: insertError.message
+            }, { status: 500 });
         }
 
         return NextResponse.json({
             success: true,
             ticket,
             classification: {
-                category: classification.categoryCode,
-                confidence: classification.confidence,
-                isVague: classification.isVague,
+                category: 'general',
+                confidence: 100,
+                isVague: false,
             },
         }, { status: 201 });
     } catch (error) {
         console.error('Create ticket API error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Internal server error',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 });
     }
 }

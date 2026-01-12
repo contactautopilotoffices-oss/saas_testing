@@ -15,6 +15,9 @@ import SignOutModal from '@/components/ui/SignOutModal';
 import DieselAnalyticsDashboard from '@/components/diesel/DieselAnalyticsDashboard';
 import VendorExportModal from '@/components/vendor/VendorExportModal';
 import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
+import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
+import { useTheme } from '@/context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 // Types
 type Tab = 'overview' | 'requests' | 'users' | 'visitors' | 'diesel' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
@@ -37,6 +40,7 @@ interface TicketData {
 
 const PropertyAdminDashboard = () => {
     const { user, signOut } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const params = useParams();
     const router = useRouter();
     const orgSlug = params?.orgId as string;
@@ -78,10 +82,10 @@ const PropertyAdminDashboard = () => {
 
 
     if (isLoading) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-                <p className="text-slate-500 font-bold">Loading property dashboard...</p>
+                <div className="w-12 h-12 border-4 border-muted border-t-brand-orange rounded-full animate-spin" />
+                <p className="text-muted-foreground font-bold">Loading property dashboard...</p>
             </div>
         </div>
     );
@@ -89,13 +93,13 @@ const PropertyAdminDashboard = () => {
     if (!property) return (
         <div className="p-10 text-center">
             <h2 className="text-xl font-bold text-red-600">Error Loading Dashboard</h2>
-            <p className="text-slate-600 mt-2">{errorMsg || 'Property not found.'}</p>
-            <button onClick={() => router.back()} className="mt-4 text-emerald-600 font-bold hover:underline">Go Back</button>
+            <p className="text-muted-foreground mt-2">{errorMsg || 'Property not found.'}</p>
+            <button onClick={() => router.back()} className="mt-4 text-brand-orange font-bold hover:underline">Go Back</button>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-[#F8F9FC] flex font-inter text-slate-900">
+        <div className="min-h-screen bg-background flex font-inter text-foreground">
             {/* Sidebar */}
             <aside className="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 transition-all duration-300">
                 <div className="p-8 pb-4">
@@ -111,6 +115,44 @@ const PropertyAdminDashboard = () => {
                 </div>
 
                 <nav className="flex-1 px-4 overflow-y-auto">
+                    {/* Quick Actions */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                            Quick Actions
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 px-2">
+                            <button
+                                onClick={() => setActiveTab('requests')}
+                                className="flex flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all text-left"
+                            >
+                                <Plus className="w-4 h-4 text-blue-600" />
+                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">New Request</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('users')}
+                                className="flex flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-emerald-50 hover:border-emerald-200 transition-all text-left"
+                            >
+                                <UserCircle className="w-4 h-4 text-emerald-600" />
+                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Manage Users</span>
+                            </button>
+                            <button
+                                onClick={() => alert('URGENT: Emergency SOS Signal Broadcasted to all Staff.')}
+                                className="flex flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-rose-50 hover:border-rose-200 transition-all text-left"
+                            >
+                                <AlertCircle className="w-4 h-4 text-rose-600" />
+                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Emergency</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('diesel')}
+                                className="flex  flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-amber-50 hover:border-amber-200 transition-all text-left"
+                            >
+                                <Clock className="w-4 h-4 text-amber-600" />
+                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Quick Report</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Core Operations */}
                     <div className="mb-6">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
@@ -242,29 +284,47 @@ const PropertyAdminDashboard = () => {
                     </div>
                 </nav>
 
-                <div className="pt-6 border-t border-slate-100 p-6">
+                <div className="p-6 border-t border-border mt-auto">
                     {/* User Profile Section */}
                     <div className="flex items-center gap-3 px-2 mb-6">
-                        <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-slate-200">
+                        <div className="w-10 h-10 bg-brand-orange/10 rounded-full flex items-center justify-center text-brand-orange font-bold text-sm shadow-lg shadow-orange-500/10">
                             {user?.email?.[0].toUpperCase() || 'P'}
                         </div>
-                        <div className="flex flex-col overflow-hidden">
-                            <span className="font-bold text-sm text-slate-900 truncate">
+                        <div className="flex-1 overflow-hidden">
+                            <p className="font-bold text-sm text-foreground truncate">
                                 {user?.user_metadata?.full_name || 'Property Admin'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 truncate font-medium">
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate font-medium">
                                 {user?.email}
-                            </span>
+                            </p>
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => setShowSignOutModal(true)}
-                        className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
-                    >
-                        <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        Sign Out
-                    </button>
+                    <div className="space-y-2">
+                        <button
+                            onClick={toggleTheme}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-muted transition-all font-bold text-sm"
+                        >
+                            {theme === 'light' ? (
+                                <>
+                                    <Moon className="w-4 h-4" />
+                                    <span>Dark Mode</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sun className="w-4 h-4" />
+                                    <span>Light Mode</span>
+                                </>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => setShowSignOutModal(true)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600 transition-all font-bold text-sm"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out</span>
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -300,12 +360,13 @@ const PropertyAdminDashboard = () => {
                         {activeTab === 'overview' && <OverviewTab />}
                         {activeTab === 'users' && <UserDirectory propertyId={propertyId} />}
                         {activeTab === 'vendor_revenue' && <VendorRevenueTab propertyId={propertyId} />}
-                        {activeTab === 'requests' && (
-                            <div className="p-12 text-center text-slate-400 font-bold italic bg-white rounded-3xl border border-slate-100 shadow-sm">
-                                <Ticket className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2 font-inter not-italic">Requests Management</h3>
-                                <p className="text-slate-500 font-inter not-italic font-medium">Requests module loading...</p>
-                            </div>
+                        {activeTab === 'requests' && property && user && (
+                            <TenantTicketingDashboard
+                                propertyId={property.id}
+                                organizationId={property.organization_id}
+                                user={{ id: user.id, full_name: user.user_metadata?.full_name || 'User' }}
+                                propertyName={property.name}
+                            />
                         )}
                         {activeTab === 'visitors' && property && (
                             <VMSAdminDashboard propertyId={property.id} />

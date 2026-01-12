@@ -14,6 +14,8 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import SignOutModal from '@/components/ui/SignOutModal';
 import VMSOrgSummary from '@/components/vms/VMSOrgSummary';
+import { useTheme } from '@/context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 type SubTab = 'dashboard' | 'properties' | 'requests' | 'alerts' | 'users' | 'analytics' | 'vendors' | 'visitors';
 
@@ -31,6 +33,7 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const { signOut } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const supabase = createClient();
 
     useEffect(() => {
@@ -79,9 +82,9 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
     ];
 
     return (
-        <div className="flex h-screen bg-[#09090b] text-zinc-300 font-inter overflow-hidden">
+        <div className="flex h-screen bg-background text-foreground font-inter overflow-hidden">
             {/* Sidebar */}
-            <aside className={`bg-[#0c0c0e] border-r border-zinc-800/50 flex flex-col transition-all duration-300 overflow-hidden ${isSidebarOpen ? 'w-80' : 'w-20'}`}>
+            <aside className={`bg-sidebar border-r border-border flex flex-col transition-all duration-300 overflow-hidden ${isSidebarOpen ? 'w-80' : 'w-20'}`}>
                 <div className="p-8 pb-12">
                     <div className="flex items-center gap-4 mb-10">
                         <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
@@ -145,14 +148,14 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
                                             key={item.id}
                                             onClick={() => setActiveTab(item.id as SubTab)}
                                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all relative group ${activeTab === item.id
-                                                ? 'bg-blue-600/10 text-white shadow-[inset_0_0_15px_rgba(37,99,235,0.1)]'
-                                                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30'
+                                                ? 'bg-brand-orange/10 text-foreground shadow-[inset_0_0_15px_rgba(242,140,51,0.1)]'
+                                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                                                 }`}
                                         >
-                                            <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-blue-500' : 'group-hover:text-zinc-300'}`} />
+                                            <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-brand-orange' : 'group-hover:text-foreground'}`} />
                                             {isSidebarOpen && <span className="text-sm font-black tracking-tight">{item.label}</span>}
                                             {activeTab === item.id && (
-                                                <motion.div layoutId="active-pill" className="absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full" />
+                                                <motion.div layoutId="active-pill" className="absolute left-0 w-1 h-6 bg-brand-orange rounded-r-full" />
                                             )}
                                         </button>
                                     ))}
@@ -162,10 +165,17 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
                     </nav>
                 </div>
 
-                <div className="p-4 border-t border-zinc-800/50">
+                <div className="p-4 border-t border-border space-y-2">
+                    <button
+                        onClick={toggleTheme}
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                    >
+                        {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                        {isSidebarOpen && <span className="text-sm font-black tracking-tight">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+                    </button>
                     <button
                         onClick={() => setShowSignOutModal(true)}
-                        className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-zinc-500 hover:text-white hover:bg-zinc-800/50 transition-all"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-all font-bold"
                     >
                         <LogOut className="w-5 h-5" />
                         {isSidebarOpen && <span className="text-sm font-black tracking-tight">Sign Out</span>}
@@ -180,12 +190,12 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
             />
 
             {/* Main Panel */}
-            <main className="flex-1 flex flex-col bg-[#0c0c0e] relative overflow-hidden">
+            <main className="flex-1 flex flex-col bg-background relative overflow-hidden">
                 {/* Subtle Ambience */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-orange/5 rounded-full blur-[120px] pointer-events-none" />
 
                 {/* Header */}
-                <header className="h-24 border-b border-zinc-800/50 flex items-center justify-between px-10 z-10 backdrop-blur-md bg-zinc-950/20">
+                <header className="h-24 border-b border-border flex items-center justify-between px-10 z-10 backdrop-blur-md bg-card/20">
                     <div className="flex items-center gap-4">
                         <div className="flex -space-x-3">
                             {[1, 2, 3].map(i => (
@@ -246,10 +256,10 @@ const GlobalMetrics = ({ properties }: { properties: Property[] }) => (
     <div className="space-y-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-                { label: 'Total Properties', value: properties.length.toString().padStart(2, '0'), icon: Building2, trend: '+02', color: 'text-blue-500' },
-                { label: 'Active Incidents', value: '14', icon: AlertTriangle, trend: 'High', color: 'text-orange-500' },
-                { label: 'Requests (24h)', value: '128', icon: ClipboardList, trend: '+12%', color: 'text-emerald-500' },
-                { label: 'Active Users', value: '2.4k', icon: Users, trend: 'LIVE', color: 'text-indigo-500' },
+                { label: 'Total Properties', value: properties.length.toString().padStart(2, '0'), icon: Building2, trend: '+0', color: 'text-blue-500' },
+                { label: 'Active Incidents', value: '0', icon: AlertTriangle, trend: '-', color: 'text-orange-500' },
+                { label: 'Requests (24h)', value: '0', icon: ClipboardList, trend: '-', color: 'text-emerald-500' },
+                { label: 'Active Users', value: '0', icon: Users, trend: '-', color: 'text-indigo-500' },
             ].map((stat, i) => (
                 <div key={i} className="bg-zinc-900/30 border border-zinc-800/50 p-6 rounded-3xl backdrop-blur-sm group">
                     <div className="flex justify-between items-start mb-6">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X } from 'lucide-react';
+import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -60,7 +60,7 @@ export default function TenantTicketingDashboard({
 
     const fetchTickets = async () => {
         try {
-            const response = await fetch(`/api/tickets?propertyId=${propertyId}&createdBy=${user.id}`);
+            const response = await fetch(`/api/tickets?propertyId=${propertyId}&raisedBy=${user.id}`);
             const data = await response.json();
 
             if (response.ok) {
@@ -202,31 +202,31 @@ export default function TenantTicketingDashboard({
     };
 
     const STATUS_COLORS: Record<string, string> = {
-        open: 'text-blue-400',
-        assigned: 'text-purple-400',
-        in_progress: 'text-cyan-400',
-        waitlist: 'text-yellow-400',
+        open: 'text-orange-400',
+        assigned: 'text-amber-500',
+        in_progress: 'text-[#f28c33]',
+        waitlist: 'text-slate-400',
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+        <div className="min-h-screen bg-background p-8">
             {/* Header */}
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold">
-                            <span className="text-cyan-400">Ticketic v3.0:</span>{' '}
-                            <span className="text-white">Intelligent Request Management</span>
+                        <h1 className="text-3xl font-black text-foreground">
+                            <span className="text-brand-orange">Ticketic v3.0:</span>{' '}
+                            Intelligent Request Management
                         </h1>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 bg-white/10 rounded-full px-4 py-2">
-                            <div className="w-10 h-10 bg-cyan-500/30 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-cyan-400" />
+                        <div className="flex items-center gap-3 bg-card backdrop-blur-sm rounded-full px-5 py-2 border border-border shadow-xl">
+                            <div className="w-10 h-10 bg-brand-orange rounded-full flex items-center justify-center shadow-lg shadow-orange-500/20">
+                                <User className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <p className="text-white font-medium">{user.full_name}</p>
-                                <p className="text-xs text-gray-400">{propertyName || 'Property'}</p>
+                                <p className="text-foreground font-bold">{user.full_name}</p>
+                                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{propertyName || 'SS Plaza'}</p>
                             </div>
                         </div>
                     </div>
@@ -235,17 +235,17 @@ export default function TenantTicketingDashboard({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left Panel - Raise New Request */}
                     <div className="space-y-4">
-                        <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                <Plus className="w-5 h-5 text-cyan-400" />
-                                RAISE A NEW REQUEST
+                        <div className="bg-card backdrop-blur-sm border border-border rounded-3xl p-8 shadow-2xl">
+                            <h2 className="text-sm font-black text-brand-orange mb-6 flex items-center gap-2 uppercase tracking-widest">
+                                <Plus className="w-4 h-4" />
+                                Raise a New Request
                             </h2>
 
                             <textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Describe the issue in your words.&#10;Example: Leaking tap in kitchenette"
-                                className="w-full h-24 bg-white/5 border border-white/20 rounded-xl p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-cyan-500"
+                                className="w-full h-32 bg-background border border-border rounded-2xl p-4 text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange/20 transition-all font-medium"
                             />
 
                             {/* Photo Preview */}
@@ -261,23 +261,23 @@ export default function TenantTicketingDashboard({
                                 </div>
                             )}
 
-                            <div className="flex items-center justify-between mt-4">
-                                <label className="flex items-center gap-2 text-gray-400 hover:text-white cursor-pointer transition-colors">
+                            <div className="flex items-center justify-between mt-6">
+                                <label className="flex items-center gap-2 text-muted-foreground hover:text-brand-orange cursor-pointer transition-colors text-sm font-bold uppercase tracking-widest">
                                     <Paperclip className="w-5 h-5" />
-                                    <span>Attach Photo/File</span>
+                                    <span>Attach File</span>
                                     <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSelect} />
                                 </label>
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting || !description.trim()}
-                                    className="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                                    className="px-8 py-3 bg-brand-orange hover:bg-orange-600 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed text-white font-black rounded-2xl transition-all flex items-center gap-2 shadow-xl shadow-orange-900/10 uppercase tracking-widest text-xs"
                                 >
                                     {isSubmitting ? (
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
                                         <Send className="w-4 h-4" />
                                     )}
-                                    Submit
+                                    Submit Request
                                 </button>
                             </div>
                         </div>
@@ -289,22 +289,20 @@ export default function TenantTicketingDashboard({
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
-                                    className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur border border-cyan-500/30 rounded-2xl p-6"
+                                    className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-8 shadow-2xl backdrop-blur-sm"
                                 >
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-cyan-400 font-semibold">SYSTEM INTERPRETATION</h3>
-                                        <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded">(AI-POWERED)</span>
+                                        <h3 className="text-emerald-400 font-black uppercase tracking-widest text-sm">✓ Request Submitted</h3>
+                                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-black tracking-tighter">SUCCESS</span>
                                     </div>
-                                    <div className="space-y-2 text-sm">
+                                    <div className="space-y-3 text-sm">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-gray-400">Category:</span>
-                                            <span className="text-white">{classification.category?.replace(/_/g, ' ') || 'Pending Review'}</span>
+                                            <span className="text-muted-foreground font-medium">Category:</span>
+                                            <span className="text-foreground font-bold">{classification.category?.replace(/_/g, ' ') || 'General Request'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-gray-400">Confidence:</span>
-                                            <span className={classification.confidence >= 70 ? 'text-green-400' : 'text-yellow-400'}>
-                                                {classification.confidence}%
-                                            </span>
+                                            <span className="text-muted-foreground font-medium">Status:</span>
+                                            <span className="text-emerald-500 font-black uppercase tracking-widest text-xs">Ticket Created</span>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -315,20 +313,20 @@ export default function TenantTicketingDashboard({
                     {/* Right Panel - My Tickets */}
                     <div className="space-y-6">
                         {/* Active Requests */}
-                        <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">MY ACTIVE REQUESTS</h2>
+                        <div className="bg-card backdrop-blur-sm border border-border rounded-3xl p-8 shadow-2xl">
+                            <h2 className="text-sm font-black text-muted-foreground mb-6 uppercase tracking-widest">My Active Requests</h2>
 
                             {loading ? (
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {[1, 2, 3].map(i => (
-                                        <div key={i} className="bg-white/5 rounded-xl p-4 animate-pulse">
-                                            <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-                                            <div className="h-3 bg-white/10 rounded w-1/2" />
+                                        <div key={i} className="bg-slate-950/30 rounded-2xl p-6 border border-slate-800/50 animate-pulse">
+                                            <div className="h-4 bg-slate-800 rounded w-3/4 mb-4" />
+                                            <div className="h-2 bg-slate-800 rounded w-1/2" />
                                         </div>
                                     ))}
                                 </div>
                             ) : activeTickets.length === 0 ? (
-                                <p className="text-center text-gray-400 py-8">No active requests</p>
+                                <p className="text-center text-slate-500 py-12 font-medium">No active requests found</p>
                             ) : (
                                 <div className="space-y-3">
                                     {activeTickets.map((ticket) => {
@@ -337,27 +335,27 @@ export default function TenantTicketingDashboard({
                                             <div
                                                 key={ticket.id}
                                                 onClick={() => router.push(`/tickets/${ticket.id}`)}
-                                                className="bg-white/5 hover:bg-white/10 rounded-xl p-4 cursor-pointer transition-colors"
+                                                className="bg-background/20 hover:bg-muted/40 border border-border rounded-2xl p-6 cursor-pointer transition-all duration-300 group/ticket"
                                             >
                                                 <div className="flex items-start justify-between">
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                                            <User className="w-5 h-5 text-orange-400" />
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-12 h-12 bg-brand-orange/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover/ticket:scale-110 transition-transform border border-brand-orange/20">
+                                                            <MessageSquare className="w-6 h-6 text-brand-orange" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium text-white">{ticket.title}</p>
-                                                            <p className="text-sm text-gray-400">{ticket.category?.name || 'General'}</p>
+                                                            <p className="font-bold text-foreground text-lg mb-1">{ticket.title}</p>
+                                                            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">{ticket.category?.name || 'General'}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right flex items-center gap-2">
-                                                        {sla && <span className={`text-xs ${sla.color}`}>{sla.text}</span>}
-                                                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                    <div className="text-right flex items-center gap-3">
+                                                        {sla && <span className={`text-[10px] font-black uppercase tracking-tighter ${sla.color}`}>{sla.text}</span>}
+                                                        <ChevronRight className="w-5 h-5 text-slate-600 group-hover/ticket:text-[#f28c33] transition-colors" />
                                                     </div>
                                                 </div>
                                                 {sla && (
-                                                    <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                    <div className="mt-5 h-1.5 bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/30">
                                                         <div
-                                                            className={`h-full rounded-full transition-all ${sla.progress > 80 ? 'bg-red-500' : 'bg-cyan-500'}`}
+                                                            className={`h-full rounded-full transition-all duration-500 ${sla.progress > 80 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-[#f28c33] shadow-[0_0_10px_rgba(242,140,51,0.5)]'}`}
                                                             style={{ width: `${sla.progress}%` }}
                                                         />
                                                     </div>
@@ -370,27 +368,27 @@ export default function TenantTicketingDashboard({
                         </div>
 
                         {/* Recently Resolved */}
-                        <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">RECENTLY RESOLVED</h2>
+                        <div className="bg-card backdrop-blur-sm border border-border rounded-3xl p-8 shadow-2xl">
+                            <h2 className="text-sm font-black text-muted-foreground mb-6 uppercase tracking-widest">Recently Resolved</h2>
 
                             {resolvedTickets.length === 0 ? (
-                                <p className="text-center text-gray-400 py-4">No resolved requests yet</p>
+                                <p className="text-center text-slate-400 py-4">No resolved requests yet</p>
                             ) : (
                                 <div className="space-y-3">
                                     {resolvedTickets.map((ticket) => (
-                                        <div key={ticket.id} className="bg-white/5 rounded-xl p-4">
+                                        <div key={ticket.id} className="bg-background/20 border border-border rounded-2xl p-6">
                                             <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                                                        <User className="w-5 h-5 text-green-400" />
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
+                                                        <MessageSquare className="w-6 h-6 text-emerald-500" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-medium text-white">{ticket.title}</p>
-                                                        <div className="flex items-center gap-1 mt-1">
+                                                        <p className="font-bold text-foreground text-lg mb-1">{ticket.title}</p>
+                                                        <div className="flex items-center gap-1.5 mt-1">
                                                             {[1, 2, 3, 4, 5].map((star) => (
                                                                 <Star
                                                                     key={star}
-                                                                    className={`w-4 h-4 cursor-pointer ${star <= (ticket.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-500'
+                                                                    className={`w-4 h-4 cursor-pointer transition-colors ${star <= (ticket.rating || 0) ? 'text-[#f28c33] fill-[#f28c33]' : 'text-slate-700 hover:text-orange-400'
                                                                         }`}
                                                                     onClick={() => {
                                                                         if (!ticket.rating) {
@@ -406,7 +404,7 @@ export default function TenantTicketingDashboard({
                                                 {!ticket.rating && (
                                                     <button
                                                         onClick={() => setRatingTicket(ticket)}
-                                                        className="text-xs text-cyan-400 hover:text-cyan-300"
+                                                        className="text-xs text-[#f28c33] hover:text-[#e07a28] font-black uppercase tracking-widest border border-[#f28c33]/30 px-3 py-1.5 rounded-lg hover:bg-[#f28c33]/10 transition-all"
                                                     >
                                                         Rate
                                                     </button>
@@ -419,7 +417,7 @@ export default function TenantTicketingDashboard({
 
                             <button
                                 onClick={() => router.push(`/tickets?createdBy=${user.id}`)}
-                                className="w-full mt-4 text-center text-cyan-400 hover:text-cyan-300 text-sm"
+                                className="w-full mt-6 text-center text-brand-orange hover:text-white hover:bg-brand-orange text-xs font-black uppercase tracking-widest transition-all py-3 border border-border rounded-xl"
                             >
                                 View All History
                             </button>
@@ -439,34 +437,34 @@ export default function TenantTicketingDashboard({
                         onClick={() => setRatingTicket(null)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                            className="bg-[#161b22] border border-[#30363d] rounded-2xl p-6 max-w-sm w-full mx-4"
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="bg-card border border-border rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <h3 className="text-lg font-semibold text-white mb-4">Rate this request</h3>
-                            <p className="text-sm text-gray-400 mb-4">{ratingTicket.title}</p>
-                            <div className="flex justify-center gap-2 mb-6">
+                            <h3 className="text-xl font-black text-foreground mb-2 uppercase tracking-tight">Rate Request</h3>
+                            <p className="text-sm text-muted-foreground mb-8">{ratingTicket.title}</p>
+                            <div className="flex justify-center gap-3 mb-8">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <Star
                                         key={star}
-                                        className={`w-8 h-8 cursor-pointer ${star <= selectedRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-500'
+                                        className={`w-8 h-8 cursor-pointer transition-all hover:scale-120 ${star <= selectedRating ? 'text-brand-orange fill-brand-orange' : 'text-muted'
                                             }`}
                                         onClick={() => setSelectedRating(star)}
                                     />
                                 ))}
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-4">
                                 <button
                                     onClick={() => setRatingTicket(null)}
-                                    className="flex-1 py-2 bg-white/10 rounded-lg text-gray-300"
+                                    className="flex-1 py-3 text-slate-400 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleRatingSubmit}
                                     disabled={selectedRating < 1}
-                                    className="flex-1 py-2 bg-cyan-500 hover:bg-cyan-400 rounded-lg text-white disabled:bg-gray-600"
+                                    className="flex-1 py-3 bg-[#f28c33] text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-[#d97706] disabled:bg-slate-800 disabled:text-slate-600 transition-all shadow-lg shadow-orange-900/40"
                                 >
                                     Submit
                                 </button>

@@ -5,6 +5,7 @@ export async function GET(request: Request) {
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get('code');
     const propertyCode = requestUrl.searchParams.get('state'); // Optional: for property-scoped signup
+    const next = requestUrl.searchParams.get('next'); // For password reset redirect
 
     if (code) {
         const supabase = await createClient();
@@ -15,6 +16,12 @@ export async function GET(request: Request) {
         if (error) {
             console.error('Auth Error:', error.message);
             return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_failed`);
+        }
+
+        // 2. If 'next' parameter exists (e.g., password reset), redirect there immediately
+        if (next) {
+            console.log('Password reset flow detected, redirecting to:', next);
+            return NextResponse.redirect(`${requestUrl.origin}${next}`);
         }
 
         if (user) {

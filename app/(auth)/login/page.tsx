@@ -44,6 +44,77 @@ function AuthContent() {
     const router = useRouter();
     const supabase = createClient();
 
+    // Handle password reset token from URL (Supabase may use hash fragment OR code param)
+    useEffect(() => {
+        const handlePasswordResetSession = async () => {
+            if (typeof window === 'undefined') return;
+
+            // Method 1: Check URL hash for legacy token flow
+            if (window.location.hash) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const accessToken = hashParams.get('access_token');
+                const refreshToken = hashParams.get('refresh_token');
+                const type = hashParams.get('type');
+
+                if (accessToken && type === 'recovery') {
+                    console.log('Password reset token detected in hash, setting session...');
+
+                    const { error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken || '',
+                    });
+
+                    if (error) {
+                        console.error('Failed to set recovery session:', error);
+                        setError('Password reset link has expired. Please request a new one.');
+                        setAuthMode('forgot');
+                    } else {
+                        console.log('Recovery session set successfully');
+                        setAuthMode('update-password');
+                        window.history.replaceState(null, '', window.location.pathname + '?mode=reset');
+                    }
+                    return;
+                }
+            }
+
+            // Method 2: Check URL params for PKCE code flow  
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const type = urlParams.get('type');
+
+            if (code && type === 'recovery') {
+                console.log('Password reset PKCE code detected, exchanging...');
+
+                const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+                if (error) {
+                    console.error('Failed to exchange recovery code:', error);
+                    setError('Password reset link has expired or is invalid. Please request a new one.');
+                    setAuthMode('forgot');
+                } else {
+                    console.log('Recovery code exchanged successfully');
+                    setAuthMode('update-password');
+                    window.history.replaceState(null, '', window.location.pathname + '?mode=reset');
+                }
+                return;
+            }
+
+            // Method 3: If mode=reset, check if we already have a valid session
+            if (initialMode === 'reset') {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    console.log('Already have session for password reset');
+                    setAuthMode('update-password');
+                } else {
+                    console.log('No session found for password reset mode');
+                    // Session might be loading, let Supabase handle it
+                }
+            }
+        };
+
+        handlePasswordResetSession();
+    }, [supabase.auth, initialMode]);
+
     const handleAuthAction = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -142,13 +213,24 @@ function AuthContent() {
             } else if (authMode === 'update-password') {
                 if (password !== confirmPassword) throw new Error('Passwords do not match');
 
+                // First verify we have a valid session
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (!session) {
+                    // Try to get session from onAuthStateChange
+                    throw new Error('No active session. Please click the password reset link in your email again, or request a new one.');
+                }
+
                 const { error: updateError } = await supabase.auth.updateUser({
                     password: password
                 });
 
                 if (updateError) throw updateError;
 
-                setSuccess('Password updated successfully! You can now sign in.');
+                // Sign out after password change to force re-login with new password
+                await supabase.auth.signOut();
+
+                setSuccess('Password updated successfully! Please sign in with your new password.');
                 setAuthMode('signin');
             }
         } catch (err: any) {

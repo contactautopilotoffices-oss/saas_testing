@@ -1,29 +1,48 @@
 @import "tailwindcss";
 
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent-orange: #f28c33;
+}
+
+.dark {
+  --background: #0a0e1a;
+  --foreground: #f8fafc;
+  --sidebar: #0f172a;
+  --sidebar-foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --border: #1e293b;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent-orange: #f28c33;
+}
+
 @theme {
   --font-display: 'Outfit', sans-serif;
   --font-sans: 'Inter', sans-serif;
 
-  /* System Colors - "Calm & Predictable" */
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-brand-orange: var(--accent-orange);
+  
   --color-brand-black: #0f172a;
-  --color-brand-orange: #f97316;
-  /* Energy/Action - Use sparsely */
   --color-brand-green: #10b981;
-  /* Success/Safe */
-
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #0f172a;
-
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-
-  --radius-lg: 0.5rem;
-  --radius-md: calc(0.5rem - 2px);
-  --radius-sm: calc(0.5rem - 4px);
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
