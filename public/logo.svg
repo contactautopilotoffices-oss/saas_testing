@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 60" fill="currentColor">
-  <!-- Triangle A -->
-  <path d="M0 60 L24 0 L48 60 L36 60 L24 24 L12 60 Z" />
-  <!-- UTOPILOT text -->
-  <text x="56" y="48" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="400" letter-spacing="-0.02em">UTOPILOT</text>
-</svg>
