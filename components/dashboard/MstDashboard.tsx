@@ -13,9 +13,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import SignOutModal from '@/components/ui/SignOutModal';
 import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
+import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
 
 // Types
-type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'alerts' | 'visitors' | 'diesel' | 'cafeteria' | 'settings';
+type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'alerts' | 'visitors' | 'diesel' | 'cafeteria' | 'settings';
 
 interface Property {
     id: string;
@@ -23,6 +24,16 @@ interface Property {
     code: string;
     address: string;
     organization_id?: string;
+}
+
+interface Ticket {
+    id: string;
+    ticket_number: string;
+    title: string;
+    description: string;
+    status: string;
+    priority: string;
+    created_at: string;
 }
 
 const MstDashboard = () => {
@@ -39,14 +50,36 @@ const MstDashboard = () => {
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [showQuickActions, setShowQuickActions] = useState(true);
+    const [incomingTickets, setIncomingTickets] = useState<Ticket[]>([]);
 
     const supabase = createClient();
 
     useEffect(() => {
         if (propertyId) {
             fetchPropertyDetails();
+            fetchTickets();
         }
     }, [propertyId]);
+
+    const fetchTickets = async () => {
+        if (!user) return;
+        console.log('Fetching tickets for MST:', user.id, 'property:', propertyId);
+
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .eq('property_id', propertyId)
+            .eq('assigned_to', user.id)  // Only show tickets assigned to this MST
+            .in('status', ['assigned', 'in_progress'])  // Active tickets only
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching tickets:', error);
+        } else {
+            console.log('Tickets fetched:', data);
+            setIncomingTickets(data || []);
+        }
+    };
 
     const fetchPropertyDetails = async () => {
         setIsLoading(true);
@@ -124,7 +157,10 @@ const MstDashboard = () => {
                     </div>
                     {showQuickActions && (
                         <div className="grid grid-cols-2 gap-1.5">
-                            <button className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]">
+                            <button
+                                onClick={() => setActiveTab('create_request')}
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                            >
                                 <Plus className="w-3 h-3" />
                                 New Request
                             </button>
@@ -313,10 +349,18 @@ const MstDashboard = () => {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                         >
-                            {activeTab === 'dashboard' && <DashboardTab />}
+                            {activeTab === 'dashboard' && <DashboardTab tickets={incomingTickets} onTicketClick={(id) => router.push(`/tickets/${id}`)} />}
                             {activeTab === 'tasks' && <TasksTab />}
                             {activeTab === 'projects' && <ProjectsTab />}
-                            {activeTab === 'requests' && <RequestsTab />}
+                            {activeTab === 'requests' && <RequestsTab tickets={incomingTickets} onTicketClick={(id) => router.push(`/tickets/${id}`)} />}
+                            {activeTab === 'create_request' && property && user && (
+                                <TenantTicketingDashboard
+                                    propertyId={property.id}
+                                    organizationId={property.organization_id || ''}
+                                    user={{ id: user.id, full_name: user.user_metadata?.full_name || 'Staff' }}
+                                    propertyName={property.name}
+                                />
+                            )}
                             {activeTab === 'alerts' && <AlertsTab />}
                             {activeTab === 'visitors' && <VisitorsTab />}
                             {activeTab === 'diesel' && <DieselStaffDashboard />}
@@ -336,7 +380,7 @@ const MstDashboard = () => {
 };
 
 // Dashboard Tab
-const DashboardTab = () => (
+const DashboardTab = ({ tickets, onTicketClick }: { tickets: Ticket[], onTicketClick: (id: string) => void }) => (
     <div className="space-y-6">
         {/* Header */}
         <div>
@@ -344,14 +388,45 @@ const DashboardTab = () => (
             <p className="text-slate-500 text-sm mt-1">Monitor and manage facility maintenance operations</p>
         </div>
 
-        {/* Incoming Requests */}
+        {/* My Assigned Tasks */}
         <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
             <div className="mb-4">
-                <h2 className="text-base font-bold text-white">Incoming Work Orders</h2>
-                <p className="text-xs text-slate-500">Tasks available for you to accept</p>
+                <h2 className="text-base font-bold text-white">My Assigned Tasks</h2>
+                <p className="text-xs text-slate-500">Tasks assigned to you</p>
             </div>
-            <div className="flex items-center justify-center py-12 text-slate-500 text-sm">
-                No incoming work orders
+            <div className="flex flex-col gap-2">
+                {tickets.length === 0 ? (
+                    <div className="flex items-center justify-center py-12 text-slate-500 text-sm">
+                        No tasks assigned to you
+                    </div>
+                ) : (
+                    tickets.map((ticket) => (
+                        <div
+                            key={ticket.id}
+                            onClick={() => onTicketClick(ticket.id)}
+                            className="bg-[#0d1117] border border-[#21262d] rounded-lg p-3 cursor-pointer hover:border-emerald-500/50 transition-colors"
+                        >
+                            <div className="flex justify-between items-start mb-1">
+                                <h3 className="text-sm font-semibold text-white truncate pr-2">{ticket.title}</h3>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${ticket.priority === 'high' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                    ticket.priority === 'medium' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                    }`}>
+                                    {ticket.priority}
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-400 line-clamp-2 mb-2">{ticket.description}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                <span className="flex items-center gap-1">
+                                    <Ticket className="w-3 h-3" />
+                                    {ticket.ticket_number}
+                                </span>
+                                <span>•</span>
+                                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
 
@@ -415,12 +490,45 @@ const ProjectsTab = () => (
 );
 
 // Requests Tab
-const RequestsTab = () => (
+const RequestsTab = ({ tickets = [], onTicketClick }: { tickets?: Ticket[], onTicketClick?: (id: string) => void }) => (
     <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">Requests</h1>
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
-            <Ticket className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-500 text-sm">No requests found</p>
+        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
+            {tickets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Ticket className="w-12 h-12 text-slate-600 mb-3" />
+                    <p className="text-slate-500 text-sm">No requests found</p>
+                </div>
+            ) : (
+                <div className="flex flex-col gap-2">
+                    {tickets.map((ticket) => (
+                        <div
+                            key={ticket.id}
+                            onClick={() => onTicketClick?.(ticket.id)}
+                            className="bg-[#0d1117] border border-[#21262d] rounded-lg p-3 cursor-pointer hover:border-emerald-500/50 transition-colors"
+                        >
+                            <div className="flex justify-between items-start mb-1">
+                                <h3 className="text-sm font-semibold text-white truncate pr-2">{ticket.title}</h3>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${ticket.priority === 'high' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                    ticket.priority === 'medium' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                    }`}>
+                                    {ticket.priority}
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-400 line-clamp-2 mb-2">{ticket.description}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                <span className="flex items-center gap-1">
+                                    <Ticket className="w-3 h-3" />
+                                    {ticket.ticket_number}
+                                </span>
+                                <span>•</span>
+                                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     </div>
 );

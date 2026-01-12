@@ -11,7 +11,14 @@
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_role') THEN
-    CREATE TYPE app_role AS ENUM ('master_admin', 'org_super_admin', 'property_admin', 'staff', 'tenant');
+    CREATE TYPE app_role AS ENUM ('master_admin', 'org_super_admin', 'property_admin', 'staff', 'tenant', 'vendor');
+  ELSE
+    -- Safe add for existing type
+    BEGIN
+      ALTER TYPE app_role ADD VALUE 'vendor';
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END;
   END IF;
 END $$;
 
@@ -549,7 +556,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   location text,                                -- Unit/floor/area
   priority text DEFAULT 'medium',               -- 'low', 'medium', 'high', 'urgent'
   status text DEFAULT 'open',                   -- 'open', 'assigned', 'in_progress', 'resolved', 'closed', 'waitlist'
-  created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  raised_by uuid REFERENCES users(id) ON DELETE SET NULL,
   assigned_to uuid REFERENCES users(id) ON DELETE SET NULL,
   assigned_at timestamptz,
   sla_hours integer,                            -- Copied from category at creation
@@ -792,6 +799,58 @@ CREATE INDEX IF NOT EXISTS idx_issue_categories_skill_group ON issue_categories(
 -- 12. CACHE REFRESH
 -- ---------------------------------------------------------
 NOTIFY pgrst, 'reload schema';
+
+-- ---------------------------------------------------------
+-- 13. TICKET RLS POLICIES (Fix for MST/Staff Access)
+-- ---------------------------------------------------------
+-- Ensure RLS is disabled for debugging/access guarantees as per user request
+ALTER TABLE tickets DISABLE ROW LEVEL SECURITY;
+
+-- Note: Policies below are kept for reference but won't trigger if RLS is disabled
+-- READ: Allow Property Staff, Admins, and Creators to view tickets
+DROP POLICY IF EXISTS tickets_read_all ON tickets;
+CREATE POLICY tickets_read_all ON tickets FOR SELECT USING (
+  -- 1. Property Admins & Staff (MST)
+  EXISTS (
+    SELECT 1 FROM property_memberships pm 
+    WHERE pm.user_id = auth.uid() 
+      AND pm.property_id = tickets.property_id 
+      AND pm.role IN ('property_admin', 'staff', 'mst')
+      AND pm.is_active = true
+  )
+  -- 2. Ticket Creator (Tenant)
+  OR (tickets.created_by = auth.uid())
+  -- 3. Ticket Assignee (MST)
+  OR (tickets.assigned_to = auth.uid())
+  -- 4. Organization Super Admins
+  OR EXISTS (
+    SELECT 1 FROM organization_memberships om
+    JOIN properties p ON p.organization_id = om.organization_id
+    WHERE om.user_id = auth.uid() 
+      AND p.id = tickets.property_id 
+      AND om.role IN ('master_admin', 'org_super_admin')
+  )
+);
+
+-- INSERT: Allow authenticated users to create tickets
+DROP POLICY IF EXISTS tickets_insert_auth ON tickets;
+CREATE POLICY tickets_insert_auth ON tickets FOR INSERT WITH CHECK (
+  auth.uid() = created_by
+);
+
+-- UPDATE: Allow Staff/Admins to update status/assign, Creators to update details
+DROP POLICY IF EXISTS tickets_update_role ON tickets;
+CREATE POLICY tickets_update_role ON tickets FOR UPDATE USING (
+  -- Staff/Admins
+  EXISTS (
+    SELECT 1 FROM property_memberships pm 
+    WHERE pm.user_id = auth.uid() 
+      AND pm.property_id = tickets.property_id 
+      AND pm.role IN ('property_admin', 'staff', 'mst')
+  )
+  -- Or Creator
+  OR (tickets.created_by = auth.uid())
+);
 
 -- =========================================================
 -- END OF FILE — SAFE TO RE-RUN

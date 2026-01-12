@@ -8,21 +8,44 @@ export async function GET(request: NextRequest) {
 
         const searchParams = request.nextUrl.searchParams;
         const propertyId = searchParams.get('propertyId');
+        const organizationId = searchParams.get('organizationId');
         const skillGroupId = searchParams.get('skillGroupId');
 
-        if (!propertyId) {
-            return NextResponse.json({ error: 'propertyId is required' }, { status: 400 });
+        if (!propertyId && !organizationId) {
+            return NextResponse.json({ error: 'Either propertyId or organizationId is required' }, { status: 400 });
         }
 
-        // Get resolver stats with active ticket counts
-        const { data: resolvers, error } = await supabase
+        // Base query for resolvers
+        let resolverQuery = supabase
             .from('resolver_stats')
             .select(`
-        *,
-        user:users(id, full_name, email, avatar_url)
-      `)
-            .eq('property_id', propertyId)
+                *,
+                user:users(id, full_name, email)
+            `)
             .eq('is_available', true);
+
+        if (propertyId) {
+            resolverQuery = resolverQuery.eq('property_id', propertyId);
+        } else if (organizationId) {
+            // Find resolvers in properties belonging to this org
+            // We need to join with properties table, or use a subquery approach
+            // Since Supabase join syntax is specific, simpler to filter by property IDs if we had them, 
+            // but relying on RLS or a join is better. 
+            // Let's assume we can filter by properties in this org.
+            // However, resolver_stats has property_id.
+
+            // Fetch properties for this org first to filter
+            const { data: props } = await supabase.from('properties').select('id').eq('organization_id', organizationId);
+            const propIds = props?.map(p => p.id) || [];
+
+            if (propIds.length > 0) {
+                resolverQuery = resolverQuery.in('property_id', propIds);
+            } else {
+                return NextResponse.json({ resolvers: [], total_available: 0 });
+            }
+        }
+
+        const { data: resolvers, error } = await resolverQuery;
 
         if (error) {
             return NextResponse.json({ error: 'Failed to fetch resolvers' }, { status: 500 });
@@ -32,8 +55,13 @@ export async function GET(request: NextRequest) {
         let ticketQuery = supabase
             .from('tickets')
             .select('assigned_to')
-            .eq('property_id', propertyId)
             .in('status', ['assigned', 'in_progress']);
+
+        if (propertyId) {
+            ticketQuery = ticketQuery.eq('property_id', propertyId);
+        } else if (organizationId) {
+            ticketQuery = ticketQuery.eq('organization_id', organizationId);
+        }
 
         if (skillGroupId) {
             ticketQuery = ticketQuery.eq('skill_group_id', skillGroupId);

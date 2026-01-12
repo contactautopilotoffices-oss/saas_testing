@@ -256,9 +256,9 @@ export default function OnboardingPage() {
                         user_id: authUser.id,
                         property_id: finalPropId,
                         shop_name: `${userName}'s Shop`, // Temporary name
-                        owner_name: dbUser?.full_name || userName,
+                        vendor_name: dbUser?.full_name || userName,
                         commission_rate: 10, // Default 10%
-                        is_active: true
+                        status: 'active'
                     });
 
                 if (vendorError) {

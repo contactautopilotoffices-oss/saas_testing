@@ -42,7 +42,9 @@ function AuthContent() {
 
     const { signIn, signUp, signInWithGoogle, resetPassword, signOut } = useAuth();
     const router = useRouter();
-    const supabase = createClient();
+
+    // Memoize supabase client to prevent re-creation on every render
+    const supabase = React.useMemo(() => createClient(), []);
 
     // Handle password reset token from URL (Supabase may use hash fragment OR code param)
     useEffect(() => {
@@ -113,7 +115,7 @@ function AuthContent() {
         };
 
         handlePasswordResetSession();
-    }, [supabase.auth, initialMode]);
+    }, []); // Removed ALL dependencies to prevent loops -> only runs on mount
 
     const handleAuthAction = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -259,7 +261,7 @@ function AuthContent() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative bg-white/70 backdrop-blur-xl rounded-[32px] shadow-2xl shadow-emerald-500/10 w-full max-w-5xl overflow-hidden flex flex-col lg:flex-row min-h-[680px] border border-white/50"
+                className="relative z-10 bg-white/70 backdrop-blur-xl rounded-[32px] shadow-2xl shadow-emerald-500/10 w-full max-w-5xl overflow-hidden flex flex-col lg:flex-row min-h-[680px] border border-white/50"
             >
                 <div className="w-full lg:w-1/2 p-8 lg:p-12 flex flex-col justify-center bg-white">
                     <div className="flex items-center gap-2 mb-10">
@@ -311,16 +313,16 @@ function AuthContent() {
 
                                 <form className="space-y-4" onSubmit={handleAuthAction}>
                                     {authMode === 'signup' && (
-                                        <div className="space-y-1">
+                                        <div className="space-y-1 relative z-20">
                                             <label className="text-sm font-bold text-slate-700 ml-1">Name*</label>
-                                            <input type="text" placeholder="Enter your name" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50" />
+                                            <input type="text" placeholder="Enter your name" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 relative z-20 placeholder:text-slate-400 text-slate-900" />
                                         </div>
                                     )}
 
                                     {(authMode === 'signin' || authMode === 'signup' || authMode === 'forgot') && (
-                                        <div className="space-y-1">
+                                        <div className="space-y-1 relative z-20">
                                             <label className="text-sm font-bold text-slate-700 ml-1">Email*</label>
-                                            <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50" />
+                                            <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 relative z-20 placeholder:text-slate-400 text-slate-900" />
                                         </div>
                                     )}
 
@@ -337,7 +339,7 @@ function AuthContent() {
                                                     value={password}
                                                     onChange={(e) => setPassword(e.target.value)}
                                                     required
-                                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 pr-10"
+                                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 pr-10 relative z-20 placeholder:text-slate-400 text-slate-900"
                                                 />
                                                 <button
                                                     type="button"
@@ -364,7 +366,7 @@ function AuthContent() {
                                                     value={confirmPassword}
                                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                                     required
-                                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 pr-10"
+                                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 pr-10 relative z-20 placeholder:text-slate-400 text-slate-900"
                                                 />
                                                 <button
                                                     type="button"

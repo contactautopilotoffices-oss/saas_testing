@@ -17,7 +17,7 @@ export async function GET(
             .from('ticket_activity_log')
             .select(`
         *,
-        user:users(id, full_name, email, avatar_url)
+        user:users(id, full_name, email)
       `)
             .eq('ticket_id', ticketId)
             .order('created_at', { ascending: false });

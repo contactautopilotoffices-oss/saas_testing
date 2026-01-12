@@ -8,7 +8,7 @@ export type RoleKey =
     | 'purchase_manager'
     | 'purchase_executive'
     | 'mst' | 'hk' | 'fe' | 'se' | 'technician' | 'field_staff' | 'bms_operator'
-    | 'tenant_user';
+    | 'tenant_user' | 'vendor';
 
 export type CapabilityDomain =
     | 'users'

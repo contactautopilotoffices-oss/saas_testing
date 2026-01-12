@@ -174,9 +174,9 @@ export async function POST(request: NextRequest) {
                 organization_id: orgId,
                 title: title || description.slice(0, 100),
                 description,
-                category: 'other', // Simple text category
+                category: 'general',  // Required: NOT NULL in DB
                 priority: 'medium',
-                status: 'open', // Always open, no waitlist
+                status: 'open',
                 raised_by: user.id,
             })
             .select('*')

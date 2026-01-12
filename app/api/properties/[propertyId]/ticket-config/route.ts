@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/admin';
+import { createAdminClient } from '@/utils/supabase/admin';
 
 // Default Skill Groups
 const DEFAULT_SKILL_GROUPS = [
@@ -39,7 +39,7 @@ export async function POST(
 ) {
     try {
         const { propertyId } = await params;
-        const supabase = createClient();
+        const supabase = createAdminClient();
 
         // 1. Insert Skill Groups
         const skillGroupsToInsert = DEFAULT_SKILL_GROUPS.map(sg => ({
@@ -109,7 +109,7 @@ export async function GET(
 ) {
     try {
         const { propertyId } = await params;
-        const supabase = createClient();
+        const supabase = createAdminClient();
 
         // Get skill groups
         const { data: skillGroups, error: sgError } = await supabase

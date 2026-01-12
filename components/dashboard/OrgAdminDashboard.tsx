@@ -13,7 +13,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { HapticCard } from '@/components/ui/HapticCard';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/components/ui/SignOutModal';
-import Snowfall from '@/components/ui/Snowfall';
+import AdminSPOCDashboard from '../tickets/AdminSPOCDashboard';
 
 // Types
 type Tab = 'overview' | 'properties' | 'requests' | 'users' | 'visitors' | 'cafeteria' | 'settings' | 'profile' | 'revenue';
@@ -68,6 +68,12 @@ const OrgAdminDashboard = () => {
     const [editingUser, setEditingUser] = useState<OrgUser | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const [selectedPropertyId, setSelectedPropertyId] = useState('all');
+
+    // Derived state
+    const activeProperty = selectedPropertyId === 'all'
+        ? null
+        : properties.find(p => p.id === selectedPropertyId);
 
     const supabase = createClient();
 
@@ -317,8 +323,6 @@ const OrgAdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-[#F8F9FC] flex font-inter text-slate-900">
-            {/* Snowfall Effect */}
-            <Snowfall intensity={60} />
             {/* Sidebar */}
             <aside className="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 transition-all duration-300">
                 <div className="p-8 pb-4">
@@ -402,16 +406,6 @@ const OrgAdminDashboard = () => {
                                 Visitor Management
                             </button>
                             <button
-                                onClick={() => setActiveTab('cafeteria')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'cafeteria'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <Coffee className="w-4 h-4" />
-                                Cafeteria Management
-                            </button>
-                            <button
                                 onClick={() => setActiveTab('revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'revenue'
                                     ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
@@ -419,7 +413,7 @@ const OrgAdminDashboard = () => {
                                     }`}
                             >
                                 <IndianRupee className="w-4 h-4" />
-                                Vendor Revenue
+                                Cafeteria Revenue
                             </button>
                         </div>
                     </div>
@@ -497,6 +491,23 @@ const OrgAdminDashboard = () => {
                             <p className="text-slate-500 text-sm font-medium mt-1">Manage your organization's resources.</p>
                         </div>
                         <div className="flex items-center gap-4">
+                            {/* Property Selector for Requests/Other tabs */}
+                            {properties.length > 0 && (
+                                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+                                    <Building2 className="w-4 h-4 text-slate-400" />
+                                    <select
+                                        className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer"
+                                        value={selectedPropertyId}
+                                        onChange={(e) => setSelectedPropertyId(e.target.value)}
+                                    >
+                                        <option value="all">All Properties</option>
+                                        {properties.map(prop => (
+                                            <option key={prop.id} value={prop.id}>{prop.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             <div className="hidden md:flex flex-col items-end">
                                 <span className="text-sm font-black text-slate-900 tracking-tight">System Status</span>
                                 <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Online</span>
@@ -513,7 +524,14 @@ const OrgAdminDashboard = () => {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {activeTab === 'overview' && <OverviewTab properties={properties} orgId={org?.id || ''} />}
+                        {activeTab === 'overview' && (
+                            <OverviewTab
+                                properties={properties}
+                                orgId={org?.id || ''}
+                                selectedPropertyId={selectedPropertyId}
+                                setSelectedPropertyId={setSelectedPropertyId}
+                            />
+                        )}
                         {activeTab === 'revenue' && <RevenueTab properties={properties} />}
                         {activeTab === 'properties' && (
                             <PropertiesTab
@@ -524,10 +542,16 @@ const OrgAdminDashboard = () => {
                             />
                         )}
                         {activeTab === 'requests' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Ticket className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Requests Management</h3>
-                                <p className="text-slate-500">Request management module coming soon.</p>
+                            <div className="h-full">
+                                <AdminSPOCDashboard
+                                    organizationId={org?.id || ''}
+                                    propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
+                                    propertyName={selectedPropertyId === 'all' ? 'All Properties' : activeProperty?.name}
+                                    adminUser={{
+                                        full_name: user?.user_metadata?.full_name || 'Super Admin',
+                                        avatar_url: '' // Add avatar if available
+                                    }}
+                                />
                             </div>
                         )}
                         {activeTab === 'users' && (
@@ -537,13 +561,7 @@ const OrgAdminDashboard = () => {
                                 onUserUpdated={fetchOrgUsers}
                             />
                         )}
-                        {activeTab === 'visitors' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <UsersRound className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Visitor Management</h3>
-                                <p className="text-slate-500">Visitor management module coming soon.</p>
-                            </div>
-                        )}
+                        {activeTab === 'visitors' && <VisitorsTab properties={properties} />}
                         {activeTab === 'cafeteria' && (
                             <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
                                 <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -594,8 +612,17 @@ const OrgAdminDashboard = () => {
 };
 
 // Sub-components
-const OverviewTab = ({ properties, orgId }: { properties: Property[], orgId: string }) => {
-    const [selectedPropertyId, setSelectedPropertyId] = useState('all');
+const OverviewTab = ({
+    properties,
+    orgId,
+    selectedPropertyId,
+    setSelectedPropertyId
+}: {
+    properties: Property[],
+    orgId: string,
+    selectedPropertyId: string,
+    setSelectedPropertyId: (id: string) => void
+}) => {
     const [isLoading, setIsLoading] = useState(true);
 
     // Real data from org APIs
@@ -875,78 +902,7 @@ const OverviewTab = ({ properties, orgId }: { properties: Property[], orgId: str
                 </div>
             </div>
 
-            {/* Procurement Dashboard */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mt-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <input type="checkbox" className="w-4 h-4 rounded" />
-                        Procurement Dashboard
-                    </h3>
-                    <div className="flex gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
-                            <Search className="w-4 h-4" /> Search
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
-                            <Filter className="w-4 h-4" /> District
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-600">
-                            <Building2 className="w-4 h-4" /> Property type
-                        </button>
-                    </div>
-                </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-slate-100">
-                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Property Name</th>
-                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">SPOC</th>
-                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Cost</th>
-                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Views</th>
-                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                <th className="pb-4 text-xs font-black text-slate-400 uppercase tracking-widest">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {(selectedPropertyId === 'all' ? properties : properties.filter(p => p.id === selectedPropertyId)).map((item, idx) => (
-                                <tr key={item.id} className="hover:bg-slate-50/50">
-                                    <td className="py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-slate-200 rounded-xl flex items-center justify-center">
-                                                <Building2 className="w-6 h-6 text-slate-400" />
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-slate-900">{item.name}</div>
-                                                <div className="text-xs text-slate-400">{item.address || 'No address provided'}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 font-bold text-slate-600">Admin</td>
-                                    <td className="py-4 font-bold text-slate-900">₹ 0.00</td>
-                                    <td className="py-4 font-bold text-slate-600">0 views</td>
-                                    <td className="py-4">
-                                        <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg">
-                                            Active
-                                        </span>
-                                    </td>
-                                    <td className="py-4">
-                                        <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                                            <Settings className="w-4 h-4 text-slate-400" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                    <span className="text-sm text-orange-500 font-bold">
-                        (Overview of Ongoing Payment and Procurement Activities)
-                    </span>
-                </div>
-            </div>
         </div>
     );
 };
@@ -1338,6 +1294,176 @@ const RevenueTab = ({ properties }: { properties: any[] }) => {
                                         </tr>
                                     );
                                 })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const VisitorsTab = ({ properties }: { properties: any[] }) => {
+    const [visitors, setVisitors] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedProperty, setSelectedProperty] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
+    const supabase = createClient();
+
+    useEffect(() => {
+        fetchVisitors();
+    }, [selectedProperty]);
+
+    const fetchVisitors = async () => {
+        setIsLoading(true);
+        try {
+            let query = supabase
+                .from('visitor_logs')
+                .select('*, properties(name)')
+                .order('checkin_time', { ascending: false });
+
+            if (selectedProperty !== 'all') {
+                query = query.eq('property_id', selectedProperty);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            setVisitors(data || []);
+        } catch (err) {
+            console.error('Error fetching visitors:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const filteredVisitors = visitors.filter(v =>
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.visitor_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (v.mobile && v.mobile.includes(searchTerm))
+    );
+
+    const handleExport = () => {
+        const headers = ['Visitor ID', 'Property', 'Name', 'Mobile', 'Category', 'Host', 'Check In', 'Status'];
+        const rows = filteredVisitors.map(v => [
+            v.visitor_id,
+            v.properties?.name || 'Unknown',
+            v.name,
+            v.mobile || '-',
+            v.category,
+            v.whom_to_meet,
+            new Date(v.checkin_time).toLocaleString(),
+            v.status
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI(csvContent));
+        link.setAttribute("download", "visitor_logs.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div>
+                    <h2 className="text-xl font-black text-slate-900 leading-tight">Visitor Management</h2>
+                    <p className="text-slate-500 text-sm font-medium">Track and manage visitors across all properties.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:flex-none">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search visitors..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full md:w-64 pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                        />
+                    </div>
+                    <select
+                        value={selectedProperty}
+                        onChange={(e) => setSelectedProperty(e.target.value)}
+                        className="p-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100"
+                    >
+                        <option value="all">All Properties</option>
+                        {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <button
+                        onClick={handleExport}
+                        className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-colors"
+                    >
+                        <FileDown className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50/50 border-b border-slate-100">
+                            <tr>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Visitor Info</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Host / Purpose</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timing</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {isLoading ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-400">Loading visitors...</td></tr>
+                            ) : filteredVisitors.length === 0 ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-400">No visitors found matching your criteria.</td></tr>
+                            ) : (
+                                filteredVisitors.map((visitor) => (
+                                    <tr key={visitor.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold">
+                                                    {visitor.name?.[0]}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-slate-900 text-sm">{visitor.name}</div>
+                                                    <div className="text-xs text-slate-500 font-medium">{visitor.mobile || 'No mobile'}</div>
+                                                    <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{visitor.visitor_id}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-1.5">
+                                                <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                                <span className="text-sm font-bold text-slate-700">{visitor.properties?.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-bold text-slate-900">{visitor.whom_to_meet}</div>
+                                            <div className="text-xs text-slate-500 capitalize">{visitor.category}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-xs font-bold text-slate-900">
+                                                In: {new Date(visitor.checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            {visitor.checkout_time && (
+                                                <div className="text-xs text-slate-500 mt-1">
+                                                    Out: {new Date(visitor.checkout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${visitor.status === 'checked_in'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : 'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                {visitor.status === 'checked_in' ? 'On Premise' : 'Checked Out'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
                             )}
                         </tbody>
                     </table>
