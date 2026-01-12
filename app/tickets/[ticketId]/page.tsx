@@ -19,6 +19,7 @@ interface Ticket {
     status: 'open' | 'assigned' | 'in_progress' | 'blocked' | 'resolved' | 'closed' | 'waitlist';
     priority: string;
     category?: { name: string; code: string };
+    skill_group?: { name: string; code: string };
     created_at: string;
     assigned_at?: string;
     work_started_at?: string;
@@ -34,8 +35,9 @@ interface Ticket {
     created_by: string;
     assigned_to?: string;
     property_id: string;
-    creator?: { full_name: string; email: string; role?: string };
-    assignee?: { full_name: string; email: string; role?: string };
+    property?: { name: string };
+    creator?: { id: string; full_name: string; email: string };
+    assignee?: { id: string; full_name: string; email: string };
 }
 
 interface Activity {
@@ -124,8 +126,10 @@ export default function TicketDetailPage() {
                 .select(`
                     *,
                     category:issue_categories(name, code),
-                    creator:created_by(full_name, email),
-                    assignee:assigned_to(full_name, email)
+                    skill_group:skill_groups(name, code),
+                    property:properties(name),
+                    creator:users!raised_by(id, full_name, email),
+                    assignee:users!assigned_to(id, full_name, email)
                 `)
                 .eq('id', ticketId)
                 .single();
@@ -200,7 +204,7 @@ export default function TicketDetailPage() {
     const fetchResolvers = async (propId: string) => {
         const { data } = await supabase
             .from('resolver_stats')
-            .select('*, user:users(full_name)')
+            .select('*, user:user_id(full_name)')
             .eq('property_id', propId)
             .eq('is_available', true);
         setResolvers(data || []);
@@ -210,13 +214,15 @@ export default function TicketDetailPage() {
     const handleStatusChange = async (newStatus: string) => {
         if (!ticket) return;
 
-        // MST Close Validation
+        // MST Close Validation - Photos are now optional per user request
+        /*
         if (newStatus === 'closed' && userRole === 'staff') {
             if (!ticket.photo_before_url || !ticket.photo_after_url) {
                 const proceed = window.confirm('⚠️ You haven’t attached before/after photos. Do you want to proceed?');
                 if (!proceed) return;
             }
         }
+        */
 
         try {
             const updates: any = { status: newStatus };
@@ -389,25 +395,37 @@ export default function TicketDetailPage() {
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
-                                <span className="font-mono text-xs font-bold text-slate-400">{ticket.ticket_number}</span>
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                {(ticket as any).property?.name && (
+                                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-widest">
+                                        {(ticket as any).property.name}
+                                    </span>
+                                )}
+                                <span className="font-mono text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{ticket.ticket_number}</span>
                                 {ticket.category && (
-                                    <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                    <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[9px] font-black uppercase tracking-widest text-indigo-600">
                                         {ticket.category.name}
                                     </span>
                                 )}
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${ticket.priority === 'urgent' ? 'bg-rose-100 text-rose-600' :
-                                    ticket.priority === 'high' ? 'bg-orange-100 text-orange-600' :
-                                        'bg-blue-100 text-blue-600'
+                                {ticket.skill_group && (
+                                    <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                        {ticket.skill_group.name}
+                                    </span>
+                                )}
+                                <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest ${ticket.priority === 'urgent' ? 'bg-rose-50 border-rose-100 text-rose-600' :
+                                    ticket.priority === 'high' ? 'bg-orange-50 border-orange-100 text-orange-600' :
+                                        'bg-sky-50 border-sky-100 text-sky-600'
                                     }`}>
                                     {ticket.priority} Priority
                                 </span>
                             </div>
-                            <h1 className="text-xl font-black text-slate-900">{ticket.title}</h1>
+                            <h1 className="text-2xl font-black text-slate-900 leading-tight">{ticket.title}</h1>
                         </div>
                         <div className="text-right hidden sm:block">
-                            <div className={`text-sm font-black uppercase tracking-wide mb-1 ${ticket.status === 'closed' ? 'text-emerald-600' :
-                                ticket.status === 'in_progress' ? 'text-blue-600' : 'text-slate-600'
+                            <div className={`text-[10px] font-black uppercase tracking-widest mb-1.5 px-3 py-1 rounded-full border inline-block ${ticket.status === 'closed' || ticket.status === 'resolved' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                                ticket.status === 'in_progress' ? 'bg-sky-50 border-sky-100 text-sky-600' :
+                                    ticket.status === 'assigned' ? 'bg-amber-50 border-amber-100 text-amber-600' :
+                                        'bg-slate-50 border-slate-200 text-slate-500'
                                 }`}>
                                 {ticket.status.replace('_', ' ')}
                             </div>
@@ -488,42 +506,73 @@ export default function TicketDetailPage() {
 
                         {/* 1. Context Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <User className="w-4 h-4" /> Requestor
+                            {/* Requestor Card */}
+                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -mr-12 -mt-12 group-hover:bg-indigo-100 transition-colors" />
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
+                                    <User className="w-3 h-3" /> Who Raised
                                 </h3>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-700 font-bold">
+                                <div className="flex items-center gap-3 relative z-10">
+                                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-100">
                                         {ticket.creator?.full_name?.[0] || 'U'}
                                     </div>
                                     <div>
-                                        <p className="font-bold text-slate-900 text-sm">{ticket.creator?.full_name || 'Unknown User'}</p>
-                                        <p className="text-xs text-slate-500">{ticket.creator?.email}</p>
+                                        <p className="font-bold text-slate-900 text-sm leading-tight">{ticket.creator?.full_name || 'Unknown User'}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-wider rounded">
+                                                Tenant
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 font-medium">Raised on {new Date(ticket.created_at).toLocaleDateString()}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 p-2 rounded-lg">
-                                    <MapPin className="w-3.5 h-3.5" />
-                                    <span>Floor {ticket.floor_number || '-'} • {ticket.location || 'General Area'}</span>
+                                <div className="mt-4 pt-4 border-t border-slate-50 relative z-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Floor</span>
+                                            <span className="text-sm font-bold text-slate-700">Level {ticket.floor_number || '-'}</span>
+                                        </div>
+                                        <div className="w-px h-6 bg-slate-100" />
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Location</span>
+                                            <span className="text-sm font-bold text-slate-700">{ticket.location || 'General Area'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <ShieldAlert className="w-4 h-4" /> Resolver
+                            {/* Resolver Card */}
+                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-full -mr-12 -mt-12 group-hover:bg-emerald-100 transition-colors" />
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
+                                    <ShieldAlert className="w-3 h-3" /> Who Is Servicing
                                 </h3>
                                 {ticket.assignee ? (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700 font-bold">
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-emerald-100">
                                             {ticket.assignee.full_name[0]}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-900 text-sm">{ticket.assignee.full_name}</p>
-                                            <p className="text-xs text-slate-500">Assigned {new Date(ticket.assigned_at!).toLocaleDateString()}</p>
+                                            <p className="font-bold text-slate-900 text-sm leading-tight">{ticket.assignee.full_name}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider rounded">
+                                                    {ticket.skill_group?.name || 'Technical MST'}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-medium">Assigned {new Date(ticket.assigned_at!).toLocaleDateString()}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-center h-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                        <p className="text-xs font-bold text-slate-400">Unassigned</p>
+                                    <div className="flex items-center justify-center h-16 bg-slate-50 rounded-xl border border-dashed border-slate-200 relative z-10">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Assignment</p>
+                                    </div>
+                                )}
+                                {ticket.assignee && (
+                                    <div className="mt-4 pt-4 border-t border-slate-50 relative z-10">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Resolver ID</span>
+                                            <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">RSLV-{ticket.assigned_to?.slice(0, 4).toUpperCase()}</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -580,31 +629,98 @@ export default function TicketDetailPage() {
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <h3 className="text-sm font-black text-slate-900 mb-6 flex items-center gap-2">
                                 <History className="w-4 h-4 text-slate-400" />
-                                Activity Timeline
+                                Request Progress
                             </h3>
-                            <div className="relative pl-4 border-l-2 border-slate-100 space-y-8">
-                                {activities.map((act, idx) => (
-                                    <div key={act.id} className="relative">
-                                        <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-200 border-2 border-white" />
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-900">
-                                                    {act.action.replace(/_/g, ' ')}
-                                                    <span className="text-slate-400 font-medium mx-1">by</span>
-                                                    <span className="text-indigo-600">{act.user?.full_name || 'System'}</span>
-                                                </p>
-                                                {act.new_value && (
-                                                    <p className="text-xs text-slate-500 mt-1 bg-slate-50 inline-block px-2 py-1 rounded">
-                                                        Changed to <span className="font-bold">{act.new_value}</span>
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                {new Date(act.created_at).toLocaleString()}
-                                            </span>
+                            <div className="relative">
+                                <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-slate-100" />
+
+                                <div className="space-y-8 relative">
+                                    {/* Requested Node */}
+                                    <div className="flex items-start gap-4">
+                                        <div className="relative z-10 w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white ring-4 ring-white shadow-sm">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900">Requested</p>
+                                            <p className="text-xs text-slate-500 font-medium">Raised on {new Date(ticket.created_at).toLocaleString()}</p>
                                         </div>
                                     </div>
-                                ))}
+
+                                    {/* Assigned Node */}
+                                    <div className="flex items-start gap-4">
+                                        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${ticket.assigned_at ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                            {ticket.assigned_at ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                                        </div>
+                                        <div>
+                                            <p className={`text-sm font-bold ${ticket.assigned_at ? 'text-slate-900' : 'text-slate-400'}`}>Assigned</p>
+                                            {ticket.assigned_at ? (
+                                                <p className="text-xs text-slate-500 font-medium">Assigned to {ticket.assignee?.full_name} on {new Date(ticket.assigned_at).toLocaleString()}</p>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 font-medium italic">Waiting for assignment...</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Work Started Node */}
+                                    <div className="flex items-start gap-4">
+                                        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${ticket.work_started_at ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                            {ticket.work_started_at ? <CheckCircle2 className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                                        </div>
+                                        <div>
+                                            <p className={`text-sm font-bold ${ticket.work_started_at ? 'text-slate-900' : 'text-slate-400'}`}>Work Started</p>
+                                            {ticket.work_started_at ? (
+                                                <p className="text-xs text-slate-500 font-medium">Commenced on {new Date(ticket.work_started_at).toLocaleString()}</p>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 font-medium italic">Awaiting technician arrival...</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Photos Node */}
+                                    <div className="flex items-start gap-4">
+                                        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${(ticket.photo_before_url || ticket.photo_after_url) ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                            {(ticket.photo_before_url || ticket.photo_after_url) ? <CheckCircle2 className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+                                        </div>
+                                        <div>
+                                            <p className={`text-sm font-bold ${(ticket.photo_before_url || ticket.photo_after_url) ? 'text-slate-900' : 'text-slate-400'}`}>Documentation</p>
+                                            {ticket.photo_before_url || ticket.photo_after_url ? (
+                                                <p className="text-xs text-slate-500 font-medium">Photos uploaded for site record</p>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 font-medium italic">Optional documentation pending</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Completed Node */}
+                                    <div className="flex items-start gap-4">
+                                        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${ticket.closed_at ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                            {ticket.closed_at ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                                        </div>
+                                        <div>
+                                            <p className={`text-sm font-bold ${ticket.closed_at ? 'text-slate-900' : 'text-slate-400'}`}>Completed</p>
+                                            {ticket.closed_at ? (
+                                                <p className="text-xs text-slate-500 font-medium">Resolved and closed on {new Date(ticket.closed_at).toLocaleString()}</p>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 font-medium italic">Pending final closure...</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-slate-50">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Detailed Activity Log</h4>
+                                <div className="space-y-4">
+                                    {activities.slice(0, 5).map((act) => (
+                                        <div key={act.id} className="flex justify-between items-start gap-4 opacity-75">
+                                            <p className="text-xs text-slate-600">
+                                                <span className="font-bold text-slate-900">{act.user?.full_name || 'System'}:</span> {act.action.replace(/_/g, ' ')}
+                                                {act.new_value && <span className="text-indigo-600 font-bold ml-1">→ {act.new_value}</span>}
+                                            </p>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">{new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

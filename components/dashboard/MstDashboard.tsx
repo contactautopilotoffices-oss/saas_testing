@@ -34,6 +34,11 @@ interface Ticket {
     status: string;
     priority: string;
     created_at: string;
+    assigned_to?: string | null;
+    assignee?: {
+        full_name: string;
+        email: string;
+    } | null;
 }
 
 const MstDashboard = () => {
@@ -51,34 +56,40 @@ const MstDashboard = () => {
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [showQuickActions, setShowQuickActions] = useState(true);
     const [incomingTickets, setIncomingTickets] = useState<Ticket[]>([]);
+    const [isFetching, setIsFetching] = useState(false);
 
     const supabase = createClient();
 
     useEffect(() => {
-        if (propertyId) {
+        if (propertyId && user) {
             fetchPropertyDetails();
             fetchTickets();
         }
-    }, [propertyId]);
+    }, [propertyId, user]);
 
     const fetchTickets = async () => {
-        if (!user) return;
-        console.log('Fetching tickets for MST:', user.id, 'property:', propertyId);
+        if (!user || !propertyId) return;
+        setIsFetching(true);
+        console.log('Fetching all property tickets for MST view:', propertyId);
 
         const { data, error } = await supabase
             .from('tickets')
-            .select('*')
+            .select(`
+                *,
+                assignee:users!assigned_to(id, full_name, email)
+            `)
             .eq('property_id', propertyId)
-            .eq('assigned_to', user.id)  // Only show tickets assigned to this MST
-            .in('status', ['assigned', 'in_progress'])  // Active tickets only
             .order('created_at', { ascending: false });
 
         if (error) {
             console.error('Error fetching tickets:', error);
         } else {
             console.log('Tickets fetched:', data);
-            setIncomingTickets(data || []);
+            // Filter non-closed tickets for the dashboard view
+            const filtered = (data || []).filter(t => !['resolved', 'closed'].includes(t.status));
+            setIncomingTickets(filtered);
         }
+        setIsFetching(false);
     };
 
     const fetchPropertyDetails = async () => {
@@ -92,7 +103,8 @@ const MstDashboard = () => {
             .maybeSingle();
 
         if (error || !data) {
-            setErrorMsg('Property not found.');
+            console.error('Property fetch error:', error);
+            setErrorMsg(`Property not found (ID: ${propertyId})`);
         } else {
             setProperty(data);
         }
@@ -304,7 +316,10 @@ const MstDashboard = () => {
                 {/* Top Header */}
                 <header className="h-14 bg-[#161b22] border-b border-[#21262d] flex items-center justify-between px-6 sticky top-0 z-10">
                     <div className="flex items-center gap-4">
-                        <button className="text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-md bg-[#21262d]">
+                        <button
+                            onClick={fetchTickets}
+                            className="text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-md bg-[#21262d]"
+                        >
                             <RefreshCw className="w-3 h-3 inline mr-1.5" />
                             Refresh page
                         </button>
@@ -331,10 +346,7 @@ const MstDashboard = () => {
                             <ChevronRight className="w-4 h-4" />
                         </button>
                         <div className="flex items-center gap-2 pl-3 border-l border-[#30363d]">
-                            <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                                {user?.email?.[0].toUpperCase() || 'U'}
-                            </div>
-                            <span className="text-xs text-slate-400">{user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+                            <span className="text-xs text-slate-400 font-medium">{user?.user_metadata?.full_name || user?.email?.split('@')[0]}</span>
                         </div>
                     </div>
                 </header>
@@ -349,16 +361,36 @@ const MstDashboard = () => {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                         >
-                            {activeTab === 'dashboard' && <DashboardTab tickets={incomingTickets} onTicketClick={(id) => router.push(`/tickets/${id}`)} />}
+                            {activeTab === 'dashboard' && property && user && (
+                                <DashboardTab
+                                    tickets={incomingTickets}
+                                    onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                    userId={user.id}
+                                    isLoading={isFetching}
+                                    propertyId={propertyId}
+                                    propertyName={property.name}
+                                    userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
+                                />
+                            )}
                             {activeTab === 'tasks' && <TasksTab />}
                             {activeTab === 'projects' && <ProjectsTab />}
-                            {activeTab === 'requests' && <RequestsTab tickets={incomingTickets} onTicketClick={(id) => router.push(`/tickets/${id}`)} />}
+                            {activeTab === 'requests' && user && (
+                                <RequestsTab
+                                    tickets={incomingTickets}
+                                    onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                    userId={user.id}
+                                    isLoading={isFetching}
+                                    propertyName={property?.name}
+                                    userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
+                                />
+                            )}
                             {activeTab === 'create_request' && property && user && (
                                 <TenantTicketingDashboard
                                     propertyId={property.id}
                                     organizationId={property.organization_id || ''}
-                                    user={{ id: user.id, full_name: user.user_metadata?.full_name || 'Staff' }}
+                                    user={{ id: user.id, full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Staff' }}
                                     propertyName={property.name}
+                                    isStaff={true}
                                 />
                             )}
                             {activeTab === 'alerts' && <AlertsTab />}
@@ -380,92 +412,131 @@ const MstDashboard = () => {
 };
 
 // Dashboard Tab
-const DashboardTab = ({ tickets, onTicketClick }: { tickets: Ticket[], onTicketClick: (id: string) => void }) => (
-    <div className="space-y-6">
-        {/* Header */}
-        <div>
-            <h1 className="text-2xl font-bold text-white">Maintenance Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-1">Monitor and manage facility maintenance operations</p>
-        </div>
+const DashboardTab = ({ tickets, onTicketClick, userId, isLoading, propertyId, propertyName, userName }: { tickets: Ticket[], onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string }) => {
+    const total = tickets.length;
+    const active = tickets.filter(t => t.status === 'in_progress' || t.status === 'assigned').length;
+    const completed = tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length;
 
-        {/* My Assigned Tasks */}
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
-            <div className="mb-4">
-                <h2 className="text-base font-bold text-white">My Assigned Tasks</h2>
-                <p className="text-xs text-slate-500">Tasks assigned to you</p>
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-white">Maintenance Dashboard</h1>
+                <p className="text-slate-500 text-sm mt-1">{propertyName || 'Property'} • MST: {userName}</p>
             </div>
-            <div className="flex flex-col gap-2">
-                {tickets.length === 0 ? (
-                    <div className="flex items-center justify-center py-12 text-slate-500 text-sm">
-                        No tasks assigned to you
-                    </div>
-                ) : (
-                    tickets.map((ticket) => (
-                        <div
-                            key={ticket.id}
-                            onClick={() => onTicketClick(ticket.id)}
-                            className="bg-[#0d1117] border border-[#21262d] rounded-lg p-3 cursor-pointer hover:border-emerald-500/50 transition-colors"
-                        >
-                            <div className="flex justify-between items-start mb-1">
-                                <h3 className="text-sm font-semibold text-white truncate pr-2">{ticket.title}</h3>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${ticket.priority === 'high' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                    ticket.priority === 'medium' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
-                                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                    }`}>
-                                    {ticket.priority}
-                                </span>
-                            </div>
-                            <p className="text-xs text-slate-400 line-clamp-2 mb-2">{ticket.description}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                                <span className="flex items-center gap-1">
-                                    <Ticket className="w-3 h-3" />
-                                    {ticket.ticket_number}
-                                </span>
-                                <span>•</span>
-                                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-                            </div>
+
+            {/* Property Requests */}
+            <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
+                <div className="mb-4">
+                    <h2 className="text-base font-bold text-white">Property Requests</h2>
+                    <p className="text-xs text-slate-500">All requests for this property</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                    {isLoading ? (
+                        <div className="flex flex-col gap-2 py-4">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="h-16 bg-[#0d1117] border border-[#21262d] rounded-lg animate-pulse" />
+                            ))}
                         </div>
-                    ))
-                )}
+                    ) : tickets.length === 0 ? (
+                        <div className="flex items-center justify-center py-12 text-slate-500 text-sm">
+                            No requests found
+                        </div>
+                    ) : (
+                        tickets.map((ticket) => (
+                            <div
+                                key={ticket.id}
+                                onClick={() => onTicketClick(ticket.id)}
+                                className="bg-[#0d1117] border border-[#21262d] rounded-lg p-3 hover:border-emerald-500/50 transition-colors group cursor-pointer"
+                            >
+                                <div className="flex justify-between items-start mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-sm font-semibold text-white truncate max-w-[200px]">{ticket.title}</h3>
+                                        {ticket.assigned_to === userId ? (
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                Assigned to You
+                                            </span>
+                                        ) : ticket.assigned_to ? (
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                                Assigned to {ticket.assignee?.full_name || 'Staff'}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                                Unassigned / Incoming
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${ticket.priority === 'high' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                            ticket.priority === 'medium' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                                'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                            }`}>
+                                            {ticket.priority}
+                                        </span>
+                                        <button
+                                            onClick={() => onTicketClick(ticket.id)}
+                                            className="text-[10px] px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-all font-bold uppercase tracking-widest"
+                                        >
+                                            View
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-400 line-clamp-2 mb-2">{ticket.description}</p>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                    <span className="flex items-center gap-1">
+                                        <Ticket className="w-3 h-3" />
+                                        {ticket.ticket_number}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                    <span>•</span>
+                                    <span className={`uppercase font-bold ${ticket.status === 'in_progress' ? 'text-blue-400' : ticket.status === 'assigned' ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                        {ticket.status.replace('_', ' ')}
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
-        </div>
 
-        {/* Dashboard Section */}
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-5">
-                <h2 className="text-base font-bold text-white">Dashboard</h2>
-                <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-lg bg-[#21262d]">
-                    <Settings className="w-3 h-3" />
-                    Customize
-                </button>
-            </div>
-
-            {/* Work Orders Overview */}
-            <div className="bg-[#0d1117] border border-[#21262d] rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-white">Work Orders Overview</h3>
-                    <button className="text-slate-500 hover:text-white">
-                        <ChevronRight className="w-4 h-4 rotate-[-45deg]" />
+            {/* Dashboard Section */}
+            <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
+                <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-base font-bold text-white">Dashboard</h2>
+                    <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-lg bg-[#21262d]">
+                        <Settings className="w-3 h-3" />
+                        Customize
                     </button>
                 </div>
-                <div className="grid grid-cols-3 gap-6">
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-white">0</p>
-                        <p className="text-xs text-slate-500 mt-1">Total</p>
+
+                {/* Work Orders Overview */}
+                <div className="bg-[#0d1117] border border-[#21262d] rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-white">Work Orders Overview</h3>
+                        <button className="text-slate-500 hover:text-white">
+                            <ChevronRight className="w-4 h-4 rotate-[-45deg]" />
+                        </button>
                     </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-blue-400">0</p>
-                        <p className="text-xs text-slate-500 mt-1">Active</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-emerald-400">0</p>
-                        <p className="text-xs text-slate-500 mt-1">Completed</p>
+                    <div className="grid grid-cols-3 gap-6">
+                        <div className="text-center">
+                            <p className="text-3xl font-bold text-white">{total}</p>
+                            <p className="text-xs text-slate-500 mt-1">Total</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-3xl font-bold text-blue-400">{active}</p>
+                            <p className="text-xs text-slate-500 mt-1">Active</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-3xl font-bold text-emerald-400">{completed}</p>
+                            <p className="text-xs text-slate-500 mt-1">Completed</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 // Tasks Tab
 const TasksTab = () => (
@@ -490,11 +561,20 @@ const ProjectsTab = () => (
 );
 
 // Requests Tab
-const RequestsTab = ({ tickets = [], onTicketClick }: { tickets?: Ticket[], onTicketClick?: (id: string) => void }) => (
+const RequestsTab = ({ tickets = [], onTicketClick, userId, isLoading, propertyName, userName }: { tickets?: Ticket[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string }) => (
     <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-white">Requests</h1>
+        <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">Requests</h1>
+            {propertyName && <span className="text-xs text-slate-500 font-bold uppercase tracking-widest bg-[#161b22] px-3 py-1 rounded-full border border-[#21262d]">{propertyName}</span>}
+        </div>
         <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
-            {tickets.length === 0 ? (
+            {isLoading ? (
+                <div className="flex flex-col gap-2 py-4">
+                    {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="h-20 bg-[#0d1117] border border-[#21262d] rounded-lg animate-pulse" />
+                    ))}
+                </div>
+            ) : tickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                     <Ticket className="w-12 h-12 text-slate-600 mb-3" />
                     <p className="text-slate-500 text-sm">No requests found</p>
@@ -505,16 +585,39 @@ const RequestsTab = ({ tickets = [], onTicketClick }: { tickets?: Ticket[], onTi
                         <div
                             key={ticket.id}
                             onClick={() => onTicketClick?.(ticket.id)}
-                            className="bg-[#0d1117] border border-[#21262d] rounded-lg p-3 cursor-pointer hover:border-emerald-500/50 transition-colors"
+                            className="bg-[#0d1117] border border-[#21262d] rounded-lg p-3 hover:border-emerald-500/50 transition-colors group cursor-pointer"
                         >
                             <div className="flex justify-between items-start mb-1">
-                                <h3 className="text-sm font-semibold text-white truncate pr-2">{ticket.title}</h3>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${ticket.priority === 'high' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                    ticket.priority === 'medium' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
-                                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                    }`}>
-                                    {ticket.priority}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-semibold text-white truncate max-w-[400px]">{ticket.title}</h3>
+                                    {ticket.assigned_to === userId ? (
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            Assigned to You
+                                        </span>
+                                    ) : ticket.assigned_to ? (
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                            Assigned to {ticket.assignee?.full_name || 'Staff'}
+                                        </span>
+                                    ) : (
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                            Unassigned / Incoming
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${ticket.priority === 'high' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                        ticket.priority === 'medium' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                        }`}>
+                                        {ticket.priority}
+                                    </span>
+                                    <button
+                                        onClick={() => onTicketClick?.(ticket.id)}
+                                        className="text-[10px] px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-all font-bold uppercase tracking-widest"
+                                    >
+                                        View
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-xs text-slate-400 line-clamp-2 mb-2">{ticket.description}</p>
                             <div className="flex items-center gap-2 text-[10px] text-slate-500">
@@ -524,6 +627,10 @@ const RequestsTab = ({ tickets = [], onTicketClick }: { tickets?: Ticket[], onTi
                                 </span>
                                 <span>•</span>
                                 <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span className={`uppercase font-bold ${ticket.status === 'in_progress' ? 'text-blue-400' : ticket.status === 'assigned' ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                    {ticket.status.replace('_', ' ')}
+                                </span>
                             </div>
                         </div>
                     ))}

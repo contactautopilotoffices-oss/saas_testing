@@ -33,6 +33,7 @@ interface TenantTicketingDashboardProps {
     organizationId: string;
     user: { id: string; full_name: string };
     propertyName?: string;
+    isStaff?: boolean;
 }
 
 export default function TenantTicketingDashboard({
@@ -40,6 +41,7 @@ export default function TenantTicketingDashboard({
     organizationId,
     user,
     propertyName,
+    isStaff = false
 }: TenantTicketingDashboardProps) {
     const router = useRouter();
     const [description, setDescription] = useState('');
@@ -56,11 +58,13 @@ export default function TenantTicketingDashboard({
 
     useEffect(() => {
         fetchTickets();
-    }, [propertyId]);
+    }, [propertyId, user.id]);
 
     const fetchTickets = async () => {
         try {
-            const response = await fetch(`/api/tickets?propertyId=${propertyId}&raisedBy=${user.id}`);
+            // If staff/MST, view assigned tickets. If tenant, view raised tickets.
+            const queryParam = isStaff ? `assignedTo=${user.id}` : `raisedBy=${user.id}`;
+            const response = await fetch(`/api/tickets?propertyId=${propertyId}&${queryParam}`);
             const data = await response.json();
 
             if (response.ok) {
@@ -209,24 +213,24 @@ export default function TenantTicketingDashboard({
     };
 
     return (
-        <div className="min-h-screen bg-background p-8">
+        <div className="min-h-screen bg-[#0f1419] p-8">
             {/* Header */}
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-black text-foreground">
-                            <span className="text-brand-orange">Ticketic v3.0:</span>{' '}
-                            Intelligent Request Management
+                        <h1 className="text-3xl font-black text-white">
+                            <span className="text-emerald-500">{propertyName || 'Property'}</span>{' '}
+                            {isStaff ? 'Maintenance Portal' : 'Request Management'}
                         </h1>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 bg-card backdrop-blur-sm rounded-full px-5 py-2 border border-border shadow-xl">
-                            <div className="w-10 h-10 bg-brand-orange rounded-full flex items-center justify-center shadow-lg shadow-orange-500/20">
+                        <div className="flex items-center gap-3 bg-[#161b22] border border-[#21262d] rounded-full px-5 py-2 shadow-xl">
+                            <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20">
                                 <User className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <p className="text-foreground font-bold">{user.full_name}</p>
-                                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{propertyName || 'SS Plaza'}</p>
+                                <p className="text-white font-bold">{user.full_name}</p>
+                                <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">{isStaff ? 'MST Account' : 'Tenant Account'}</p>
                             </div>
                         </div>
                     </div>
@@ -235,8 +239,8 @@ export default function TenantTicketingDashboard({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left Panel - Raise New Request */}
                     <div className="space-y-4">
-                        <div className="bg-card backdrop-blur-sm border border-border rounded-3xl p-8 shadow-2xl">
-                            <h2 className="text-sm font-black text-brand-orange mb-6 flex items-center gap-2 uppercase tracking-widest">
+                        <div className="bg-[#161b22] border border-[#21262d] rounded-3xl p-8 shadow-2xl">
+                            <h2 className="text-sm font-black text-emerald-500 mb-6 flex items-center gap-2 uppercase tracking-widest">
                                 <Plus className="w-4 h-4" />
                                 Raise a New Request
                             </h2>
@@ -245,7 +249,7 @@ export default function TenantTicketingDashboard({
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Describe the issue in your words.&#10;Example: Leaking tap in kitchenette"
-                                className="w-full h-32 bg-background border border-border rounded-2xl p-4 text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange/20 transition-all font-medium"
+                                className="w-full h-32 bg-[#0d1117] border border-[#21262d] rounded-2xl p-4 text-white placeholder-slate-500 resize-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-medium"
                             />
 
                             {/* Photo Preview */}
@@ -262,7 +266,7 @@ export default function TenantTicketingDashboard({
                             )}
 
                             <div className="flex items-center justify-between mt-6">
-                                <label className="flex items-center gap-2 text-muted-foreground hover:text-brand-orange cursor-pointer transition-colors text-sm font-bold uppercase tracking-widest">
+                                <label className="flex items-center gap-2 text-slate-400 hover:text-emerald-500 cursor-pointer transition-colors text-sm font-bold uppercase tracking-widest">
                                     <Paperclip className="w-5 h-5" />
                                     <span>Attach File</span>
                                     <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSelect} />
@@ -270,7 +274,7 @@ export default function TenantTicketingDashboard({
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting || !description.trim()}
-                                    className="px-8 py-3 bg-brand-orange hover:bg-orange-600 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed text-white font-black rounded-2xl transition-all flex items-center gap-2 shadow-xl shadow-orange-900/10 uppercase tracking-widest text-xs"
+                                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-[#21262d] disabled:text-slate-600 disabled:cursor-not-allowed text-white font-black rounded-2xl transition-all flex items-center gap-2 shadow-xl shadow-emerald-900/10 uppercase tracking-widest text-xs"
                                 >
                                     {isSubmitting ? (
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -312,9 +316,10 @@ export default function TenantTicketingDashboard({
 
                     {/* Right Panel - My Tickets */}
                     <div className="space-y-6">
-                        {/* Active Requests */}
-                        <div className="bg-card backdrop-blur-sm border border-border rounded-3xl p-8 shadow-2xl">
-                            <h2 className="text-sm font-black text-muted-foreground mb-6 uppercase tracking-widest">My Active Requests</h2>
+                        <div className="bg-[#161b22] border border-[#21262d] rounded-3xl p-8 shadow-2xl">
+                            <h2 className="text-sm font-black text-muted-foreground mb-6 uppercase tracking-widest">
+                                {isStaff ? 'My Assigned Requests' : 'My Active Requests'}
+                            </h2>
 
                             {loading ? (
                                 <div className="space-y-4">
@@ -335,27 +340,27 @@ export default function TenantTicketingDashboard({
                                             <div
                                                 key={ticket.id}
                                                 onClick={() => router.push(`/tickets/${ticket.id}`)}
-                                                className="bg-background/20 hover:bg-muted/40 border border-border rounded-2xl p-6 cursor-pointer transition-all duration-300 group/ticket"
+                                                className="bg-[#0d1117] hover:border-emerald-500/50 border border-[#21262d] rounded-2xl p-6 cursor-pointer transition-all duration-300 group/ticket"
                                             >
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex items-start gap-4">
-                                                        <div className="w-12 h-12 bg-brand-orange/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover/ticket:scale-110 transition-transform border border-brand-orange/20">
-                                                            <MessageSquare className="w-6 h-6 text-brand-orange" />
+                                                        <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover/ticket:scale-110 transition-transform border border-emerald-500/20">
+                                                            <MessageSquare className="w-6 h-6 text-emerald-500" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-foreground text-lg mb-1">{ticket.title}</p>
-                                                            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">{ticket.category?.name || 'General'}</p>
+                                                            <p className="font-bold text-white text-lg mb-1">{ticket.title}</p>
+                                                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">{ticket.category?.name || 'General'}</p>
                                                         </div>
                                                     </div>
                                                     <div className="text-right flex items-center gap-3">
                                                         {sla && <span className={`text-[10px] font-black uppercase tracking-tighter ${sla.color}`}>{sla.text}</span>}
-                                                        <ChevronRight className="w-5 h-5 text-slate-600 group-hover/ticket:text-[#f28c33] transition-colors" />
+                                                        <ChevronRight className="w-5 h-5 text-slate-600 group-hover/ticket:text-emerald-500 transition-colors" />
                                                     </div>
                                                 </div>
                                                 {sla && (
-                                                    <div className="mt-5 h-1.5 bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/30">
+                                                    <div className="mt-5 h-1.5 bg-[#21262d] rounded-full overflow-hidden border border-[#30363d]">
                                                         <div
-                                                            className={`h-full rounded-full transition-all duration-500 ${sla.progress > 80 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-[#f28c33] shadow-[0_0_10px_rgba(242,140,51,0.5)]'}`}
+                                                            className={`h-full rounded-full transition-all duration-500 ${sla.progress > 80 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}
                                                             style={{ width: `${sla.progress}%` }}
                                                         />
                                                     </div>
@@ -368,7 +373,7 @@ export default function TenantTicketingDashboard({
                         </div>
 
                         {/* Recently Resolved */}
-                        <div className="bg-card backdrop-blur-sm border border-border rounded-3xl p-8 shadow-2xl">
+                        <div className="bg-[#161b22] border border-[#21262d] rounded-3xl p-8 shadow-2xl">
                             <h2 className="text-sm font-black text-muted-foreground mb-6 uppercase tracking-widest">Recently Resolved</h2>
 
                             {resolvedTickets.length === 0 ? (
@@ -376,19 +381,19 @@ export default function TenantTicketingDashboard({
                             ) : (
                                 <div className="space-y-3">
                                     {resolvedTickets.map((ticket) => (
-                                        <div key={ticket.id} className="bg-background/20 border border-border rounded-2xl p-6">
+                                        <div key={ticket.id} className="bg-[#0d1117] border border-[#21262d] rounded-2xl p-6">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
                                                         <MessageSquare className="w-6 h-6 text-emerald-500" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-foreground text-lg mb-1">{ticket.title}</p>
+                                                        <p className="font-bold text-white text-lg mb-1">{ticket.title}</p>
                                                         <div className="flex items-center gap-1.5 mt-1">
                                                             {[1, 2, 3, 4, 5].map((star) => (
                                                                 <Star
                                                                     key={star}
-                                                                    className={`w-4 h-4 cursor-pointer transition-colors ${star <= (ticket.rating || 0) ? 'text-[#f28c33] fill-[#f28c33]' : 'text-slate-700 hover:text-orange-400'
+                                                                    className={`w-4 h-4 cursor-pointer transition-colors ${star <= (ticket.rating || 0) ? 'text-emerald-500 fill-emerald-500' : 'text-slate-700 hover:text-emerald-400'
                                                                         }`}
                                                                     onClick={() => {
                                                                         if (!ticket.rating) {
@@ -404,7 +409,7 @@ export default function TenantTicketingDashboard({
                                                 {!ticket.rating && (
                                                     <button
                                                         onClick={() => setRatingTicket(ticket)}
-                                                        className="text-xs text-[#f28c33] hover:text-[#e07a28] font-black uppercase tracking-widest border border-[#f28c33]/30 px-3 py-1.5 rounded-lg hover:bg-[#f28c33]/10 transition-all"
+                                                        className="text-xs text-emerald-500 hover:text-emerald-400 font-black uppercase tracking-widest border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/10 transition-all"
                                                     >
                                                         Rate
                                                     </button>
@@ -417,7 +422,7 @@ export default function TenantTicketingDashboard({
 
                             <button
                                 onClick={() => router.push(`/tickets?createdBy=${user.id}`)}
-                                className="w-full mt-6 text-center text-brand-orange hover:text-white hover:bg-brand-orange text-xs font-black uppercase tracking-widest transition-all py-3 border border-border rounded-xl"
+                                className="w-full mt-6 text-center text-emerald-500 hover:text-white hover:bg-emerald-600 text-xs font-black uppercase tracking-widest transition-all py-3 border border-[#21262d] rounded-xl"
                             >
                                 View All History
                             </button>
@@ -439,16 +444,16 @@ export default function TenantTicketingDashboard({
                         <motion.div
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
-                            className="bg-card border border-border rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl"
+                            className="bg-[#161b22] border border-[#21262d] rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <h3 className="text-xl font-black text-foreground mb-2 uppercase tracking-tight">Rate Request</h3>
-                            <p className="text-sm text-muted-foreground mb-8">{ratingTicket.title}</p>
+                            <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">Rate Request</h3>
+                            <p className="text-sm text-slate-400 mb-8">{ratingTicket.title}</p>
                             <div className="flex justify-center gap-3 mb-8">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <Star
                                         key={star}
-                                        className={`w-8 h-8 cursor-pointer transition-all hover:scale-120 ${star <= selectedRating ? 'text-brand-orange fill-brand-orange' : 'text-muted'
+                                        className={`w-8 h-8 cursor-pointer transition-all hover:scale-120 ${star <= selectedRating ? 'text-emerald-500 fill-emerald-500' : 'text-[#21262d]'
                                             }`}
                                         onClick={() => setSelectedRating(star)}
                                     />
@@ -464,7 +469,7 @@ export default function TenantTicketingDashboard({
                                 <button
                                     onClick={handleRatingSubmit}
                                     disabled={selectedRating < 1}
-                                    className="flex-1 py-3 bg-[#f28c33] text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-[#d97706] disabled:bg-slate-800 disabled:text-slate-600 transition-all shadow-lg shadow-orange-900/40"
+                                    className="flex-1 py-3 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-emerald-700 disabled:bg-[#21262d] disabled:text-slate-600 transition-all shadow-lg shadow-emerald-900/40"
                                 >
                                     Submit
                                 </button>
