@@ -1,19 +1,21 @@
-import type { Metadata } from "next"; // Fixed: Import Metadata type
-import { Inter, Outfit } from "next/font/google"; // Outfit as proxy for "Söhne/Architectural"
+import type { Metadata } from "next";
+import { Poppins, Urbanist } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { GlobalProvider } from "@/context/GlobalContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-display",
   display: 'swap',
 });
 
-const outfit = Outfit({
+const urbanist = Urbanist({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body",
   display: 'swap',
 });
 
@@ -30,14 +32,14 @@ export default function RootLayout({
 
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
+    <html lang="en" className={`${poppins.variable} ${urbanist.variable}`} suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="bg-background text-foreground antialiased overflow-x-hidden font-sans">
+      <body className="bg-background text-foreground antialiased overflow-x-hidden font-body">
         <ThemeProvider>
           <AuthProvider>
             <GlobalProvider>

@@ -249,7 +249,7 @@ const MasterAdminDashboard = () => {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm ${activeTab === item.id
-                                ? 'bg-brand-orange text-white shadow-xl shadow-orange-500/20'
+                                ? 'bg-primary text-text-inverse shadow-sm'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                                 }`}
                         >
@@ -286,7 +286,7 @@ const MasterAdminDashboard = () => {
                     </div>
 
                     <div className="flex items-center gap-3 px-2 mb-6">
-                        <div className="w-10 h-10 bg-brand-orange/10 rounded-full flex items-center justify-center text-brand-orange font-bold text-sm shadow-lg shadow-orange-500/10">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-sm">
                             {user?.email?.[0].toUpperCase() || 'M'}
                         </div>
                         <div className="flex-1 overflow-hidden">
@@ -558,19 +558,19 @@ const OverviewGrid = () => {
                             isExpanded={isExpanded}
                             onActivate={setExpandedId}
                             reducedMotion={reducedMotion}
-                            className={isSibling ? 'opacity-60' : ''}
+                            className={`${isSibling ? 'opacity-60' : ''} kpi-card`}
                             baseContent={
                                 <>
                                     <div className="flex justify-between items-start mb-6">
-                                        <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center`}>
-                                            <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                                        <div className="w-12 h-12 kpi-icon flex items-center justify-center">
+                                            <stat.icon className="w-6 h-6 text-secondary" />
                                         </div>
-                                        <span className="text-[11px] font-black bg-slate-50 text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">
+                                        <span className="text-[11px] font-body font-medium text-text-tertiary px-2 py-1 rounded-lg tracking-wider">
                                             {stat.trend}
                                         </span>
                                     </div>
-                                    <p className="text-4xl font-black text-slate-900 mb-1">{stat.value}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                                    <p className="text-4xl metric-number text-text-primary mb-1">{stat.value}</p>
+                                    <p className="text-[10px] font-body font-medium text-text-tertiary tracking-widest">{stat.label}</p>
                                 </>
                             }
                             expandedContent={
@@ -604,8 +604,8 @@ const OverviewGrid = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-slate-900 p-8 rounded-[40px] text-white">
-                    <h3 className="text-2xl font-black mb-6">Regional Performance</h3>
+                <div className="glass-panel p-8">
+                    <h3 className="text-2xl font-display font-semibold text-text-primary mb-6">Regional Performance</h3>
                     <div className="space-y-6">
                         {[
                             { name: 'North America', status: 'Optimal', load: 45 },
@@ -613,34 +613,34 @@ const OverviewGrid = () => {
                             { name: 'Asia Pacific', status: 'Optimal', load: 12 },
                         ].map((reg, i) => (
                             <div key={i} className="space-y-2">
-                                <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                                <div className="flex justify-between text-xs font-body font-medium tracking-widest text-text-secondary">
                                     <span>{reg.name}</span>
-                                    <span className={reg.load > 80 ? 'text-rose-400' : 'text-emerald-400'}>{reg.status}</span>
+                                    <span className={reg.load > 80 ? 'text-error' : 'text-success'}>{reg.status}</span>
                                 </div>
-                                <div className="w-full h-1 bg-white/10 rounded-full">
-                                    <div className={`h-full ${reg.load > 80 ? 'bg-rose-400' : 'bg-emerald-400'} rounded-full`} style={{ width: `${reg.load}%` }} />
+                                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                    <div className={`h-full ${reg.load > 80 ? 'bg-error' : 'bg-success'} rounded-full`} style={{ width: `${reg.load}%` }} />
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="bg-white border border-slate-100 p-8 rounded-[40px]">
-                    <h3 className="text-2xl font-black text-slate-900 mb-6">System Health</h3>
+                <div className="glass-panel p-8">
+                    <h3 className="text-2xl font-display font-semibold text-text-primary mb-6">System Health</h3>
                     <div className="space-y-4">
                         {[
                             { id: 'AUTH-SV', label: 'Auth Middleware', status: 'Healthy' },
                             { id: 'DB-IDX', label: 'Global Indexes', status: 'Warning' },
                             { id: 'OAUTH-API', label: 'OAuth Gateway', status: 'Healthy' }
                         ].map((svc, i) => (
-                            <div key={i} className="flex items-center justify-between p-4 border border-slate-50 rounded-2xl">
+                            <div key={i} className="flex items-center justify-between p-4 premium-list">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-black text-slate-300 px-2 py-0.5 border border-slate-100 rounded-md uppercase tracking-widest">{svc.id}</span>
-                                    <span className="text-sm font-bold text-slate-800">{svc.label}</span>
+                                    <span className="text-[10px] font-body font-medium text-text-tertiary px-2 py-0.5 border border-border/10 rounded-md tracking-widest">{svc.id}</span>
+                                    <span className="text-sm font-body font-medium text-text-secondary">{svc.label}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className={`w-1.5 h-1.5 rounded-full ${svc.status === 'Healthy' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                    <span className="text-xs font-bold text-slate-500">{svc.status}</span>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${svc.status === 'Healthy' ? 'bg-success' : 'bg-warning'}`} />
+                                    <span className="text-xs font-body font-medium text-text-tertiary">{svc.status}</span>
                                 </div>
                             </div>
                         ))}
@@ -664,18 +664,18 @@ const OrganizationsList = ({ organizations, users, isLoading, onSoftDelete, onRe
 
     return (
         <div className="space-y-6">
-            <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+            <div className="premium-list overflow-hidden">
                 <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
+                    <thead className="bg-text-primary/5 border-b border-border/10">
                         <tr>
-                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization</th>
-                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Properties</th>
-                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Usage</th>
-                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                            <th className="px-8 py-5 text-[10px] font-body font-medium text-text-tertiary tracking-widest">Organization</th>
+                            <th className="px-8 py-5 text-[10px] font-body font-medium text-text-tertiary tracking-widest">Properties</th>
+                            <th className="px-8 py-5 text-[10px] font-body font-medium text-text-tertiary tracking-widest">Usage</th>
+                            <th className="px-8 py-5 text-[10px] font-body font-medium text-text-tertiary tracking-widest">Status</th>
+                            <th className="px-8 py-5 text-[10px] font-body font-medium text-text-tertiary tracking-widest">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-border/10">
                         {organizations.map((org) => {
                             // Correct deduplicated count of users in this organization
                             const orgMemberIds = new Set([
@@ -825,16 +825,16 @@ const UserDirectory = ({ users, organizations, onUpdateRole, onToggleStatus, onD
         );
 
     return (
-        <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
+        <div className="premium-list p-8">
             <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-4">
-                    <h3 className="text-xl font-black text-slate-900">System Users ({filteredUsers.length})</h3>
+                    <h3 className="text-xl font-display font-semibold text-text-primary">System Users ({filteredUsers.length})</h3>
                     <div className="relative">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                         <select
                             value={selectedOrgFilter}
                             onChange={(e) => setSelectedOrgFilter(e.target.value)}
-                            className="pl-10 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-slate-100 appearance-none cursor-pointer"
+                            className="pl-10 pr-8 py-2 bg-text-primary/5 border border-border/10 rounded-xl text-xs font-body font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer text-text-secondary"
                         >
                             <option value="all">All Organizations</option>
                             {organizations.map(org => (
@@ -846,19 +846,19 @@ const UserDirectory = ({ users, organizations, onUpdateRole, onToggleStatus, onD
                 <div className="flex items-center gap-3">
                     <button
                         onClick={onAddUser}
-                        className="px-5 py-2.5 bg-emerald-500 text-white font-bold text-xs rounded-xl uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100"
+                        className="px-5 py-2.5 bg-success text-text-inverse font-body font-semibold text-xs rounded-xl tracking-widest flex items-center gap-2 hover:opacity-90 transition-smooth"
                     >
-                        <Plus className="w-4 h-4" /> Add User
+                        <Plus className="w-4 h-4" /> ADD USER
                     </button>
-                    <button className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl uppercase tracking-widest flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                        <Users className="w-4 h-4" /> Export Audit Log
+                    <button className="px-5 py-2.5 bg-text-primary text-text-inverse font-body font-semibold text-xs rounded-xl tracking-widest flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-smooth">
+                        <Users className="w-4 h-4" /> EXPORT AUDIT LOG
                     </button>
                 </div>
             </div>
 
             <div className="space-y-4">
                 {filteredUsers.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 italic">No users found for this selection.</div>
+                    <div className="text-center py-12 text-text-tertiary italic font-body">No users found for this selection.</div>
                 ) : (
                     filteredUsers.map((user) => {
                         const isMasterAdmin = user.is_master_admin === true;
@@ -875,22 +875,21 @@ const UserDirectory = ({ users, organizations, onUpdateRole, onToggleStatus, onD
                         const hasMemberships = orgMemberships.length > 0 || propMemberships.length > 0;
 
                         return (
-                            <div key={user.id} className="flex items-center justify-between p-6 border border-slate-50 rounded-3xl hover:border-slate-200 transition-all group">
+                            <div key={user.id} className="flex items-center justify-between p-6 border border-border/10 rounded-3xl hover:border-border/20 transition-smooth group">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 relative">
+                                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                                         <Users className="w-6 h-6" />
-                                        {/* Show suspended if specific checks fail? Global active check is hard with multiple roles. */}
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-slate-900 flex items-center gap-2">
+                                        <h4 className="font-display font-semibold text-text-primary flex items-center gap-2">
                                             {user.full_name || 'Unknown User'}
                                             {user.is_master_admin && (
-                                                <span className="text-[9px] bg-slate-900 text-white px-1.5 py-0.5 rounded-md uppercase tracking-widest border border-slate-900 flex items-center gap-1">
-                                                    <ShieldCheck className="w-3 h-3" /> Master
+                                                <span className="text-[9px] bg-text-primary text-text-inverse font-body font-semibold px-1.5 py-0.5 rounded-md tracking-widest border border-text-primary flex items-center gap-1">
+                                                    <ShieldCheck className="w-3 h-3" /> MASTER
                                                 </span>
                                             )}
                                         </h4>
-                                        <p className="text-xs font-medium text-slate-400">{user.email}</p>
+                                        <p className="text-xs font-body font-medium text-text-tertiary">{user.email}</p>
 
                                         {/* Context Badges (Where do they belong?) */}
                                         <div className="mt-2 flex flex-wrap gap-2">

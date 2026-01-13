@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 interface TicketSLATileProps {
     openTickets: number;
@@ -13,44 +14,71 @@ export default function TicketSLATile({
     slaPercentage,
     highPriorityCount
 }: TicketSLATileProps) {
+    const getSLAColor = () => {
+        if (slaPercentage >= 90) return 'neon-cyan';
+        if (slaPercentage >= 75) return 'text-success';
+        if (slaPercentage >= 60) return 'text-warning';
+        return 'text-error';
+    };
+
+    const getSLAProgressColor = () => {
+        if (slaPercentage >= 90) return 'bg-[var(--neon-cyan)]';
+        if (slaPercentage >= 75) return 'bg-success';
+        if (slaPercentage >= 60) return 'bg-warning';
+        return 'bg-error';
+    };
+
     return (
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between h-full group hover:shadow-lg transition-all duration-500">
+        <div className="glass-card p-6 flex flex-col justify-between h-full border-l-4 border-l-[var(--neon-magenta)]">
             <div>
-                <h3 className="text-[#1a2b3c] font-display font-bold text-2xl mb-8">Tickets & SLA</h3>
+                <h3 className="text-text-primary font-display font-bold text-xl mb-6">Tickets & SLA</h3>
 
-                <div className="space-y-8">
+                <div className="space-y-6">
+                    {/* Open Tickets */}
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                            <span className="text-4xl font-display font-bold text-slate-800">{openTickets}</span>
-                            <span className="text-slate-400 text-sm font-medium uppercase tracking-tighter">Open Tickets</span>
+                            <span className="text-4xl font-display font-bold neon-magenta">{openTickets}</span>
+                            <span className="text-text-tertiary text-xs font-body font-medium uppercase tracking-wider mt-1">
+                                Open Tickets
+                            </span>
                         </div>
                         <div className="flex gap-1.5">
-                            <div className="w-12 h-4 bg-[#10b981] rounded-full"></div>
-                            <div className="w-4 h-4 rounded-full bg-[#fcd34d]"></div>
+                            <div className="w-12 h-3 bg-success/30 rounded-full"></div>
+                            <div className="w-3 h-3 rounded-full bg-warning/30"></div>
                         </div>
                     </div>
 
+                    {/* SLA Percentage */}
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                            <span className="text-4xl font-display font-bold text-slate-800">{slaPercentage}%</span>
-                            <span className="text-slate-400 text-sm font-medium uppercase tracking-tighter">SLA Met</span>
+                            <span className={`text-4xl font-display font-bold ${getSLAColor()}`}>
+                                {slaPercentage}%
+                            </span>
+                            <span className="text-text-tertiary text-xs font-body font-medium uppercase tracking-wider mt-1">
+                                SLA Met
+                            </span>
                         </div>
-                        <div className="flex gap-1.5">
-                            <div className="w-12 h-4 bg-[#10b981] rounded-full"></div>
-                            <div className="w-4 h-4 rounded-full bg-slate-100"></div>
+                        <div className="w-16 h-2 bg-border rounded-full overflow-hidden">
+                            <div 
+                                className={`h-full ${getSLAProgressColor()} rounded-full transition-smooth`}
+                                style={{ width: `${slaPercentage}%` }}
+                            />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-10 pt-6 border-t border-slate-50 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
-                    <span className="text-orange-600 font-bold text-sm">!</span>
+            {/* High Priority Alert */}
+            {highPriorityCount > 0 && (
+                <div className="mt-6 pt-4 border-t border-border/50 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center">
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                    </div>
+                    <span className="text-text-secondary font-body font-semibold text-sm">
+                        {highPriorityCount} High Priority {highPriorityCount === 1 ? 'Ticket' : 'Tickets'}
+                    </span>
                 </div>
-                <span className="text-slate-600 font-semibold tracking-tight">
-                    {highPriorityCount} High Priority Tickets
-                </span>
-            </div>
+            )}
         </div>
     );
 }

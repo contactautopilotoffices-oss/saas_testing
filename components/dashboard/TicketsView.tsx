@@ -20,8 +20,8 @@ interface Ticket {
     resolved_at: string | null;
     organization: { id: string; name: string; code: string };
     property: { id: string; name: string; code: string } | null;
-    raised_by_user: { id: string; full_name: string; email: string };
-    assigned_to_user: { id: string; full_name: string; email: string } | null;
+    creator: { id: string; full_name: string; email: string };
+    assignee: { id: string; full_name: string; email: string } | null;
     ticket_comments: { count: number }[];
 }
 
@@ -52,10 +52,11 @@ const TicketsView: React.FC = () => {
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                setTickets(data);
+                setTickets(data.tickets || []);
             }
         } catch (error) {
             console.error('Error fetching tickets:', error);
+            setTickets([]);
         } finally {
             setIsLoading(false);
         }
@@ -78,21 +79,21 @@ const TicketsView: React.FC = () => {
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'critical': return 'text-rose-600 bg-rose-50 border-rose-200';
-            case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
-            case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-            case 'low': return 'text-slate-600 bg-slate-50 border-slate-200';
-            default: return 'text-slate-600 bg-slate-50 border-slate-200';
+            case 'critical': return 'text-error bg-error/10 border-error/20';
+            case 'high': return 'text-warning bg-warning/10 border-warning/20';
+            case 'medium': return 'text-secondary bg-secondary/10 border-secondary/20';
+            case 'low': return 'text-text-tertiary bg-surface-elevated border-border';
+            default: return 'text-text-tertiary bg-surface-elevated border-border';
         }
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'resolved': return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-            case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
-            case 'open': return 'text-rose-600 bg-rose-50 border-rose-200';
-            case 'closed': return 'text-slate-600 bg-slate-50 border-slate-200';
-            default: return 'text-slate-600 bg-slate-50 border-slate-200';
+            case 'resolved': return 'text-success bg-success/10 border-success/20';
+            case 'in_progress': return 'text-info bg-info/10 border-info/20';
+            case 'open': return 'text-error bg-error/10 border-error/20';
+            case 'closed': return 'text-text-tertiary bg-surface-elevated border-border';
+            default: return 'text-text-tertiary bg-surface-elevated border-border';
         }
     };
 
@@ -101,13 +102,13 @@ const TicketsView: React.FC = () => {
             {/* Header with Filters */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <h3 className="text-xl font-black text-slate-900">Support Tickets</h3>
+                    <h3 className="text-xl font-display font-bold text-text-primary">Support Tickets</h3>
                     <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4 text-slate-400" />
+                        <Filter className="w-4 h-4 text-text-tertiary" />
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none"
+                            className="h-9 px-3 bg-surface border border-border rounded-[var(--radius-md)] text-xs font-semibold font-body text-text-primary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
                         >
                             <option value="all">All Status</option>
                             <option value="open">Open</option>
@@ -119,50 +120,53 @@ const TicketsView: React.FC = () => {
                 </div>
                 <button
                     onClick={fetchTickets}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-surface-elevated rounded-[var(--radius-md)] transition-smooth"
                 >
-                    <RefreshCw className="w-4 h-4 text-slate-600" />
+                    <RefreshCw className="w-4 h-4 text-text-secondary" />
                 </button>
             </div>
 
             {/* Tickets List */}
-            <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden">
+            <div className="glass-card overflow-hidden">
                 {isLoading ? (
-                    <div className="p-12 text-center text-slate-400">Loading tickets...</div>
+                    <div className="p-12 text-center text-text-tertiary font-body">Loading tickets...</div>
                 ) : tickets.length === 0 ? (
-                    <div className="p-12 text-center text-slate-400">No tickets found</div>
+                    <div className="p-12 text-center text-text-tertiary font-body">No tickets found</div>
                 ) : (
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y divide-border/50">
                         {tickets.map((ticket) => (
-                            <div
+                            <motion.div
                                 key={ticket.id}
-                                className="p-6 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2 }}
+                                className="p-6 hover:bg-surface-elevated/30 transition-smooth cursor-pointer"
                                 onClick={() => router.push(`/tickets/${ticket.id}`)}
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <h4 className="font-black text-slate-900">{ticket.title}</h4>
-                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${getPriorityColor(ticket.priority)}`}>
+                                            <h4 className="font-display font-semibold text-text-primary">{ticket.title}</h4>
+                                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-[var(--radius-sm)] border font-body ${getPriorityColor(ticket.priority)}`}>
                                                 {ticket.priority}
                                             </span>
-                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${getStatusColor(ticket.status)}`}>
+                                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-[var(--radius-sm)] border font-body ${getStatusColor(ticket.status)}`}>
                                                 {ticket.status.replace('_', ' ')}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-slate-600 mb-3 line-clamp-2">{ticket.description}</p>
-                                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                                        <p className="text-sm text-text-secondary font-body mb-3 line-clamp-2">{ticket.description}</p>
+                                        <div className="flex items-center gap-4 text-xs text-text-tertiary font-body">
                                             <div className="flex items-center gap-1">
                                                 <Building2 className="w-3 h-3" />
-                                                {ticket.organization.name}
+                                                {ticket.organization?.name || 'N/A'}
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <User className="w-3 h-3" />
-                                                {ticket.raised_by_user.full_name}
+                                                {ticket.creator?.full_name || 'System'}
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Clock className="w-3 h-3" />
-                                                {new Date(ticket.created_at).toLocaleDateString()}
+                                                {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : 'N/A'}
                                             </div>
                                         </div>
                                     </div>
@@ -173,7 +177,7 @@ const TicketsView: React.FC = () => {
                                                     e.stopPropagation();
                                                     handleUpdateStatus(ticket.id, 'in_progress');
                                                 }}
-                                                className="px-3 py-1.5 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600"
+                                                className="px-3 py-1.5 bg-info text-text-inverse text-xs font-semibold rounded-[var(--radius-md)] hover:opacity-90 transition-smooth border border-info"
                                             >
                                                 Start
                                             </button>
@@ -184,15 +188,15 @@ const TicketsView: React.FC = () => {
                                                     e.stopPropagation();
                                                     handleUpdateStatus(ticket.id, 'resolved');
                                                 }}
-                                                className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600"
+                                                className="px-3 py-1.5 bg-success text-text-inverse text-xs font-semibold rounded-[var(--radius-md)] hover:opacity-90 transition-smooth border border-success"
                                             >
                                                 Resolve
                                             </button>
                                         )}
-                                        <ChevronRight className="w-5 h-5 text-slate-300" />
+                                        <ChevronRight className="w-5 h-5 text-text-tertiary" />
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 )}

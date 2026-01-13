@@ -252,27 +252,31 @@ function AuthContent() {
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center p-4 font-sans overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
-                <div className="absolute top-0 right-0 w-[60%] h-full bg-gradient-to-bl from-emerald-200/40 via-teal-200/30 to-transparent blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-[40%] h-[60%] bg-gradient-to-tr from-green-100/40 to-transparent blur-3xl" />
+        <div className="min-h-screen w-full flex items-center justify-center p-4 font-body overflow-hidden relative bg-background">
+            {/* Subtle grid pattern background */}
+            <div className="absolute inset-0 opacity-30">
+                <div className="absolute inset-0" style={{
+                    backgroundImage: `linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)`,
+                    backgroundSize: '48px 48px'
+                }} />
             </div>
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 bg-white/70 backdrop-blur-xl rounded-[32px] shadow-2xl shadow-emerald-500/10 w-full max-w-5xl overflow-hidden flex flex-col lg:flex-row min-h-[680px] border border-white/50"
+                transition={{ duration: 0.4, ease: [0.4, 0.0, 0.2, 1] }}
+                className="relative z-10 enterprise-card w-full max-w-5xl overflow-hidden flex flex-col lg:flex-row min-h-[680px]"
             >
-                <div className="w-full lg:w-1/2 p-8 lg:p-12 flex flex-col justify-center bg-white">
+                {/* Left Side - Auth Form */}
+                <div className="w-full lg:w-1/2 p-8 lg:p-12 flex flex-col justify-center bg-surface">
+                    {/* Logo */}
                     <div className="flex items-center gap-2 mb-10">
-                        <div className="w-10 h-10 bg-[#0a4d3c] rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/20">
-                            {/* Triangle A Icon */}
+                        <div className="w-10 h-10 bg-primary rounded-[var(--radius-md)] flex items-center justify-center shadow-sm">
                             <svg viewBox="0 0 32 40" fill="currentColor" className="h-5 text-white">
                                 <path d="M0 40 L16 0 L32 40 L24 40 L16 16 L8 40 Z" />
                             </svg>
                         </div>
-                        <span className="font-medium text-xl tracking-tight text-[#0a4d3c] flex items-center">
-                            {/* Triangle A + UTOPILOT */}
+                        <span className="font-display font-semibold text-xl tracking-tight text-text-primary flex items-center">
                             <svg viewBox="0 0 16 20" fill="currentColor" className="h-5 -mr-0.5">
                                 <path d="M0 20 L8 0 L16 20 L12 20 L8 8 L4 20 Z" />
                             </svg>
@@ -283,54 +287,113 @@ function AuthContent() {
                     <AnimatePresence mode="wait">
                         {authMode === 'reset-success' ? (
                             <motion.div
-                                key="reset-success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}
+                                key="reset-success"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 1.05 }}
+                                transition={{ duration: 0.25, ease: [0.4, 0.0, 0.2, 1] }}
                                 className="text-center py-8"
                             >
-                                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Mail className="w-10 h-10 text-emerald-600" />
+                                <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-success/20">
+                                    <Mail className="w-10 h-10 text-success" />
                                 </div>
-                                <h2 className="text-3xl font-black text-slate-900 mb-4">Check your email</h2>
-                                <p className="text-slate-500 font-medium mb-8">We've sent a password reset link to <span className="text-slate-900 font-bold">{email}</span>.</p>
-                                <button onClick={() => setAuthMode('signin')} className="text-[#0a4d3c] font-black hover:underline" > Back to Sign In </button>
+                                <h2 className="text-3xl font-display font-bold text-text-primary mb-4">Check your email</h2>
+                                <p className="text-text-secondary font-body mb-8">
+                                    We've sent a password reset link to <span className="text-text-primary font-semibold">{email}</span>.
+                                </p>
+                                <button
+                                    onClick={() => setAuthMode('signin')}
+                                    className="text-primary font-semibold hover:underline transition-smooth"
+                                >
+                                    Back to Sign In
+                                </button>
                             </motion.div>
                         ) : (
-                            <motion.div key={authMode} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} >
+                            <motion.div
+                                key={authMode}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.25, ease: [0.4, 0.0, 0.2, 1] }}
+                            >
                                 <div className="mb-8">
-                                    <h1 className="text-3xl lg:text-4xl font-black text-slate-900 mb-2 leading-tight">
+                                    <h1 className="text-3xl lg:text-4xl font-display font-bold text-text-primary mb-2 leading-tight">
                                         {authMode === 'signup' ? 'Start Your Journey' : authMode === 'forgot' ? 'Reset Password' : authMode === 'update-password' ? 'New Password' : 'Welcome Back'}
                                     </h1>
-                                    <p className="text-slate-500 font-medium font-sans">
-                                        {authMode === 'signup' ? 'Create your account to get started' : authMode === 'forgot' ? 'Enter your email to receive a recovery link' : authMode === 'update-password' ? 'Secure your account with a new password' : 'Sign in to your command center'}
+                                    <p className="text-text-secondary font-body">
+                                        {authMode === 'signup' ? 'Create your account to get started' : authMode === 'forgot' ? 'Enter your email to receive a recovery link' : authMode === 'update-password' ? 'Secure your account with a new password' : 'Sign in to your facility management hub'}
                                     </p>
                                 </div>
 
                                 {(authMode === 'signin' || authMode === 'signup') && (
-                                    <div className="flex gap-2 mb-8 p-1 bg-slate-100 rounded-xl">
-                                        <button onClick={() => setAuthMode('signin')} className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all ${authMode === 'signin' ? 'bg-white shadow-md text-slate-900' : 'text-slate-500 hover:text-slate-700'}`} > Sign In </button>
-                                        <button onClick={() => setAuthMode('signup')} className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all ${authMode === 'signup' ? 'bg-white shadow-md text-slate-900' : 'text-slate-500 hover:text-slate-700'}`} > Sign Up </button>
+                                    <div className="flex gap-2 mb-8 p-1 bg-surface-elevated rounded-[var(--radius-md)] border border-border">
+                                        <button
+                                            onClick={() => setAuthMode('signin')}
+                                            className={`flex-1 py-3 px-4 rounded-[var(--radius-sm)] font-semibold text-sm transition-smooth ${
+                                                authMode === 'signin'
+                                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                                    : 'text-text-secondary hover:text-text-primary'
+                                            }`}
+                                        >
+                                            Sign In
+                                        </button>
+                                        <button
+                                            onClick={() => setAuthMode('signup')}
+                                            className={`flex-1 py-3 px-4 rounded-[var(--radius-sm)] font-semibold text-sm transition-smooth ${
+                                                authMode === 'signup'
+                                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                                    : 'text-text-secondary hover:text-text-primary'
+                                            }`}
+                                        >
+                                            Sign Up
+                                        </button>
                                     </div>
                                 )}
 
                                 <form className="space-y-4" onSubmit={handleAuthAction}>
                                     {authMode === 'signup' && (
-                                        <div className="space-y-1 relative z-20">
-                                            <label className="text-sm font-bold text-slate-700 ml-1">Name*</label>
-                                            <input type="text" placeholder="Enter your name" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 relative z-20 placeholder:text-slate-400 text-slate-900" />
+                                        <div className="space-y-2 relative z-20">
+                                            <label className="text-sm font-semibold text-text-primary font-body">Name*</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter your name"
+                                                value={fullName}
+                                                onChange={(e) => setFullName(e.target.value)}
+                                                required
+                                                className="w-full h-10 px-4 rounded-[var(--radius-md)] border border-border bg-surface text-text-primary font-body placeholder:text-text-tertiary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
+                                            />
                                         </div>
                                     )}
 
                                     {(authMode === 'signin' || authMode === 'signup' || authMode === 'forgot') && (
-                                        <div className="space-y-1 relative z-20">
-                                            <label className="text-sm font-bold text-slate-700 ml-1">Email*</label>
-                                            <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 relative z-20 placeholder:text-slate-400 text-slate-900" />
+                                        <div className="space-y-2 relative z-20">
+                                            <label className="text-sm font-semibold text-text-primary font-body">Email*</label>
+                                            <input
+                                                type="email"
+                                                placeholder="Enter your email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                                className="w-full h-10 px-4 rounded-[var(--radius-md)] border border-border bg-surface text-text-primary font-body placeholder:text-text-tertiary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
+                                            />
                                         </div>
                                     )}
 
                                     {(authMode === 'signin' || authMode === 'signup' || authMode === 'update-password') && (
-                                        <div className="space-y-1">
-                                            <div className="flex justify-between items-center ml-1">
-                                                <label className="text-sm font-bold text-slate-700">{authMode === 'update-password' ? 'New Password*' : 'Password*'}</label>
-                                                {authMode === 'signin' && (<button type="button" onClick={() => setAuthMode('forgot')} className="text-xs font-bold text-[#0a4d3c] hover:underline">Forgot Password?</button>)}
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-sm font-semibold text-text-primary font-body">
+                                                    {authMode === 'update-password' ? 'New Password*' : 'Password*'}
+                                                </label>
+                                                {authMode === 'signin' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAuthMode('forgot')}
+                                                        className="text-xs font-semibold text-primary hover:underline transition-smooth"
+                                                    >
+                                                        Forgot Password?
+                                                    </button>
+                                                )}
                                             </div>
                                             <div className="relative">
                                                 <input
@@ -339,26 +402,22 @@ function AuthContent() {
                                                     value={password}
                                                     onChange={(e) => setPassword(e.target.value)}
                                                     required
-                                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 pr-10 relative z-20 placeholder:text-slate-400 text-slate-900"
+                                                    className="w-full h-10 px-4 pr-10 rounded-[var(--radius-md)] border border-border bg-surface text-text-primary font-body placeholder:text-text-tertiary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary focus:outline-none transition-smooth"
                                                 >
-                                                    {showPassword ? (
-                                                        <EyeOff className="w-5 h-5" />
-                                                    ) : (
-                                                        <Eye className="w-5 h-5" />
-                                                    )}
+                                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                 </button>
                                             </div>
                                         </div>
                                     )}
 
                                     {authMode === 'update-password' && (
-                                        <div className="space-y-1">
-                                            <label className="text-sm font-bold text-slate-700 ml-1">Confirm New Password*</label>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-text-primary font-body">Confirm New Password*</label>
                                             <div className="relative">
                                                 <input
                                                     type={showConfirmPassword ? "text" : "password"}
@@ -366,28 +425,43 @@ function AuthContent() {
                                                     value={confirmPassword}
                                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                                     required
-                                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-[#0a4d3c] focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-medium bg-slate-50/50 pr-10 relative z-20 placeholder:text-slate-400 text-slate-900"
+                                                    className="w-full h-10 px-4 pr-10 rounded-[var(--radius-md)] border border-border bg-surface text-text-primary font-body placeholder:text-text-tertiary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary focus:outline-none transition-smooth"
                                                 >
-                                                    {showConfirmPassword ? (
-                                                        <EyeOff className="w-5 h-5" />
-                                                    ) : (
-                                                        <Eye className="w-5 h-5" />
-                                                    )}
+                                                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                 </button>
                                             </div>
                                         </div>
                                     )}
 
-                                    {error && <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{error}</div>}
-                                    {success && <div className="p-3 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100">{success}</div>}
+                                    {error && (
+                                        <div className="p-3 bg-error/10 text-error text-sm font-semibold rounded-[var(--radius-md)] border border-error/20">
+                                            {error}
+                                        </div>
+                                    )}
+                                    {success && (
+                                        <div className="p-3 bg-success/10 text-success text-sm font-semibold rounded-[var(--radius-md)] border border-success/20">
+                                            {success}
+                                        </div>
+                                    )}
 
-                                    <button type="submit" disabled={loading} className="w-full bg-[#f28c33] hover:bg-[#e07b22] text-white font-bold py-4 rounded-xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 group" >
-                                        {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (<> {authMode === 'signup' ? 'Create Account' : authMode === 'forgot' ? 'Send Reset Link' : authMode === 'update-password' ? 'Update Password' : 'Sign In'} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> </>)}
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full bg-secondary hover:bg-secondary-dark text-text-inverse font-semibold py-3 rounded-[var(--radius-md)] shadow-sm transition-smooth flex items-center justify-center gap-2 group border border-secondary-dark disabled:opacity-50"
+                                    >
+                                        {loading ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                {authMode === 'signup' ? 'Create Account' : authMode === 'forgot' ? 'Send Reset Link' : authMode === 'update-password' ? 'Update Password' : 'Sign In'}
+                                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-smooth" />
+                                            </>
+                                        )}
                                     </button>
                                 </form>
                             </motion.div>
@@ -395,18 +469,28 @@ function AuthContent() {
                     </AnimatePresence>
                 </div>
 
-                <div className="hidden lg:block w-1/2 p-6 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[#0a4d3c]">
-                        <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#126b54] rounded-full blur-3xl opacity-60" />
-                        <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#083a2d] rounded-full blur-3xl opacity-60" />
+                {/* Right Side - Brand Showcase */}
+                <div className="hidden lg:block w-1/2 p-8 relative overflow-hidden bg-primary">
+                    <div className="absolute inset-0">
+                        <div className="absolute top-0 right-0 w-[60%] h-[60%] bg-primary-light/30 rounded-full blur-3xl" />
+                        <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-primary-dark/30 rounded-full blur-3xl" />
                     </div>
-                    <div className="relative z-10 h-full flex flex-col justify-center items-center p-8">
+                    <div className="relative z-10 h-full flex flex-col justify-center items-center">
                         <div className="w-full max-w-sm space-y-6">
                             <AnimatePresence mode="wait">
-                                <motion.div key={currentFeature} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.5 }} className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl" >
-                                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mb-4 shadow-lg`}> <Ticket className="w-7 h-7 text-white" /> </div>
-                                    <h3 className="text-white text-xl font-bold mb-1">95% Faster Resolution</h3>
-                                    <p className="text-white/70 text-sm font-medium">Smart AI-powered ticketing for Autopilot Offices properties.</p>
+                                <motion.div
+                                    key={currentFeature}
+                                    initial={{ opacity: 0, x: 50 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -50 }}
+                                    transition={{ duration: 0.4, ease: [0.4, 0.0, 0.2, 1] }}
+                                    className="bg-white/90 backdrop-blur-xl border border-white/30 rounded-[var(--radius-lg)] p-6 shadow-xl"
+                                >
+                                    <div className="w-14 h-14 rounded-[var(--radius-md)] bg-secondary flex items-center justify-center mb-4 shadow-sm">
+                                        <Ticket className="w-7 h-7 text-white" />
+                                    </div>
+                                    <h3 className="text-text-primary text-xl font-display font-bold mb-2">95% Faster Resolution</h3>
+                                    <p className="text-text-secondary text-sm font-body">Smart AI-powered ticketing for facility management operations.</p>
                                 </motion.div>
                             </AnimatePresence>
                         </div>

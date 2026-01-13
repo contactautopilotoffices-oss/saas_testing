@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquare } from 'lucide-react';
+import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquare, Loader2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -213,60 +213,64 @@ export default function TenantTicketingDashboard({
     };
 
     return (
-        <div className="min-h-screen bg-[#0f1419] p-8">
+        <div className="min-h-screen bg-[var(--canvas-bg)] p-8 font-body">
             {/* Header */}
             <div className="max-w-6xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-12">
                     <div>
-                        <h1 className="text-3xl font-black text-white">
-                            <span className="text-emerald-500">{propertyName || 'Property'}</span>{' '}
-                            {isStaff ? 'Maintenance Portal' : 'Request Management'}
+                        <h1 className="text-4xl font-display font-semibold text-text-primary tracking-tight">
+                            <span className="text-primary">{propertyName || 'Property'}</span>{' '}
+                            {isStaff ? 'Maintenance Portal' : 'Request Manager'}
                         </h1>
+                        <p className="text-sm text-text-secondary mt-1 font-medium">Efficiently handle your facility needs</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 bg-[#161b22] border border-[#21262d] rounded-full px-5 py-2 shadow-xl">
-                            <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                <User className="w-5 h-5 text-white" />
+                        <div className="flex items-center gap-3 premium-panel px-6 py-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
+                                <User className="w-5 h-5 text-primary" />
                             </div>
                             <div>
-                                <p className="text-white font-bold">{user.full_name}</p>
-                                <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">{isStaff ? 'MST Account' : 'Tenant Account'}</p>
+                                <p className="text-text-primary font-semibold text-sm">{user.full_name}</p>
+                                <p className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">{isStaff ? 'MST Account' : 'Tenant Account'}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Left Panel - Raise New Request */}
-                    <div className="space-y-4">
-                        <div className="bg-[#161b22] border border-[#21262d] rounded-3xl p-8 shadow-2xl">
-                            <h2 className="text-sm font-black text-emerald-500 mb-6 flex items-center gap-2 uppercase tracking-widest">
+                    <div className="space-y-6">
+                        <div className="glass-panel p-10">
+                            <h2 className="text-xs font-bold text-secondary mb-8 flex items-center gap-3 uppercase tracking-[0.2em]">
                                 <Plus className="w-4 h-4" />
                                 Raise a New Request
                             </h2>
 
-                            <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Describe the issue in your words.&#10;Example: Leaking tap in kitchenette"
-                                className="w-full h-32 bg-[#0d1117] border border-[#21262d] rounded-2xl p-4 text-white placeholder-slate-500 resize-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-medium"
-                            />
+                            <div className="relative group">
+                                <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Describe the issue in your words.&#10;Example: Leaking tap in kitchenette"
+                                    className="w-full h-40 bg-text-primary/5 border border-border/10 rounded-2xl p-6 text-text-primary placeholder-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-primary/10 transition-smooth font-medium"
+                                />
+                                <div className="absolute inset-0 rounded-2xl border border-primary/5 pointer-events-none group-focus-within:border-primary/20 transition-smooth"></div>
+                            </div>
 
                             {/* Photo Preview */}
                             {photoPreview && (
-                                <div className="relative mt-3">
-                                    <img src={photoPreview} alt="Preview" className="w-full h-24 object-cover rounded-xl" />
+                                <div className="relative mt-4">
+                                    <img src={photoPreview} alt="Preview" className="w-full h-32 object-cover rounded-2xl border border-border/10" />
                                     <button
                                         onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
-                                        className="absolute top-2 right-2 bg-black/50 rounded-full p-1"
+                                        className="absolute top-3 right-3 bg-error text-text-inverse rounded-full p-2 shadow-xl hover:scale-110 transition-smooth"
                                     >
-                                        <X className="w-4 h-4 text-white" />
+                                        <X className="w-4 h-4" />
                                     </button>
                                 </div>
                             )}
 
-                            <div className="flex items-center justify-between mt-6">
-                                <label className="flex items-center gap-2 text-slate-400 hover:text-emerald-500 cursor-pointer transition-colors text-sm font-bold uppercase tracking-widest">
+                            <div className="flex items-center justify-between mt-10">
+                                <label className="flex items-center gap-3 text-text-secondary hover:text-primary cursor-pointer transition-smooth text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-primary/5 border border-transparent hover:border-primary/10">
                                     <Paperclip className="w-5 h-5" />
                                     <span>Attach File</span>
                                     <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSelect} />
@@ -274,10 +278,10 @@ export default function TenantTicketingDashboard({
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting || !description.trim()}
-                                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-[#21262d] disabled:text-slate-600 disabled:cursor-not-allowed text-white font-black rounded-2xl transition-all flex items-center gap-2 shadow-xl shadow-emerald-900/10 uppercase tracking-widest text-xs"
+                                    className="px-10 py-4 bg-primary hover:opacity-90 disabled:bg-text-primary/10 disabled:text-text-tertiary disabled:cursor-not-allowed text-text-inverse font-semibold rounded-2xl transition-smooth flex items-center gap-3 shadow-xl shadow-primary/20 uppercase tracking-widest text-[11px]"
                                 >
                                     {isSubmitting ? (
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
                                         <Send className="w-4 h-4" />
                                     )}
@@ -286,27 +290,27 @@ export default function TenantTicketingDashboard({
                             </div>
                         </div>
 
-                        {/* Server Classification Result (not fake) */}
+                        {/* Server Classification Result */}
                         <AnimatePresence>
                             {showSuccess && classification && (
                                 <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-8 shadow-2xl backdrop-blur-sm"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="premium-list p-8 border-success/30 bg-success/5"
                                 >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-emerald-400 font-black uppercase tracking-widest text-sm">✓ Request Submitted</h3>
-                                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-black tracking-tighter">SUCCESS</span>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="text-success font-bold uppercase tracking-widest text-[11px]">✓ Request Submitted Successfully</h3>
+                                        <span className="text-[10px] bg-success text-text-inverse px-3 py-1 rounded-full font-bold tracking-tighter">SUCCESS</span>
                                     </div>
-                                    <div className="space-y-3 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-muted-foreground font-medium">Category:</span>
-                                            <span className="text-foreground font-bold">{classification.category?.replace(/_/g, ' ') || 'General Request'}</span>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-text-secondary font-medium text-sm">AI Classification:</span>
+                                            <span className="text-text-primary font-display font-semibold capitalize">{classification.category?.replace(/_/g, ' ') || 'General Request'}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-muted-foreground font-medium">Status:</span>
-                                            <span className="text-emerald-500 font-black uppercase tracking-widest text-xs">Ticket Created</span>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-text-secondary font-medium text-sm">System Priority:</span>
+                                            <span className="text-primary font-bold uppercase tracking-widest text-[10px]">Processing</span>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -315,53 +319,61 @@ export default function TenantTicketingDashboard({
                     </div>
 
                     {/* Right Panel - My Tickets */}
-                    <div className="space-y-6">
-                        <div className="bg-[#161b22] border border-[#21262d] rounded-3xl p-8 shadow-2xl">
-                            <h2 className="text-sm font-black text-muted-foreground mb-6 uppercase tracking-widest">
-                                {isStaff ? 'My Assigned Requests' : 'My Active Requests'}
+                    <div className="space-y-8">
+                        <div className="glass-panel p-10">
+                            <h2 className="text-xs font-bold text-text-tertiary mb-10 uppercase tracking-[0.2em] border-b border-border/5 pb-6">
+                                {isStaff ? 'Assigned Operations' : 'Recent Activity'}
                             </h2>
 
                             {loading ? (
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     {[1, 2, 3].map(i => (
-                                        <div key={i} className="bg-slate-950/30 rounded-2xl p-6 border border-slate-800/50 animate-pulse">
-                                            <div className="h-4 bg-slate-800 rounded w-3/4 mb-4" />
-                                            <div className="h-2 bg-slate-800 rounded w-1/2" />
+                                        <div key={i} className="bg-text-primary/5 rounded-3xl p-8 border border-border/5 animate-pulse">
+                                            <div className="h-5 bg-text-primary/10 rounded-lg w-3/4 mb-4" />
+                                            <div className="h-2.5 bg-text-primary/5 rounded-full w-1/2" />
                                         </div>
                                     ))}
                                 </div>
                             ) : activeTickets.length === 0 ? (
-                                <p className="text-center text-slate-500 py-12 font-medium">No active requests found</p>
+                                <div className="text-center py-20 px-8">
+                                    <div className="w-20 h-20 bg-text-primary/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <MessageSquare className="w-8 h-8 text-text-tertiary/30" />
+                                    </div>
+                                    <p className="text-text-tertiary font-medium">No active requests currently in progress</p>
+                                </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {activeTickets.map((ticket) => {
                                         const sla = getSLAProgress(ticket);
                                         return (
                                             <div
                                                 key={ticket.id}
                                                 onClick={() => router.push(`/tickets/${ticket.id}`)}
-                                                className="bg-[#0d1117] hover:border-emerald-500/50 border border-[#21262d] rounded-2xl p-6 cursor-pointer transition-all duration-300 group/ticket"
+                                                className="group/ticket premium-list p-8 cursor-pointer transition-smooth border-border/5 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5"
                                             >
                                                 <div className="flex items-start justify-between">
-                                                    <div className="flex items-start gap-4">
-                                                        <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover/ticket:scale-110 transition-transform border border-emerald-500/20">
-                                                            <MessageSquare className="w-6 h-6 text-emerald-500" />
+                                                    <div className="flex items-start gap-6">
+                                                        <div className="w-14 h-14 kpi-icon flex items-center justify-center flex-shrink-0">
+                                                            <MessageSquare className="w-7 h-7 text-primary" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-white text-lg mb-1">{ticket.title}</p>
-                                                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">{ticket.category?.name || 'General'}</p>
+                                                            <p className="font-display font-semibold text-text-primary text-xl mb-1.5 group-hover/ticket:text-primary transition-smooth">{ticket.title}</p>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest bg-text-primary/5 px-2.5 py-1 rounded-md">{ticket.category?.name || 'General'}</span>
+                                                                {sla && <span className={`text-[10px] font-bold uppercase tracking-widest ${sla.color}`}>{sla.text}</span>}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right flex items-center gap-3">
-                                                        {sla && <span className={`text-[10px] font-black uppercase tracking-tighter ${sla.color}`}>{sla.text}</span>}
-                                                        <ChevronRight className="w-5 h-5 text-slate-600 group-hover/ticket:text-emerald-500 transition-colors" />
+                                                    <div className="pt-2">
+                                                        <ChevronRight className="w-6 h-6 text-text-tertiary group-hover/ticket:text-primary group-hover/ticket:translate-x-1 transition-smooth" />
                                                     </div>
                                                 </div>
                                                 {sla && (
-                                                    <div className="mt-5 h-1.5 bg-[#21262d] rounded-full overflow-hidden border border-[#30363d]">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-500 ${sla.progress > 80 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}
-                                                            style={{ width: `${sla.progress}%` }}
+                                                    <div className="mt-8 h-1.5 bg-text-primary/5 rounded-full overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${sla.progress}%` }}
+                                                            className={`h-full rounded-full transition-all duration-1000 ${sla.progress > 80 ? 'bg-error shadow-[0_0_12px_rgba(239,68,68,0.2)]' : 'bg-primary shadow-[0_0_12px_rgba(112,143,150,0.2)]'}`}
                                                         />
                                                     </div>
                                                 )}
@@ -372,29 +384,36 @@ export default function TenantTicketingDashboard({
                             )}
                         </div>
 
-                        {/* Recently Resolved */}
-                        <div className="bg-[#161b22] border border-[#21262d] rounded-3xl p-8 shadow-2xl">
-                            <h2 className="text-sm font-black text-muted-foreground mb-6 uppercase tracking-widest">Recently Resolved</h2>
+                        {/* History Panel */}
+                        <div className="glass-panel p-10 bg-opacity-40">
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-[0.2em]">Recently Resolved</h2>
+                                <button
+                                    onClick={() => router.push(`/tickets?createdBy=${user.id}`)}
+                                    className="text-[10px] font-bold text-primary hover:text-secondary uppercase tracking-widest transition-smooth underline decoration-primary/20 underline-offset-8"
+                                >
+                                    Full Archive
+                                </button>
+                            </div>
 
                             {resolvedTickets.length === 0 ? (
-                                <p className="text-center text-slate-400 py-4">No resolved requests yet</p>
+                                <p className="text-center text-text-tertiary/60 py-8 font-medium italic">Your resolution history will appear here</p>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {resolvedTickets.map((ticket) => (
-                                        <div key={ticket.id} className="bg-[#0d1117] border border-[#21262d] rounded-2xl p-6">
+                                        <div key={ticket.id} className="premium-list p-6 bg-white/20 border-border/5">
                                             <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
-                                                        <MessageSquare className="w-6 h-6 text-emerald-500" />
+                                                <div className="flex items-center gap-5">
+                                                    <div className="w-12 h-12 kpi-icon flex items-center justify-center">
+                                                        <CheckCircle className="w-6 h-6 text-primary" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-white text-lg mb-1">{ticket.title}</p>
-                                                        <div className="flex items-center gap-1.5 mt-1">
+                                                        <p className="font-display font-semibold text-text-primary text-lg mb-1">{ticket.title}</p>
+                                                        <div className="flex items-center gap-1.5">
                                                             {[1, 2, 3, 4, 5].map((star) => (
                                                                 <Star
                                                                     key={star}
-                                                                    className={`w-4 h-4 cursor-pointer transition-colors ${star <= (ticket.rating || 0) ? 'text-emerald-500 fill-emerald-500' : 'text-slate-700 hover:text-emerald-400'
-                                                                        }`}
+                                                                    className={`w-3.5 h-3.5 transition-smooth ${star <= (ticket.rating || 0) ? 'text-secondary fill-secondary' : 'text-text-tertiary/20 hover:text-secondary/40'}`}
                                                                     onClick={() => {
                                                                         if (!ticket.rating) {
                                                                             setRatingTicket(ticket);
@@ -409,7 +428,7 @@ export default function TenantTicketingDashboard({
                                                 {!ticket.rating && (
                                                     <button
                                                         onClick={() => setRatingTicket(ticket)}
-                                                        className="text-xs text-emerald-500 hover:text-emerald-400 font-black uppercase tracking-widest border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/10 transition-all"
+                                                        className="text-[10px] text-primary hover:text-text-inverse hover:bg-primary font-bold uppercase tracking-widest border border-primary/30 px-4 py-2 rounded-xl transition-smooth"
                                                     >
                                                         Rate
                                                     </button>
@@ -419,13 +438,6 @@ export default function TenantTicketingDashboard({
                                     ))}
                                 </div>
                             )}
-
-                            <button
-                                onClick={() => router.push(`/tickets?createdBy=${user.id}`)}
-                                className="w-full mt-6 text-center text-emerald-500 hover:text-white hover:bg-emerald-600 text-xs font-black uppercase tracking-widest transition-all py-3 border border-[#21262d] rounded-xl"
-                            >
-                                View All History
-                            </button>
                         </div>
                     </div>
                 </div>

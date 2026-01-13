@@ -89,15 +89,15 @@ const TenantDashboard = () => {
     return (
         <div className="min-h-screen bg-background flex font-inter text-foreground">
             {/* Sidebar */}
-            <aside className="w-72 bg-sidebar border-r border-border flex flex-col fixed h-full z-10 transition-all duration-300">
+            <aside className="w-72 bg-[var(--sidebar-bg)] border-r border-border flex flex-col fixed h-full z-10 transition-smooth">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-[#f28c33] rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-orange-200">
+                        <div className="w-10 h-10 bg-primary rounded-[var(--radius-md)] flex items-center justify-center text-text-inverse font-display font-semibold text-lg shadow-sm">
                             {property?.name?.substring(0, 1) || 'T'}
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm leading-tight text-slate-900 truncate max-w-[160px]">{property?.name}</h2>
-                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Tenant Portal</p>
+                            <h2 className="font-display font-semibold text-sm leading-tight text-text-primary truncate max-w-[160px]">{property?.name}</h2>
+                            <p className="text-[10px] text-text-tertiary font-body font-medium mt-1">Tenant Portal</p>
                         </div>
                     </div>
                 </div>
@@ -105,16 +105,16 @@ const TenantDashboard = () => {
                 <nav className="flex-1 px-4 overflow-y-auto">
                     {/* Core Operations */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-[#f28c33] rounded-full"></span>
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
                             Core Operations
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-[#f28c33] text-white shadow-lg shadow-orange-500/25'
-                                    : 'text-muted-foreground hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-body font-medium text-sm ${activeTab === 'overview'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -122,9 +122,9 @@ const TenantDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-[#f28c33] text-white shadow-lg shadow-orange-500/25'
-                                    : 'text-muted-foreground hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-body font-medium text-sm ${activeTab === 'requests'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -135,16 +135,16 @@ const TenantDashboard = () => {
 
                     {/* Management Hub */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-[#f28c33] rounded-full"></span>
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
                             Management Hub
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('visitors')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-[#f28c33] text-white shadow-lg shadow-orange-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-body font-medium text-sm ${activeTab === 'visitors'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -152,9 +152,9 @@ const TenantDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('diesel')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'diesel'
-                                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-body font-medium text-sm ${activeTab === 'diesel'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Fuel className="w-4 h-4" />
@@ -162,9 +162,9 @@ const TenantDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('cafeteria')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'cafeteria'
-                                    ? 'bg-[#f28c33] text-white shadow-lg shadow-orange-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-body font-medium text-sm ${activeTab === 'cafeteria'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Coffee className="w-4 h-4" />
@@ -175,16 +175,16 @@ const TenantDashboard = () => {
 
                     {/* System & Personal */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-[#f28c33] rounded-full"></span>
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-[#f28c33] text-white shadow-lg shadow-orange-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-body font-medium text-sm ${activeTab === 'settings'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -192,31 +192,13 @@ const TenantDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('profile')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-[#f28c33] text-white shadow-lg shadow-orange-500/25'
-                                    : 'text-muted-foreground hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-body font-medium text-sm ${activeTab === 'profile'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
                                 Profile
-                            </button>
-
-                            {/* Theme Toggle */}
-                            <button
-                                onClick={toggleTheme}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm text-muted-foreground hover:bg-muted mt-4 border border-border"
-                            >
-                                {theme === 'light' ? (
-                                    <>
-                                        <Moon className="w-4 h-4" />
-                                        Dark Mode
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sun className="w-4 h-4" />
-                                        Light Mode
-                                    </>
-                                )}
                             </button>
                         </div>
                     </div>
@@ -225,7 +207,7 @@ const TenantDashboard = () => {
                 <div className="pt-6 border-t border-border p-6">
                     {/* User Profile Section */}
                     <div className="flex items-center gap-3 px-2 mb-6">
-                        <div className="w-10 h-10 bg-brand-orange/10 rounded-full flex items-center justify-center text-brand-orange font-bold text-sm shadow-lg shadow-orange-500/10">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-sm">
                             {user?.email?.[0].toUpperCase() || 'T'}
                         </div>
                         <div className="flex flex-col overflow-hidden">
@@ -308,146 +290,96 @@ const OverviewTab = ({ onNavigate }: { onNavigate: (tab: Tab) => void }) => {
 
     return (
         <div className="min-h-screen bg-background p-8">
-            {/* Header */}
-            <div className="mb-12">
-                <h1 className="text-4xl font-black text-foreground mb-2 tracking-tight">
-                    Welcome to AUTOPILOT, <span className="text-brand-orange">{user?.user_metadata?.full_name?.split(' ')[0] || 'Tenant'}</span>
+            <header className="mb-10">
+                <h1 className="text-4xl font-display font-semibold text-text-primary mb-2">
+                    Welcome to AUTOPILOT, <span className="text-secondary">{user?.user_metadata?.full_name?.split(' ')[0] || 'Tenant'}</span>
                 </h1>
-                <p className="text-muted-foreground text-sm font-medium">
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                <p className="text-text-secondary font-body font-medium">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
-            </div>
+            </header>
 
-            {/* Core Operations */}
-            <div className="mb-12">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-slate-300 tracking-wider">Core Operations</h2>
-                    <div className="flex items-center gap-2 text-emerald-400">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                        <span className="text-sm font-semibold">Live System</span>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Helpdesk & Ticketing Card */}
+                <button
+                    onClick={() => onNavigate('requests')}
+                    className="relative group kpi-card overflow-hidden text-left border-secondary/20"
+                >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {/* Helpdesk & Ticketing Card */}
-                    <button
-                        onClick={() => onNavigate('requests')}
-                        className="relative group bg-brand-orange p-8 rounded-3xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-2xl shadow-orange-900/40 text-left"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
-
-                        {/* Badge */}
-                        <div className="absolute top-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
-                            <span className="text-white font-bold text-xs">{ticketCount.active}</span>
-                        </div>
-
-                        <div className="relative z-10">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <MessageSquare className="w-7 h-7 text-white" />
-                            </div>
-                            <h3 className="text-2xl font-black text-white mb-2">Helpdesk & Ticketing</h3>
-                            <p className="text-orange-100/80 text-sm mb-4 line-clamp-2">Report issues, track requests & get support</p>
-                            <div className="text-orange-100 text-xs font-bold uppercase tracking-wider">
-                                • {ticketCount.active} Active • {ticketCount.completed} Completed
-                            </div>
-                        </div>
-                    </button>
-
-                    {/* Visitor Management Card */}
-                    <button
-                        onClick={() => onNavigate('visitors')}
-                        className="relative group bg-card p-8 rounded-3xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-xl border border-border text-left"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
-
-                        <div className="relative z-10">
-                            <div className="w-14 h-14 bg-brand-orange/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-brand-orange/20">
-                                <UsersRound className="w-7 h-7 text-brand-orange" />
-                            </div>
-                            <h3 className="text-2xl font-black text-foreground mb-2">Visitor Management</h3>
-                            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">Check-in visitors & manage access control</p>
-                            <div className="text-brand-orange text-xs font-bold uppercase tracking-wider">
-                                0 Active Visitors
-                            </div>
-                        </div>
-                    </button>
-
-                    {/* Room Bookings Card */}
-                    <button
-                        onClick={() => alert('Room booking feature coming soon!')}
-                        className="relative group bg-card p-8 rounded-3xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-xl border border-border text-left"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
-
-                        <div className="relative z-10">
-                            <div className="w-14 h-14 bg-brand-orange/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-brand-orange/20">
-                                <Calendar className="w-7 h-7 text-brand-orange" />
-                            </div>
-                            <h3 className="text-2xl font-black text-foreground mb-2">Room Bookings</h3>
-                            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">Reserve meeting spaces & conference rooms</p>
-                            <div className="text-brand-orange text-xs font-bold uppercase tracking-wider bg-brand-orange/10 px-3 py-1 rounded-lg inline-block border border-brand-orange/20">
-                                Available Today
-                            </div>
-                        </div>
-                    </button>
-
-                    {/* Cafe & Loyalty Card */}
-                    <button
-                        onClick={() => onNavigate('cafeteria')}
-                        className="relative group bg-card p-8 rounded-3xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-xl border border-border text-left"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
-
-                        <div className="relative z-10">
-                            <div className="w-14 h-14 bg-orange-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-orange-500/20">
-                                <Coffee className="w-7 h-7 text-orange-500" />
-                            </div>
-                            <h3 className="text-2xl font-black text-foreground mb-2">Cafe & Loyalty</h3>
-                            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">Order via app • Earn points • Pay via UPI</p>
-                            <div className="text-orange-500 text-xs font-bold uppercase tracking-wider bg-orange-500/10 px-3 py-1 rounded-lg inline-block border border-orange-500/20">
-                                Order & Earn Points
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            {/* Building Information */}
-            <div className="mb-8">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-foreground tracking-wider">Building Information</h2>
-                    <button className="text-brand-orange hover:text-orange-300 text-sm font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
-                        View Directory <ChevronRight className="w-4 h-4" />
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* AUTOPILOT Directory */}
-                    <div className="bg-card border border-border backdrop-blur-sm p-8 rounded-3xl hover:border-brand-orange/50 transition-all group shadow-sm">
-                        <div className="flex items-start gap-6">
-                            <div className="w-14 h-14 bg-brand-orange/10 rounded-2xl flex items-center justify-center border border-brand-orange/20 group-hover:scale-110 transition-transform">
-                                <Building2 className="w-7 h-7 text-brand-orange" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-foreground font-black text-xl mb-1">AUTOPILOT Directory</h3>
-                                <p className="text-muted-foreground text-sm font-medium">Floor plans • Emergency contacts • Guidelines</p>
-                            </div>
-                        </div>
+                    {/* Badge */}
+                    <div className="absolute top-4 right-4 w-8 h-8 bg-secondary/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-secondary/20">
+                        <span className="text-secondary font-display font-semibold text-xs">{ticketCount.active}</span>
                     </div>
 
-                    {/* Safety & Security */}
-                    <div className="bg-card border border-border backdrop-blur-sm p-8 rounded-3xl hover:border-emerald-500/50 transition-all group shadow-sm">
-                        <div className="flex items-start gap-6">
-                            <div className="w-14 h-14 bg-emerald-600/10 rounded-2xl flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition-transform">
-                                <Shield className="w-7 h-7 text-emerald-400" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-foreground font-black text-xl mb-1">Safety & Security</h3>
-                                <p className="text-muted-foreground text-sm font-medium">Emergency procedures • Safety protocols</p>
-                            </div>
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 kpi-icon flex items-center justify-center mb-6">
+                            <MessageSquare className="w-7 h-7 text-secondary" />
+                        </div>
+                        <h3 className="text-2xl font-display font-semibold text-text-primary mb-2">Helpdesk & Ticketing</h3>
+                        <p className="text-text-secondary text-sm mb-4 line-clamp-2 font-body">Report issues, track requests & get support</p>
+                        <div className="text-secondary text-xs font-display font-semibold tracking-wider">
+                            • {ticketCount.active} Active • {ticketCount.completed} Completed
                         </div>
                     </div>
-                </div>
+                </button>
+
+                {/* Visitor Management Card */}
+                <button
+                    onClick={() => onNavigate('visitors')}
+                    className="relative group kpi-card overflow-hidden text-left"
+                >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
+
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 kpi-icon flex items-center justify-center mb-6">
+                            <UsersRound className="w-7 h-7 text-primary" />
+                        </div>
+                        <h3 className="text-2xl font-display font-semibold text-text-primary mb-2">Visitor Management</h3>
+                        <p className="text-text-secondary text-sm mb-4 line-clamp-2 font-body">Check-in visitors & manage access control</p>
+                        <div className="text-primary text-xs font-display font-semibold tracking-wider">
+                            0 Active Visitors
+                        </div>
+                    </div>
+                </button>
+
+                {/* Room Bookings Card */}
+                <button
+                    onClick={() => alert('Room booking feature coming soon!')}
+                    className="relative group kpi-card overflow-hidden text-left"
+                >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
+
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 kpi-icon flex items-center justify-center mb-6">
+                            <Calendar className="w-7 h-7 text-primary" />
+                        </div>
+                        <h3 className="text-2xl font-display font-semibold text-text-primary mb-2">Room Bookings</h3>
+                        <p className="text-text-secondary text-sm mb-4 line-clamp-2 font-body">Reserve meeting spaces & conference rooms</p>
+                        <div className="text-primary text-xs font-display font-semibold tracking-wider bg-primary/10 px-3 py-1 rounded-lg inline-block border border-primary/20">
+                            Available Today
+                        </div>
+                    </div>
+                </button>
+
+                {/* Cafe & Loyalty Card */}
+                <button
+                    onClick={() => onNavigate('cafeteria')}
+                    className="relative group kpi-card overflow-hidden text-left"
+                >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
+
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 kpi-icon flex items-center justify-center mb-6">
+                            <Coffee className="w-7 h-7 text-secondary" />
+                        </div>
+                        <h3 className="text-2xl font-display font-semibold text-text-primary mb-2">Cafe & Loyalty</h3>
+                        <p className="text-text-secondary text-sm mb-4 line-clamp-2 font-body">Order food & redeem rewards points</p>
+                        <div className="text-secondary text-xs font-display font-semibold tracking-wider">
+                            Order Now
+                        </div>
+                    </div>
+                </button>
             </div>
         </div>
     );

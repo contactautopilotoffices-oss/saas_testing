@@ -148,14 +148,17 @@ export default function HeroSection() {
             </div>
 
             {/* Content Overlay */}
-            <div className="absolute inset-0 z-20 flex flex-col justify-between p-8 md:p-12 lg:p-16">
-                <header className="flex justify-between items-center w-full pointer-events-auto">
+            <div className="absolute inset-0 z-20 flex flex-col justify-between p-8 md:p-12 lg:p-14">
+                <header className="flex justify-between items-center w-full pointer-events-auto bg-transparent">
                     <div className="flex items-center text-white">
-                        {/* Triangle A Logo */}
-                        <svg viewBox="0 0 200 40" fill="currentColor" className="h-8">
-                            <path d="M0 40 L16 0 L32 40 L24 40 L16 16 L8 40 Z" />
-                            <text x="38" y="32" fontFamily="system-ui, -apple-system, sans-serif" fontSize="32" fontWeight="400" letterSpacing="-0.02em">UTOPILOT</text>
-                        </svg>
+                        {/* New Minimalist Logo */}
+                        <div className="flex items-center gap-0.5 group cursor-pointer">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white group-hover:text-primary transition-smooth">
+                                <path d="M4.5 16.5 L12 3 L19.5 16.5" />
+                                <path d="M8 12 L16 12" />
+                            </svg>
+                            <span className="text-lg font-display font-semibold tracking-[0.15em] text-white group-hover:text-white/90 transition-smooth">UTOPILOT</span>
+                        </div>
                     </div>
                     <div className="flex gap-8 items-center">
                         <Link href="/login">
@@ -166,17 +169,16 @@ export default function HeroSection() {
                     </div>
                 </header>
 
-                <div className="max-w-3xl mt-auto mb-20 pointer-events-none">
+                <div className="max-w-2xl mt-auto mb-16 pointer-events-none">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 1, delay: 0.5 }}
                     >
-                        <h1 className={cn("text-5xl md:text-7xl lg:text-8xl font-light text-white leading-[0.9] mb-8 tracking-tighter", fontHeading)}>
-                            Where Autonomy <br />
-                            <span className="font-semibold text-white/95">Meets Operations.</span>
+                        <h1 className={cn("text-4xl md:text-6xl lg:text-7xl font-light text-white leading-[1.1] mb-6 tracking-tight", fontHeading)}>
+                            Where Autonomy <span className="font-semibold text-white/95">Meets Operations.</span>
                         </h1>
-                        <div className="flex items-center gap-4 text-white/60 text-sm md:text-base tracking-wide pl-2 border-l border-white/20">
+                        <div className="flex items-center gap-3 text-white/60 text-xs md:text-sm tracking-wide pl-2 border-l border-white/20 font-body">
                             The building is the interface.
                         </div>
                     </motion.div>
