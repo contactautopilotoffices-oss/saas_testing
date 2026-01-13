@@ -70,6 +70,7 @@ const OrgAdminDashboard = () => {
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [selectedPropertyId, setSelectedPropertyId] = useState('all');
     const [isPropSelectorOpen, setIsPropSelectorOpen] = useState(false);
+    const [userRole, setUserRole] = useState<string>('User');
 
     // Derived state
     const activeProperty = selectedPropertyId === 'all'
@@ -87,9 +88,29 @@ const OrgAdminDashboard = () => {
     useEffect(() => {
         if (org) {
             fetchProperties(); // ALWAYS fetch properties for the dropdown
+            fetchUserRole(); // Fetch user role for profile
             if (activeTab === 'users') fetchOrgUsers();
         }
     }, [activeTab, org]);
+
+    const fetchUserRole = async () => {
+        if (!org || !user) return;
+
+        const { data } = await supabase
+            .from('organization_memberships')
+            .select('role')
+            .eq('organization_id', org.id)
+            .eq('user_id', user.id)
+            .single();
+
+        if (data?.role) {
+            // Format role for display (e.g., 'org_admin' -> 'Org Admin')
+            const formattedRole = data.role.split('_').map((word: string) =>
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+            setUserRole(formattedRole);
+        }
+    };
 
     const fetchOrgDetails = async () => {
         setIsLoading(true);
@@ -323,17 +344,17 @@ const OrgAdminDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-[#F8F9FC] flex font-inter text-slate-900">
+        <div className="min-h-screen bg-[#0f1419] flex font-inter text-white">
             {/* Sidebar */}
-            <aside className="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 transition-all duration-300">
+            <aside className="w-72 bg-[#161b22] border-r border-[#21262d] flex flex-col fixed h-full z-10 transition-all duration-300">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-slate-200">
+                        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                             {org?.name?.substring(0, 1) || 'O'}
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm leading-tight text-slate-900 truncate max-w-[150px]">{org?.name || 'Organization'}</h2>
-                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Super Admin Console</p>
+                            <h2 className="font-bold text-sm leading-tight text-white truncate max-w-[150px]">{org?.name || 'Organization'}</h2>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Super Admin Console</p>
                         </div>
                     </div>
                 </div>
@@ -341,16 +362,16 @@ const OrgAdminDashboard = () => {
                 <nav className="flex-1 px-4 overflow-y-auto">
                     {/* Core Operations */}
                     <div className="mb-5">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
                             Core Operations
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -359,8 +380,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -371,16 +392,16 @@ const OrgAdminDashboard = () => {
 
                     {/* Management Hub */}
                     <div className="mb-5">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
                             Management Hub
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('users')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Users className="w-4 h-4" />
@@ -389,8 +410,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('properties')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'properties'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Building2 className="w-4 h-4" />
@@ -399,8 +420,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -409,8 +430,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'revenue'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <IndianRupee className="w-4 h-4" />
@@ -421,16 +442,16 @@ const OrgAdminDashboard = () => {
 
                     {/* System & Personal */}
                     <div className="mb-5">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -439,8 +460,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
@@ -450,17 +471,17 @@ const OrgAdminDashboard = () => {
                     </div>
                 </nav>
 
-                <div className="pt-5 border-t border-slate-100 p-5">
+                <div className="pt-5 border-t border-[#21262d] p-5">
                     {/* User Profile Section */}
                     <div className="flex items-center gap-3 px-2 mb-5">
-                        <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-slate-200">
+                        <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                             {user?.email?.[0].toUpperCase() || 'O'}
                         </div>
                         <div className="flex flex-col overflow-hidden">
-                            <span className="font-bold text-sm text-slate-900 truncate">
+                            <span className="font-bold text-sm text-white truncate">
                                 {user?.user_metadata?.full_name || 'Super Admin'}
                             </span>
-                            <span className="text-[10px] text-slate-400 truncate font-medium">
+                            <span className="text-[10px] text-slate-500 truncate font-medium">
                                 {user?.email}
                             </span>
                         </div>
@@ -468,7 +489,7 @@ const OrgAdminDashboard = () => {
 
                     <button
                         onClick={() => setShowSignOutModal(true)}
-                        className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
+                        className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
                     >
                         <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         Sign Out
@@ -488,7 +509,7 @@ const OrgAdminDashboard = () => {
                 {activeTab !== 'overview' && (
                     <header className="flex justify-between items-center mb-10">
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight capitalize">{activeTab}</h1>
+                            <h1 className="text-3xl font-black text-white tracking-tight capitalize">{activeTab}</h1>
                             <p className="text-slate-500 text-sm font-medium mt-1">Manage your organization's resources.</p>
                         </div>
                         <div className="flex items-center gap-4">
@@ -497,16 +518,16 @@ const OrgAdminDashboard = () => {
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsPropSelectorOpen(!isPropSelectorOpen)}
-                                        className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-sm hover:border-blue-400 transition-all group min-w-[200px]"
+                                        className="flex items-center gap-3 bg-[#161b22] border border-[#21262d] rounded-xl px-4 py-2.5 hover:border-emerald-500 transition-all group min-w-[200px]"
                                     >
-                                        <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
+                                        <div className="w-6 h-6 rounded-lg bg-[#21262d] flex items-center justify-center overflow-hidden">
                                             {activeProperty?.image_url ? (
                                                 <img src={activeProperty.image_url} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
                                             )}
                                         </div>
-                                        <span className="text-sm font-bold text-slate-700 flex-1 text-left">
+                                        <span className="text-sm font-bold text-white flex-1 text-left">
                                             {selectedPropertyId === 'all' ? 'All Properties' : activeProperty?.name}
                                         </span>
                                         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isPropSelectorOpen ? 'rotate-180' : ''}`} />
@@ -523,19 +544,19 @@ const OrgAdminDashboard = () => {
                                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[70] overflow-hidden"
+                                                    className="absolute right-0 mt-2 w-72 bg-[#161b22] rounded-2xl shadow-2xl border border-[#21262d] z-[70] overflow-hidden"
                                                 >
-                                                    <div className="p-2 border-b border-slate-50">
+                                                    <div className="p-2 border-b border-[#21262d]">
                                                         <button
                                                             onClick={() => { setSelectedPropertyId('all'); setIsPropSelectorOpen(false); }}
-                                                            className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === 'all' ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-50'}`}
+                                                            className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === 'all' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-[#21262d]'}`}
                                                         >
-                                                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                                                            <div className="w-8 h-8 rounded-lg bg-[#21262d] flex items-center justify-center">
                                                                 <LayoutDashboard className="w-4 h-4" />
                                                             </div>
                                                             <div className="text-left">
                                                                 <p className="text-xs font-black uppercase tracking-tight">All Properties</p>
-                                                                <p className="text-[10px] text-slate-400 font-bold">{properties.length} Locations</p>
+                                                                <p className="text-[10px] text-slate-500 font-bold">{properties.length} Locations</p>
                                                             </div>
                                                         </button>
                                                     </div>
@@ -544,9 +565,9 @@ const OrgAdminDashboard = () => {
                                                             <button
                                                                 key={prop.id}
                                                                 onClick={() => { setSelectedPropertyId(prop.id); setIsPropSelectorOpen(false); }}
-                                                                className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === prop.id ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-50'}`}
+                                                                className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === prop.id ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-[#21262d]'}`}
                                                             >
-                                                                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
+                                                                <div className="w-8 h-8 rounded-lg bg-[#21262d] flex items-center justify-center overflow-hidden">
                                                                     {prop.image_url ? (
                                                                         <img src={prop.image_url} alt="" className="w-full h-full object-cover" />
                                                                     ) : (
@@ -568,7 +589,7 @@ const OrgAdminDashboard = () => {
                             )}
 
                             <div className="hidden md:flex flex-col items-end">
-                                <span className="text-sm font-black text-slate-900 tracking-tight">System Status</span>
+                                <span className="text-sm font-black text-white tracking-tight">System Status</span>
                                 <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Online</span>
                             </div>
                         </div>
@@ -637,10 +658,72 @@ const OrgAdminDashboard = () => {
                             </div>
                         )}
                         {activeTab === 'profile' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <UserCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Profile</h3>
-                                <p className="text-slate-500">Profile management coming soon.</p>
+                            <div className="flex justify-center items-start py-8">
+                                <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
+                                    {/* Card Header with Autopilot Logo */}
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                        {/* Autopilot Logo */}
+                                        <div className="flex items-center gap-1 mb-4">
+                                            <div className="w-8 h-8 relative flex items-center justify-center">
+                                                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] border-b-white" />
+                                                <div className="absolute w-1.5 h-1.5 bg-slate-900 rounded-full top-3 left-1/2 -translate-x-1/2" />
+                                            </div>
+                                            <span className="text-white text-2xl font-black tracking-tight">UTOPILOT</span>
+                                        </div>
+
+                                        {/* User Avatar */}
+                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4">
+                                            <span className="text-4xl font-black text-white">
+                                                {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                            </span>
+                                        </div>
+
+                                        {/* Role Badge */}
+                                        <span className="px-4 py-1.5 bg-amber-500 text-slate-900 rounded-full text-xs font-black uppercase tracking-wider">
+                                            {userRole}
+                                        </span>
+                                    </div>
+
+                                    {/* Card Body with User Info */}
+                                    <div className="p-8 space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {user?.user_metadata?.full_name || 'Not Set'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">User ID</span>
+                                                <span className="text-xs font-mono text-slate-600 bg-slate-50 px-2 py-1 rounded-lg">
+                                                    {user?.id?.slice(0, 8) || 'N/A'}...
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                                                <span className="text-sm font-medium text-slate-700">
+                                                    {user?.email || 'Not Set'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {org?.name || 'Not Assigned'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</span>
+                                                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold capitalize">
+                                                    {userRole}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </motion.div>
@@ -1704,6 +1787,8 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
     const [isLoading, setIsLoading] = useState(true);
     const [selectedProperty, setSelectedProperty] = useState(selectedPropertyId);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedVisitor, setSelectedVisitor] = useState<any | null>(null);
+    const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
     const supabase = createClient();
 
     useEffect(() => {
@@ -1712,7 +1797,7 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
 
     useEffect(() => {
         fetchVisitors();
-    }, [selectedProperty]);
+    }, [selectedProperty, dateFilter]);
 
     const fetchVisitors = async () => {
         setIsLoading(true);
@@ -1724,6 +1809,24 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
 
             if (selectedProperty !== 'all') {
                 query = query.eq('property_id', selectedProperty);
+            }
+
+            // Apply date filter
+            if (dateFilter !== 'all') {
+                const now = new Date();
+                let startDate: Date;
+
+                if (dateFilter === 'today') {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                } else if (dateFilter === 'week') {
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                } else if (dateFilter === 'month') {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                } else {
+                    startDate = new Date(0);
+                }
+
+                query = query.gte('checkin_time', startDate.toISOString());
             }
 
             const { data, error } = await query;
@@ -1741,6 +1844,15 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
         v.visitor_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (v.mobile && v.mobile.includes(searchTerm))
     );
+
+    const getDuration = (checkin: string, checkout: string | null) => {
+        const start = new Date(checkin);
+        const end = checkout ? new Date(checkout) : new Date();
+        const diffMs = end.getTime() - start.getTime();
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    };
 
     const handleExport = () => {
         const headers = ['Visitor ID', 'Property', 'Name', 'Mobile', 'Category', 'Host', 'Check In', 'Status'];
@@ -1793,6 +1905,16 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
                         <option value="all">All Properties</option>
                         {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value as any)}
+                        className="p-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100"
+                    >
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
                     <button
                         onClick={handleExport}
                         className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-colors"
@@ -1821,14 +1943,26 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
                                 <tr><td colSpan={5} className="p-8 text-center text-slate-400">No visitors found matching your criteria.</td></tr>
                             ) : (
                                 filteredVisitors.map((visitor) => (
-                                    <tr key={visitor.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <tr
+                                        key={visitor.id}
+                                        className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                        onClick={() => setSelectedVisitor(visitor)}
+                                    >
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold">
-                                                    {visitor.name?.[0]}
-                                                </div>
+                                                {visitor.photo_url ? (
+                                                    <img
+                                                        src={visitor.photo_url}
+                                                        alt={visitor.name}
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold">
+                                                        {visitor.name?.[0]}
+                                                    </div>
+                                                )}
                                                 <div>
-                                                    <div className="font-bold text-slate-900 text-sm">{visitor.name}</div>
+                                                    <div className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition-colors">{visitor.name}</div>
                                                     <div className="text-xs text-slate-500 font-medium">{visitor.mobile || 'No mobile'}</div>
                                                     <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{visitor.visitor_id}</div>
                                                 </div>
@@ -1869,6 +2003,113 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
                     </table>
                 </div>
             </div>
+
+            {/* Visitor Info Modal */}
+            <AnimatePresence>
+                {selectedVisitor && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+                        onClick={() => setSelectedVisitor(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.9 }}
+                            className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header with Photo */}
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white relative">
+                                <button
+                                    onClick={() => setSelectedVisitor(null)}
+                                    className="absolute top-4 right-4 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                                <div className="flex items-center gap-4">
+                                    {selectedVisitor.photo_url ? (
+                                        <img
+                                            src={selectedVisitor.photo_url}
+                                            alt={selectedVisitor.name}
+                                            className="w-20 h-20 rounded-2xl object-cover border-4 border-white/30"
+                                        />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center">
+                                            <UserCircle className="w-10 h-10" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className="text-2xl font-black">{selectedVisitor.name}</h3>
+                                        <p className="text-white/70 font-mono text-sm">{selectedVisitor.visitor_id}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Details */}
+                            <div className="p-6 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</p>
+                                        <p className="text-slate-900 font-medium capitalize">{selectedVisitor.category}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mobile</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.mobile || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coming From</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.coming_from || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Whom to Meet</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.whom_to_meet}</p>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-100 pt-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check-in</p>
+                                            <p className="text-slate-900 font-medium">
+                                                {new Date(selectedVisitor.checkin_time).toLocaleString('en-IN', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</p>
+                                            <p className="text-slate-900 font-bold">
+                                                {getDuration(selectedVisitor.checkin_time, selectedVisitor.checkout_time)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {selectedVisitor.checkout_time && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check-out</p>
+                                            <p className="text-slate-900 font-medium">
+                                                {new Date(selectedVisitor.checkout_time).toLocaleString('en-IN', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

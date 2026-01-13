@@ -260,8 +260,8 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status
-                                            ? 'bg-slate-900 text-white'
-                                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                                        ? 'bg-slate-900 text-white'
+                                        : 'bg-white text-slate-500 hover:bg-slate-50'
                                         }`}
                                 >
                                     {status === 'all' ? 'All' : status === 'checked_in' ? 'In' : 'Out'}
@@ -283,11 +283,11 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-50 border-b border-slate-100">
                             <tr>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Visitor</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Visitor Info</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Whom to Meet</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Host / Purpose</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timing</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Actions</th>
                             </tr>
                         </thead>
@@ -300,30 +300,29 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                 </tr>
                             ) : (
                                 visitors.map((visitor) => (
-                                    <tr key={visitor.id} className="hover:bg-slate-50/50 transition-all">
+                                    <tr
+                                        key={visitor.id}
+                                        className="hover:bg-slate-50/50 transition-all cursor-pointer"
+                                        onClick={() => setSelectedVisitor(visitor)}
+                                    >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 {visitor.photo_url ? (
                                                     <img
                                                         src={visitor.photo_url}
                                                         alt={visitor.name}
-                                                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 cursor-pointer"
-                                                        onClick={() => setSelectedVisitor(visitor)}
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100"
                                                     />
                                                 ) : (
-                                                    <div
-                                                        className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer"
-                                                        onClick={() => setSelectedVisitor(visitor)}
-                                                    >
+                                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
                                                         <User className="w-5 h-5 text-slate-400" />
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <p className="font-bold text-slate-900 text-sm cursor-pointer hover:text-indigo-600"
-                                                        onClick={() => setSelectedVisitor(visitor)}
-                                                    >
+                                                    <p className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition-colors">
                                                         {visitor.name}
                                                     </p>
+                                                    <p className="text-xs text-slate-500 font-medium">{visitor.mobile || 'No mobile'}</p>
                                                     <p className="text-[10px] text-slate-400 font-mono">{visitor.visitor_id}</p>
                                                 </div>
                                             </div>
@@ -334,22 +333,33 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                                 {visitor.category}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600 font-medium">{visitor.whom_to_meet}</td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">
-                                            {getDuration(visitor.checkin_time, visitor.checkout_time)}
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-bold text-slate-900">{visitor.whom_to_meet}</div>
+                                            <div className="text-xs text-slate-500">{visitor.coming_from || '-'}</div>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {visitor.status === 'checked_in' ? (
-                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-wider border border-emerald-100">
-                                                    <Clock className="w-3 h-3" /> In
-                                                </span>
+                                        <td className="px-6 py-4">
+                                            <div className="text-xs font-bold text-slate-900">
+                                                In: {new Date(visitor.checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            {visitor.checkout_time ? (
+                                                <div className="text-xs text-slate-500 mt-1">
+                                                    Out: {new Date(visitor.checkout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-wider border border-slate-200">
-                                                    <CheckCircle2 className="w-3 h-3" /> Out
-                                                </span>
+                                                <div className="text-xs text-emerald-600 mt-1 font-medium">
+                                                    ({getDuration(visitor.checkin_time, visitor.checkout_time)})
+                                                </div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${visitor.status === 'checked_in'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : 'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                {visitor.status === 'checked_in' ? 'On Premise' : 'Checked Out'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                                             {visitor.status === 'checked_in' && (
                                                 <button
                                                     onClick={() => handleForceCheckout(visitor)}

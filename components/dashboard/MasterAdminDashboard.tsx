@@ -5,7 +5,8 @@ import {
     ShieldCheck, Users, Building2, AlertTriangle, Activity,
     LayoutGrid, Settings, Trash2, RefreshCcw,
     CheckCircle2, AlertCircle, Search, Plus, ExternalLink, XCircle, Filter,
-    Key, Eye, EyeOff, Globe, Copy, X, Ticket, Link as LinkIcon, LogOut
+    Key, Eye, EyeOff, Globe, Copy, X, Ticket, Link as LinkIcon, LogOut,
+    UserCircle, FileDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -18,7 +19,7 @@ import SignOutModal from '@/components/ui/SignOutModal';
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 
-type Tab = 'overview' | 'organizations' | 'tickets' | 'users' | 'invite-links' | 'modules' | 'settings';
+type Tab = 'overview' | 'organizations' | 'tickets' | 'users' | 'visitors' | 'invite-links' | 'modules' | 'settings';
 
 interface Organization {
     id: string;
@@ -224,6 +225,7 @@ const MasterAdminDashboard = () => {
         { id: 'organizations', label: 'Organizations', icon: Building2 },
         { id: 'tickets', label: 'Support Tickets', icon: Ticket },
         { id: 'users', label: 'User Directory', icon: Users },
+        { id: 'visitors', label: 'Visitors', icon: UserCircle },
         { id: 'invite-links', label: 'Invite Links', icon: LinkIcon },
         { id: 'modules', label: 'Module Control', icon: LayoutGrid },
         { id: 'settings', label: 'System', icon: Settings },
@@ -389,6 +391,9 @@ const MasterAdminDashboard = () => {
                                 onDeleteUser={handleDeleteUser}
                                 onAddUser={() => setShowCreateUserModal(true)}
                             />
+                        )}
+                        {activeTab === 'visitors' && (
+                            <MasterVisitorsTab />
                         )}
                         {activeTab === 'invite-links' && (
                             <InviteLinkGenerator organizations={organizations} />
@@ -1595,6 +1600,324 @@ const CreateUserModal = ({ onClose, onCreated, organizations, showToast }: {
                 )}
             </motion.div>
         </motion.div>
+    );
+};
+
+// Sub-component: Master Visitors Tab with Modal
+const MasterVisitorsTab = () => {
+    const [visitors, setVisitors] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedVisitor, setSelectedVisitor] = useState<any | null>(null);
+    const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+    const supabase = createClient();
+
+    useEffect(() => {
+        fetchVisitors();
+    }, [dateFilter]);
+
+    const fetchVisitors = async () => {
+        setIsLoading(true);
+        try {
+            let query = supabase
+                .from('visitor_logs')
+                .select('*, properties(name)')
+                .order('checkin_time', { ascending: false })
+                .limit(100);
+
+            // Apply date filter
+            if (dateFilter !== 'all') {
+                const now = new Date();
+                let startDate: Date;
+
+                if (dateFilter === 'today') {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                } else if (dateFilter === 'week') {
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                } else if (dateFilter === 'month') {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                } else {
+                    startDate = new Date(0);
+                }
+
+                query = query.gte('checkin_time', startDate.toISOString());
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            setVisitors(data || []);
+        } catch (err) {
+            console.error('Error fetching visitors:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const filteredVisitors = visitors.filter(v =>
+        v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.visitor_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (v.mobile && v.mobile.includes(searchTerm))
+    );
+
+    const getDuration = (checkin: string, checkout: string | null) => {
+        const start = new Date(checkin);
+        const end = checkout ? new Date(checkout) : new Date();
+        const diffMs = end.getTime() - start.getTime();
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    };
+
+    const handleExport = () => {
+        const headers = ['Visitor ID', 'Property', 'Name', 'Mobile', 'Category', 'Host', 'Check In', 'Status'];
+        const rows = filteredVisitors.map(v => [
+            v.visitor_id,
+            v.properties?.name || 'Unknown',
+            v.name,
+            v.mobile || '-',
+            v.category,
+            v.whom_to_meet,
+            new Date(v.checkin_time).toLocaleString(),
+            v.status
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI(csvContent));
+        link.setAttribute("download", "master_visitor_logs.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                <div>
+                    <h2 className="text-xl font-black text-slate-900 leading-tight">Visitor Management</h2>
+                    <p className="text-slate-500 text-sm font-medium">Cross-organization visitor tracking.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:flex-none">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search visitors..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full md:w-64 pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-100"
+                        />
+                    </div>
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value as any)}
+                        className="p-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-slate-100"
+                    >
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center gap-2 p-3 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-colors font-bold text-sm"
+                    >
+                        <FileDown className="w-4 h-4" />
+                        Export
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50/50 border-b border-slate-100">
+                            <tr>
+                                <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Visitor Info</th>
+                                <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</th>
+                                <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Host / Purpose</th>
+                                <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timing</th>
+                                <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {isLoading ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-400">Loading visitors...</td></tr>
+                            ) : filteredVisitors.length === 0 ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-400">No visitors found.</td></tr>
+                            ) : (
+                                filteredVisitors.map((visitor) => (
+                                    <tr
+                                        key={visitor.id}
+                                        className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                        onClick={() => setSelectedVisitor(visitor)}
+                                    >
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                {visitor.photo_url ? (
+                                                    <img
+                                                        src={visitor.photo_url}
+                                                        alt={visitor.name}
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold">
+                                                        {visitor.name?.[0]}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition-colors">{visitor.name}</div>
+                                                    <div className="text-xs text-slate-500 font-medium">{visitor.mobile || 'No mobile'}</div>
+                                                    <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{visitor.visitor_id}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-1.5">
+                                                <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                                <span className="text-sm font-bold text-slate-700">{visitor.properties?.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="text-sm font-bold text-slate-900">{visitor.whom_to_meet}</div>
+                                            <div className="text-xs text-slate-500 capitalize">{visitor.category}</div>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="text-xs font-bold text-slate-900">
+                                                In: {new Date(visitor.checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            {visitor.checkout_time && (
+                                                <div className="text-xs text-slate-500 mt-1">
+                                                    Out: {new Date(visitor.checkout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${visitor.status === 'checked_in'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : 'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                {visitor.status === 'checked_in' ? 'On Premise' : 'Checked Out'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Visitor Info Modal */}
+            <AnimatePresence>
+                {selectedVisitor && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+                        onClick={() => setSelectedVisitor(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.9 }}
+                            className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header with Photo */}
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white relative">
+                                <button
+                                    onClick={() => setSelectedVisitor(null)}
+                                    className="absolute top-4 right-4 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                                <div className="flex items-center gap-4">
+                                    {selectedVisitor.photo_url ? (
+                                        <img
+                                            src={selectedVisitor.photo_url}
+                                            alt={selectedVisitor.name}
+                                            className="w-20 h-20 rounded-2xl object-cover border-4 border-white/30"
+                                        />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center">
+                                            <UserCircle className="w-10 h-10" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className="text-2xl font-black">{selectedVisitor.name}</h3>
+                                        <p className="text-white/70 font-mono text-sm">{selectedVisitor.visitor_id}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Details */}
+                            <div className="p-6 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</p>
+                                        <p className="text-slate-900 font-medium capitalize">{selectedVisitor.category}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mobile</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.mobile || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coming From</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.coming_from || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Whom to Meet</p>
+                                        <p className="text-slate-900 font-medium">{selectedVisitor.whom_to_meet}</p>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-100 pt-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check-in</p>
+                                            <p className="text-slate-900 font-medium">
+                                                {new Date(selectedVisitor.checkin_time).toLocaleString('en-IN', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</p>
+                                            <p className="text-slate-900 font-bold">
+                                                {getDuration(selectedVisitor.checkin_time, selectedVisitor.checkout_time)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {selectedVisitor.checkout_time && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check-out</p>
+                                            <p className="text-slate-900 font-medium">
+                                                {new Date(selectedVisitor.checkout_time).toLocaleString('en-IN', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 

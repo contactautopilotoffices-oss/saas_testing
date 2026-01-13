@@ -103,17 +103,17 @@ const PropertyAdminDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-background flex font-inter text-foreground">
+        <div className="min-h-screen bg-[#0f1419] flex font-inter text-white">
             {/* Sidebar */}
-            <aside className="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 transition-all duration-300">
+            <aside className="w-72 bg-[#161b22] border-r border-[#21262d] flex flex-col fixed h-full z-10 transition-all duration-300">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-slate-200">
+                        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                             {property?.name?.substring(0, 1) || 'P'}
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm leading-tight text-slate-900 truncate max-w-[160px]">{property?.name}</h2>
-                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Property Manager</p>
+                            <h2 className="font-bold text-sm leading-tight text-white truncate max-w-[160px]">{property?.name}</h2>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Property Manager</p>
                         </div>
                     </div>
                 </div>
@@ -121,27 +121,27 @@ const PropertyAdminDashboard = () => {
                 <nav className="flex-1 px-4 overflow-y-auto">
                     {/* Quick Actions - Compact Version */}
                     <div className="mb-6">
-                        {/* Quick Actions - Simplified White Version */}
+                        {/* Quick Actions - Simplified Dark Version */}
                         <div className="mb-8">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-6 mb-4 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-6 mb-4 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                                 Quick Actions
                             </p>
                             <div className="px-4 grid grid-cols-2 gap-2">
                                 <button
                                     onClick={() => setShowCreateTicketModal(true)}
-                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-white text-slate-900 rounded-xl hover:bg-slate-50 transition-all border border-slate-200 shadow-sm group"
+                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-[#21262d] text-white rounded-xl hover:bg-[#30363d] transition-all border border-[#30363d] group"
                                 >
-                                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                                    <div className="w-8 h-8 bg-emerald-600/20 rounded-lg flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                                         <Plus className="w-4 h-4" />
                                     </div>
                                     <span className="text-[10px] font-black uppercase tracking-tight text-center">New Request</span>
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('users')}
-                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-white text-slate-900 rounded-xl hover:bg-slate-50 transition-all border border-slate-200 shadow-sm group"
+                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-[#21262d] text-white rounded-xl hover:bg-[#30363d] transition-all border border-[#30363d] group"
                                 >
-                                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                                    <div className="w-8 h-8 bg-emerald-600/20 rounded-lg flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                                         <UserCircle className="w-4 h-4" />
                                     </div>
                                     <span className="text-[10px] font-black uppercase tracking-tight text-center">Manage Users</span>
@@ -152,16 +152,16 @@ const PropertyAdminDashboard = () => {
 
                     {/* Core Operations */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
                             Core Operations
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -170,8 +170,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -182,16 +182,16 @@ const PropertyAdminDashboard = () => {
 
                     {/* Management Hub */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
                             Management Hub
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('users')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Users className="w-4 h-4" />
@@ -200,8 +200,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -210,8 +210,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('units')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'units'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Building2 className="w-4 h-4" />
@@ -220,8 +220,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('diesel')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'diesel'
-                                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Fuel className="w-4 h-4" />
@@ -230,8 +230,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('vendor_revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'vendor_revenue'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <IndianRupee className="w-4 h-4" />
@@ -242,16 +242,16 @@ const PropertyAdminDashboard = () => {
 
                     {/* System & Personal */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-blue-500 rounded-full"></span>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -260,8 +260,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
@@ -271,11 +271,11 @@ const PropertyAdminDashboard = () => {
                     </div>
                 </nav>
 
-                <div className="p-6 border-t border-border mt-auto">
+                <div className="p-6 border-t border-[#21262d] mt-auto">
                     <div className="space-y-2">
                         <button
                             onClick={() => setShowSignOutModal(true)}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600 transition-all font-bold text-sm"
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all font-bold text-sm"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
@@ -290,33 +290,35 @@ const PropertyAdminDashboard = () => {
                 onConfirm={signOut}
             />
 
-            {property && (
-                <TicketCreateModal
-                    isOpen={showCreateTicketModal}
-                    onClose={() => setShowCreateTicketModal(false)}
-                    propertyId={property.id}
-                    organizationId={property.organization_id}
-                    onSuccess={() => {
-                        setStatsVersion(v => v + 1);
-                    }}
-                />
-            )}
+            {
+                property && (
+                    <TicketCreateModal
+                        isOpen={showCreateTicketModal}
+                        onClose={() => setShowCreateTicketModal(false)}
+                        propertyId={property.id}
+                        organizationId={property.organization_id}
+                        onSuccess={() => {
+                            setStatsVersion(v => v + 1);
+                        }}
+                    />
+                )
+            }
 
             {/* Main Content */}
             <main className="flex-1 ml-72 p-8 lg:p-12 overflow-y-auto min-h-screen">
                 <header className="flex justify-between items-center mb-10">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight capitalize">{activeTab}</h1>
+                        <h1 className="text-3xl font-black text-white tracking-tight capitalize">{activeTab}</h1>
                         <p className="text-slate-500 text-sm font-medium mt-1">{property.address || 'Property Management Hub'}</p>
                     </div>
                     <div className="flex items-center gap-6">
                         {/* Theme Toggle */}
                         <button
                             onClick={toggleTheme}
-                            className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all group"
+                            className="p-2.5 hover:bg-[#21262d] rounded-xl text-slate-500 transition-all group"
                             title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
                         >
-                            {theme === 'light' ? <Moon className="w-5 h-5 group-hover:text-slate-900" /> : <Sun className="w-5 h-5 group-hover:text-amber-500" />}
+                            {theme === 'light' ? <Moon className="w-5 h-5 group-hover:text-white" /> : <Sun className="w-5 h-5 group-hover:text-amber-500" />}
                         </button>
 
                         {/* User Account Info - Simplified Level Look */}
@@ -325,22 +327,22 @@ const PropertyAdminDashboard = () => {
                                 onClick={() => setActiveTab('profile')}
                                 className="flex items-center gap-4 group transition-all"
                             >
-                                <div className="w-11 h-11 bg-indigo-500 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-xl shadow-indigo-100 group-hover:scale-105 transition-transform">
+                                <div className="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-bold text-base group-hover:scale-105 transition-transform">
                                     {user?.email?.[0].toUpperCase() || 'P'}
                                 </div>
                                 <div className="text-left hidden md:block">
-                                    <h4 className="text-[15px] font-black text-slate-900 leading-none mb-1 group-hover:text-blue-600 transition-colors">
+                                    <h4 className="text-[15px] font-black text-white leading-none mb-1 group-hover:text-emerald-400 transition-colors">
                                         {user?.user_metadata?.full_name || 'Property Admin'}
                                     </h4>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.15em]">
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.15em]">
                                         View Profile
                                     </p>
                                 </div>
                             </button>
 
-                            <div className="hidden lg:flex flex-col items-end border-l border-slate-200 pl-6 h-8 justify-center">
-                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Access Level</span>
-                                <span className="text-xs text-indigo-600 font-black uppercase tracking-widest leading-none">Property admin</span>
+                            <div className="hidden lg:flex flex-col items-end border-l border-[#21262d] pl-6 h-8 justify-center">
+                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Access Level</span>
+                                <span className="text-xs text-emerald-500 font-black uppercase tracking-widest leading-none">Property admin</span>
                             </div>
                         </div>
                     </div>
@@ -384,16 +386,78 @@ const PropertyAdminDashboard = () => {
                             </div>
                         )}
                         {activeTab === 'profile' && (
-                            <div className="p-12 text-center text-slate-400 font-bold italic bg-white rounded-3xl border border-slate-100 shadow-sm">
-                                <UserCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2 font-inter not-italic">Profile</h3>
-                                <p className="text-slate-500 font-inter not-italic font-medium">User profile settings loading...</p>
+                            <div className="flex justify-center items-start py-8">
+                                <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
+                                    {/* Card Header with Autopilot Logo */}
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                        {/* Autopilot Logo */}
+                                        <div className="flex items-center gap-1 mb-4">
+                                            <div className="w-8 h-8 relative flex items-center justify-center">
+                                                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] border-b-white" />
+                                                <div className="absolute w-1.5 h-1.5 bg-slate-900 rounded-full top-3 left-1/2 -translate-x-1/2" />
+                                            </div>
+                                            <span className="text-white text-2xl font-black tracking-tight">UTOPILOT</span>
+                                        </div>
+
+                                        {/* User Avatar */}
+                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4">
+                                            <span className="text-4xl font-black text-white">
+                                                {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                            </span>
+                                        </div>
+
+                                        {/* Role Badge */}
+                                        <span className="px-4 py-1.5 bg-blue-500 text-white rounded-full text-xs font-black uppercase tracking-wider">
+                                            Property Admin
+                                        </span>
+                                    </div>
+
+                                    {/* Card Body with User Info */}
+                                    <div className="p-8 space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {user?.user_metadata?.full_name || 'Not Set'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">User ID</span>
+                                                <span className="text-xs font-mono text-slate-600 bg-slate-50 px-2 py-1 rounded-lg">
+                                                    {user?.id?.slice(0, 8) || 'N/A'}...
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                                                <span className="text-sm font-medium text-slate-700">
+                                                    {user?.email || 'Not Set'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {property?.name || 'Not Assigned'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</span>
+                                                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold capitalize">
+                                                    Property Admin
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </motion.div>
                 </AnimatePresence>
             </main>
-        </div>
+        </div >
     );
 };
 

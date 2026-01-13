@@ -83,7 +83,8 @@ const DieselAnalyticsDashboard: React.FC = () => {
 
             // Fetch generators for tank capacity and maintenance date
             const gensRes = await fetch(`/api/properties/${propertyId}/generators`);
-            const generators = await gensRes.json() || [];
+            const gensData = await gensRes.json();
+            const generators = Array.isArray(gensData) ? gensData : [];
             const totalTankCapacity = generators.reduce((sum: number, g: any) => sum + (g.tank_capacity_litres || 1000), 0);
             const nextMaintenance = generators
                 .filter((g: any) => g.next_maintenance_date)
