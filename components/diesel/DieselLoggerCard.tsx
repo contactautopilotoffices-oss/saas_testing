@@ -62,13 +62,13 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
     const getStatusColor = () => {
         if (generator.status === 'standby') return isDark ? 'bg-[#21262d] text-slate-400' : 'bg-slate-200 text-slate-500';
         if (generator.status === 'maintenance') return 'bg-rose-100 text-rose-600';
-        return 'bg-amber-100 text-amber-600';
+        return 'bg-primary/10 text-primary';
     };
 
     const getStripColor = () => {
         if (!hasValidReading) return isDark ? 'bg-[#21262d]' : 'bg-slate-200';
         if (isHighConsumption) return 'bg-amber-400';
-        return isDark ? 'bg-emerald-500' : 'bg-amber-500';
+        return isDark ? 'bg-primary' : 'bg-primary';
     };
 
     // Notify parent of changes
@@ -95,7 +95,7 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`group relative flex flex-col ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-100'} rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border overflow-hidden ${generator.status === 'standby' ? 'opacity-60 hover:opacity-100' : ''
+            className={`group relative flex flex-col ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border overflow-hidden ${generator.status === 'standby' ? 'opacity-60 hover:opacity-100' : ''
                 }`}
         >
             {/* Status Strip */}
@@ -151,7 +151,7 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
                                     onClick={() => setDieselAdded(Math.max(0, dieselAdded - 10))}
                                     className="absolute inset-y-0 left-0 flex items-center pl-2 z-10"
                                 >
-                                    <span className={`p-1 rounded-md ${isDark ? 'text-slate-500 hover:text-emerald-500 hover:bg-emerald-500/10' : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'} transition-colors`}>
+                                    <span className={`p-1 rounded-md ${isDark ? 'text-slate-500 hover:text-primary hover:bg-primary/10' : 'text-slate-400 hover:text-primary hover:bg-primary/10'} transition-colors`}>
                                         <Minus className="w-4 h-4" />
                                     </span>
                                 </button>
@@ -159,14 +159,14 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
                                     type="number"
                                     value={dieselAdded}
                                     onChange={(e) => setDieselAdded(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-500'} focus:ring-2 ${isDark ? 'focus:ring-emerald-500/20' : 'focus:ring-amber-200'} text-slate-900 font-bold rounded-lg py-2.5 px-8 text-center transition-all shadow-sm border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} text-slate-900 font-bold rounded-lg py-2.5 px-8 text-center transition-all shadow-sm border`}
                                     placeholder="0"
                                 />
                                 <button
                                     onClick={() => setDieselAdded(dieselAdded + 10)}
                                     className="absolute inset-y-0 right-0 flex items-center pr-2 z-10"
                                 >
-                                    <span className={`p-1 rounded-md ${isDark ? 'text-slate-500 hover:text-emerald-500 hover:bg-emerald-500/10' : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'} transition-colors`}>
+                                    <span className={`p-1 rounded-md ${isDark ? 'text-slate-500 hover:text-primary hover:bg-primary/10' : 'text-slate-400 hover:text-primary hover:bg-primary/10'} transition-colors`}>
                                         <Plus className="w-4 h-4" />
                                     </span>
                                 </button>
@@ -178,10 +178,10 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
                     {/* Row 2: Closing Reading (Main Action) */}
                     <label className="flex flex-col gap-2">
                         <div className="flex justify-between items-end">
-                            <span className={`text-xs font-bold uppercase tracking-wide ${isHighConsumption ? 'text-amber-600' : (isDark ? 'text-emerald-500' : 'text-amber-500')}`}>
+                            <span className={`text-xs font-bold uppercase tracking-wide ${isHighConsumption ? 'text-amber-600' : (isDark ? 'text-primary' : 'text-primary')}`}>
                                 Closing Reading
                             </span>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${hasValidReading ? 'bg-green-100 text-green-700' : (isDark ? 'bg-[#0d1117] text-amber-500' : 'bg-amber-100 text-amber-700')
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${hasValidReading ? 'bg-green-100 text-green-700' : (isDark ? 'bg-[#0d1117] text-amber-500' : 'bg-primary/10 text-primary')
                                 }`}>
                                 {hasValidReading ? '✓ VALID' : 'REQUIRED'}
                             </span>
@@ -193,13 +193,13 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
                                 onChange={(e) => setClosingHours(parseFloat(e.target.value) || 0)}
                                 onFocus={() => setIsFocused(true)}
                                 onBlur={() => setIsFocused(false)}
-                                className={`w-full ${isDark ? 'bg-[#0d1117] border-emerald-500/50 focus:border-emerald-500 text-white' : 'bg-white border-amber-300 focus:border-amber-500 text-slate-900'} border-2 focus:ring-4 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} text-lg font-bold rounded-xl py-3 px-4 shadow-sm transition-all`}
+                                className={`w-full ${isDark ? 'bg-[#0d1117] border-primary/50 focus:border-primary text-white' : 'bg-white border-primary/30 focus:border-primary text-slate-900'} border-2 focus:ring-4 ${isDark ? 'focus:ring-primary/10' : 'focus:ring-primary/10'} text-lg font-bold rounded-xl py-3 px-4 shadow-sm transition-all`}
                                 placeholder={`>${openingHours}`}
                             />
                             <span className={`absolute right-4 top-4 ${isDark ? 'text-slate-600' : 'text-slate-400'} text-sm font-bold`}>Hours</span>
                         </div>
                         {isFocused && (
-                            <p className={`text-xs ${isDark ? 'text-emerald-500' : 'text-amber-500'} animate-pulse font-medium`}>Typing...</p>
+                            <p className={`text-xs ${isDark ? 'text-primary' : 'text-primary'} animate-pulse font-medium`}>Typing...</p>
                         )}
                         {isHighConsumption && hasValidReading && (
                             <div className={`flex items-center gap-1.5 text-xs text-amber-600 font-semibold ${isDark ? 'bg-amber-500/10' : 'bg-amber-50'} p-2 rounded border border-amber-100`}>
@@ -211,7 +211,7 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
 
                     {/* Calculation Result Box */}
                     <div className={`rounded-lg p-3 border flex justify-between items-center ${hasValidReading
-                        ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-gradient-to-br from-amber-50 to-white border-amber-100')
+                        ? (isDark ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20')
                         : (isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-slate-50 border-slate-100')
                         }`}>
                         <div className="flex flex-col">
@@ -224,8 +224,8 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
                         <div className="flex flex-col items-end">
                             <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'} font-medium`}>Consumption</span>
                             <div className="flex items-center gap-1">
-                                <Fuel className={`w-4 h-4 ${hasValidReading ? (isDark ? 'text-emerald-500' : 'text-amber-500') : 'text-slate-300'}`} />
-                                <span className={`text-lg font-black ${hasValidReading ? (isDark ? 'text-emerald-500' : 'text-amber-500') : 'text-slate-300'}`}>
+                                <Fuel className={`w-4 h-4 ${hasValidReading ? (isDark ? 'text-primary' : 'text-primary') : 'text-slate-300'}`} />
+                                <span className={`text-lg font-black ${hasValidReading ? (isDark ? 'text-primary' : 'text-primary') : 'text-slate-300'}`}>
                                     {hasValidReading ? `${estimatedConsumption}L` : '—'}
                                 </span>
                             </div>
@@ -238,7 +238,7 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Add notes (optional)..."
-                        className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500/50' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-amber-300'} rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                        className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary/50' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-primary/50'} rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                     />
                 </div>
             </div>

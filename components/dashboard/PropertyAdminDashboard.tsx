@@ -20,6 +20,7 @@ import TicketCreateModal from '@/components/tickets/TicketCreateModal';
 import TicketsView from './TicketsView';
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
+import SettingsView from './SettingsView';
 
 // Types
 type Tab = 'overview' | 'requests' | 'users' | 'visitors' | 'diesel' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
@@ -30,6 +31,7 @@ interface Property {
     code: string;
     address: string;
     organization_id: string;
+    image_url?: string;
 }
 
 interface TicketData {
@@ -103,14 +105,12 @@ const PropertyAdminDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-background flex font-inter text-foreground">
+        <div className="min-h-screen bg-white flex font-inter text-text-primary">
             {/* Sidebar */}
-            <aside className="w-72 bg-sidebar border-r border-border flex flex-col fixed h-full z-10 transition-all duration-300">
+            <aside className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-20 transition-all duration-300">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-lg border border-primary/20">
-                            {property?.name?.substring(0, 1) || 'P'}
-                        </div>
+                        <img src="/autopilot-logo.png" alt="Autopilot Logo" className="h-10 object-contain" />
                         <div>
                             <h2 className="font-bold text-sm leading-tight text-text-primary truncate max-w-[160px]">{property?.name}</h2>
                             <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">Property Manager</p>
@@ -127,24 +127,15 @@ const PropertyAdminDashboard = () => {
                                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
                                 Quick Actions
                             </p>
-                            <div className="px-4 grid grid-cols-2 gap-2">
+                            <div className="px-4 grid grid-cols-1 gap-2">
                                 <button
                                     onClick={() => setShowCreateTicketModal(true)}
-                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
+                                    className="flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
                                 >
                                     <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                        <Plus className="w-4 h-4" />
+                                        <Plus className="w-5 h-5 font-black" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-tight text-center">New Request</span>
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('users')}
-                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
-                                >
-                                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                        <UserCircle className="w-4 h-4" />
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-tight text-center">Manage Users</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
                                 </button>
                             </div>
                         </div>
@@ -159,7 +150,7 @@ const PropertyAdminDashboard = () => {
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'overview'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -169,7 +160,7 @@ const PropertyAdminDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'requests'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -188,18 +179,8 @@ const PropertyAdminDashboard = () => {
                         </p>
                         <div className="space-y-1">
                             <button
-                                onClick={() => setActiveTab('users')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
-                                    ? 'bg-primary text-text-inverse shadow-sm'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                    }`}
-                            >
-                                <Users className="w-4 h-4" />
-                                User Management
-                            </button>
-                            <button
                                 onClick={() => setActiveTab('visitors')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'visitors'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -209,7 +190,7 @@ const PropertyAdminDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('units')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'units'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'units'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -219,23 +200,13 @@ const PropertyAdminDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('diesel')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'diesel'
-                                    ? 'bg-amber-500 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
-                                    }`}
-                            >
-                                <Fuel className="w-4 h-4" />
-                                Diesel Analytics
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('vendor_revenue')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'vendor_revenue'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'diesel'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
-                                <IndianRupee className="w-4 h-4" />
-                                Cafeteria Revenue
+                                <Fuel className="w-4 h-4" />
+                                Diesel Analytics
                             </button>
                         </div>
                     </div>
@@ -249,7 +220,7 @@ const PropertyAdminDashboard = () => {
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'settings'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -259,7 +230,7 @@ const PropertyAdminDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('profile')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'profile'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -305,48 +276,50 @@ const PropertyAdminDashboard = () => {
             }
 
             {/* Main Content */}
-            <main className="flex-1 ml-72 p-8 lg:p-12 overflow-y-auto min-h-screen">
-                <header className="flex justify-between items-center mb-10">
-                    <div>
-                        <h1 className="text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab}</h1>
-                        <p className="text-text-tertiary text-sm font-medium mt-1">{property.address || 'Property Management Hub'}</p>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        {/* Theme Toggle */}
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2.5 hover:bg-[#21262d] rounded-xl text-slate-500 transition-all group"
-                            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                        >
-                            {theme === 'light' ? <Moon className="w-5 h-5 group-hover:text-white" /> : <Sun className="w-5 h-5 group-hover:text-amber-500" />}
-                        </button>
-
-                        {/* User Account Info - Simplified Level Look */}
+            <main className="flex-1 ml-72 p-8 lg:p-12 overflow-y-auto min-h-screen bg-white">
+                {activeTab !== 'overview' && (
+                    <header className="flex justify-between items-center mb-10">
+                        <div>
+                            <h1 className="text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab}</h1>
+                            <p className="text-text-tertiary text-sm font-medium mt-1">{property.address || 'Property Management Hub'}</p>
+                        </div>
                         <div className="flex items-center gap-6">
+                            {/* Theme Toggle */}
                             <button
-                                onClick={() => setActiveTab('profile')}
-                                className="flex items-center gap-4 group transition-all"
+                                onClick={toggleTheme}
+                                className="p-2.5 hover:bg-[#21262d] rounded-xl text-slate-500 transition-all group"
+                                title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
                             >
-                                <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-base group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
-                                    {user?.email?.[0].toUpperCase() || 'P'}
-                                </div>
-                                <div className="text-left hidden md:block">
-                                    <h4 className="text-[15px] font-black text-text-primary leading-none mb-1 group-hover:text-primary transition-colors">
-                                        {user?.user_metadata?.full_name || 'Property Admin'}
-                                    </h4>
-                                    <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.15em]">
-                                        View Profile
-                                    </p>
-                                </div>
+                                {theme === 'light' ? <Moon className="w-5 h-5 group-hover:text-white" /> : <Sun className="w-5 h-5 group-hover:text-amber-500" />}
                             </button>
 
-                            <div className="hidden lg:flex flex-col items-end border-l border-border pl-6 h-8 justify-center">
-                                <span className="text-[11px] font-black text-text-tertiary uppercase tracking-widest leading-none mb-1">Access Level</span>
-                                <span className="text-xs text-primary font-black uppercase tracking-widest leading-none">Property admin</span>
+                            {/* User Account Info - Simplified Level Look */}
+                            <div className="flex items-center gap-6">
+                                <button
+                                    onClick={() => setActiveTab('profile')}
+                                    className="flex items-center gap-4 group transition-all"
+                                >
+                                    <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-base group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
+                                        {user?.email?.[0].toUpperCase() || 'P'}
+                                    </div>
+                                    <div className="text-left hidden md:block">
+                                        <h4 className="text-[15px] font-black text-text-primary leading-none mb-1 group-hover:text-primary transition-colors">
+                                            {user?.user_metadata?.full_name || 'Property Admin'}
+                                        </h4>
+                                        <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.15em]">
+                                            View Profile
+                                        </p>
+                                    </div>
+                                </button>
+
+                                <div className="hidden lg:flex flex-col items-end border-l border-border pl-6 h-8 justify-center">
+                                    <span className="text-[11px] font-black text-text-tertiary uppercase tracking-widest leading-none mb-1">Access Level</span>
+                                    <span className="text-xs text-primary font-black uppercase tracking-widest leading-none">Property admin</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </header>
+                    </header>
+                )}
 
                 <AnimatePresence mode="wait">
                     <motion.div
@@ -356,7 +329,7 @@ const PropertyAdminDashboard = () => {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {activeTab === 'overview' && <OverviewTab propertyId={propertyId} statsVersion={statsVersion} />}
+                        {activeTab === 'overview' && <OverviewTab propertyId={propertyId} statsVersion={statsVersion} property={property} />}
                         {activeTab === 'users' && <UserDirectory propertyId={propertyId} />}
                         {activeTab === 'vendor_revenue' && <VendorRevenueTab propertyId={propertyId} />}
                         {activeTab === 'requests' && property && user && (
@@ -378,13 +351,7 @@ const PropertyAdminDashboard = () => {
                             </div>
                         )}
                         {activeTab === 'diesel' && <DieselAnalyticsDashboard />}
-                        {activeTab === 'settings' && (
-                            <div className="p-12 text-center text-slate-400 font-bold italic bg-white rounded-3xl border border-slate-100 shadow-sm">
-                                <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2 font-inter not-italic">Settings</h3>
-                                <p className="text-slate-500 font-inter not-italic font-medium">Configuration panel coming soon.</p>
-                            </div>
-                        )}
+                        {activeTab === 'settings' && <SettingsView />}
                         {activeTab === 'profile' && (
                             <div className="flex justify-center items-start py-8">
                                 <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
@@ -461,129 +428,224 @@ const PropertyAdminDashboard = () => {
     );
 };
 
-const OverviewTab = ({ propertyId, statsVersion }: { propertyId: string, statsVersion: number }) => {
-    const router = useRouter();
-    const [stats, setStats] = useState({
-        activeTenants: 0,
-        occupancyRate: 0,
-        openTickets: 0,
-        completedTickets: 0,
-        totalTickets: 0,
-    });
-    const [activities, setActivities] = useState<any[]>([]);
+// Diesel Sphere Visualization (copied from OrgAdminDashboard for consistency)
+const DieselSphere = ({ percentage }: { percentage: number }) => {
+    return (
+        <div className="relative w-full aspect-square max-w-[200px] mx-auto group">
+            <div className="absolute inset-0 rounded-full border-4 border-white/20 bg-slate-900/10 backdrop-blur-[2px] shadow-2xl overflow-hidden group-hover:scale-105 transition-transform duration-700">
+                <div className="absolute inset-0 rounded-full shadow-[inset_0_10px_40px_rgba(0,0,0,0.5)] z-20" />
+                <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${percentage}%` }}
+                    transition={{ duration: 2, ease: "circOut" }}
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary-dark via-primary to-primary-light"
+                >
+                    <motion.div
+                        animate={{ x: [0, -100] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                        className="absolute top-0 left-0 w-[400%] h-8 bg-primary-light/50 -translate-y-1/2 opacity-60"
+                        style={{ borderRadius: '38% 42% 35% 45%' }}
+                    />
+                    <motion.div
+                        animate={{ x: [-100, 0] }}
+                        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                        className="absolute top-1 left-0 w-[400%] h-8 bg-primary-light/30 -translate-y-1/2 opacity-40"
+                        style={{ borderRadius: '45% 35% 42% 38%' }}
+                    />
+                    {[...Array(5)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            animate={{ y: [0, -40], opacity: [0, 0.6, 0], x: [0, (i % 2 === 0 ? 10 : -10)] }}
+                            transition={{ duration: 2 + i, repeat: Infinity, delay: i * 0.5 }}
+                            className="absolute bottom-0 rounded-full bg-white/30 backdrop-blur-sm"
+                            style={{ width: 4 + (i * 2), height: 4 + (i * 2), left: `${20 + (i * 15)}%` }}
+                        />
+                    ))}
+                </motion.div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-white/20 z-30 pointer-events-none" />
+                <div className="absolute top-[10%] left-[15%] w-[25%] h-[15%] bg-white/20 rounded-full blur-[4px] rotate-[-25deg] z-30 pointer-events-none" />
+                <div className="absolute bottom-[15%] right-[15%] w-[10%] h-[10%] bg-primary/20 rounded-full blur-[2px] z-30 pointer-events-none" />
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
+                <motion.span initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="text-4xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                    {Math.round(percentage)}<span className="text-sm ml-0.5 opacity-80">%</span>
+                </motion.span>
+                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest drop-shadow-md">Diesel Level</span>
+            </div>
+            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-[60%] h-4 bg-primary/20 blur-xl rounded-full transition-opacity duration-300 ${percentage > 0 ? 'opacity-100' : 'opacity-0'}`} />
+        </div>
+    );
+};
+
+const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: string, statsVersion: number, property: { name: string; code: string; address?: string; image_url?: string } | null }) => {
     const [isLoading, setIsLoading] = useState(true);
     const supabase = createClient();
 
+    // Stats State
+    const [ticketStats, setTicketStats] = useState({ total: 0, open: 0, in_progress: 0, resolved: 0, sla_breached: 0, avg_resolution_hours: 0 });
+    const [dieselStats, setDieselStats] = useState({ total_consumption: 0, change_percentage: 0 });
+    const [vmsStats, setVmsStats] = useState({ total_visitors_today: 0, checked_in: 0, checked_out: 0 });
+    const [vendorStats, setVendorStats] = useState({ total_revenue: 0, total_commission: 0, total_vendors: 0 });
+    const [recentTickets, setRecentTickets] = useState<any[]>([]);
+
     useEffect(() => {
-        const fetchOverviewData = async () => {
+        const fetchPropertyData = async () => {
             setIsLoading(true);
             try {
-                // 1. Fetch Stats
-                const [tenantsRes, openTicketsRes, completedTicketsRes, totalTicketsRes, visitorsRes] = await Promise.all([
-                    supabase.from('property_memberships').select('id', { count: 'exact' }).eq('property_id', propertyId).eq('role', 'tenant'),
-                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).neq('status', 'resolved').neq('status', 'closed'),
+                // --- Tickets ---
+                const [openRes, inProgressRes, resolvedRes, totalRes] = await Promise.all([
+                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).eq('status', 'open'),
+                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).eq('status', 'in_progress'),
                     supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).in('status', ['resolved', 'closed']),
                     supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId),
-                    supabase.from('visitor_logs').select('id', { count: 'exact' }).eq('property_id', propertyId).eq('status', 'checked_in')
                 ]);
-
-                // 2. Fetch Recent Activities (Combined)
-                const [recentTickets, recentVisitors] = await Promise.all([
-                    supabase.from('tickets').select('id, title, created_at, status').eq('property_id', propertyId).order('created_at', { ascending: false }).limit(5),
-                    supabase.from('visitor_logs').select('id, full_name, checkin_time, checkout_time, status').eq('property_id', propertyId).order('checkin_time', { ascending: false }).limit(5)
-                ]);
-
-                setStats({
-                    activeTenants: tenantsRes.count || 0,
-                    occupancyRate: 85, // Mock until units table is confirmed
-                    openTickets: openTicketsRes.count || 0,
-                    completedTickets: completedTicketsRes.count || 0,
-                    totalTickets: totalTicketsRes.count || 0,
+                setTicketStats({
+                    total: totalRes.count || 0, open: openRes.count || 0, in_progress: inProgressRes.count || 0, resolved: resolvedRes.count || 0, sla_breached: 0, avg_resolution_hours: 0
                 });
 
-                // Combine and sort activities
-                const combined = [
-                    ...(recentTickets.data || []).map(t => ({
-                        id: t.id,
-                        type: 'ticket',
-                        title: 'New Request',
-                        desc: t.title,
-                        time: new Date(t.created_at),
-                        icon: Ticket,
-                        color: 'bg-amber-100 text-amber-600'
-                    })),
-                    ...(recentVisitors.data || []).map(v => ({
-                        id: v.id,
-                        type: 'visitor',
-                        title: v.status === 'checked_in' ? 'Visitor Arrival' : 'Visitor Exit',
-                        desc: `${v.full_name} ${v.status === 'checked_in' ? 'checked in' : 'checked out'}`,
-                        time: new Date(v.status === 'checked_out' ? (v.checkout_time || v.checkin_time) : v.checkin_time),
-                        icon: UsersRound,
-                        color: 'bg-blue-100 text-blue-600'
-                    }))
-                ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 6);
+                // --- Recent Tickets ---
+                const { data: recents } = await supabase.from('tickets').select('id, title, status, created_at').eq('property_id', propertyId).order('created_at', { ascending: false }).limit(5);
+                setRecentTickets(recents || []);
 
-                setActivities(combined);
+                // --- Diesel ---
+                const { data: dieselData } = await supabase.from('diesel_readings').select('consumed_litres').eq('property_id', propertyId).gte('reading_date', new Date(new Date().setDate(1)).toISOString().split('T')[0]);
+                const totalDiesel = dieselData?.reduce((acc, r) => acc + (r.consumed_litres || 0), 0) || 0;
+                setDieselStats({ total_consumption: totalDiesel, change_percentage: 0 });
 
-            } catch (error) {
-                console.error('Error fetching overview data:', error);
+                // --- VMS ---
+                const today = new Date().toISOString().split('T')[0];
+                const { data: vmsData } = await supabase.from('visitor_logs').select('status').eq('property_id', propertyId).gte('checkin_time', today);
+                const checkedIn = vmsData?.filter(v => v.status === 'checked_in').length || 0;
+                const checkedOut = vmsData?.filter(v => v.status === 'checked_out').length || 0;
+                setVmsStats({ total_visitors_today: vmsData?.length || 0, checked_in: checkedIn, checked_out: checkedOut });
+
+                // --- Vendors ---
+                const { data: vendorData } = await supabase.from('vendors').select('id, commission_rate, vendor_daily_revenue(revenue_amount, entry_date)').eq('property_id', propertyId);
+                let totalRev = 0, totalComm = 0;
+                vendorData?.forEach(v => {
+                    const todayEntry = v.vendor_daily_revenue?.find((r: any) => r.entry_date === today);
+                    if (todayEntry) {
+                        totalRev += todayEntry.revenue_amount || 0;
+                        totalComm += (todayEntry.revenue_amount || 0) * ((v.commission_rate || 0) / 100);
+                    }
+                });
+                setVendorStats({ total_revenue: totalRev, total_commission: totalComm, total_vendors: vendorData?.length || 0 });
+
+            } catch (err) {
+                console.error('Error fetching property overview data:', err);
             } finally {
                 setIsLoading(false);
             }
         };
-
-        fetchOverviewData();
+        if (propertyId) fetchPropertyData();
     }, [propertyId, statsVersion]);
 
-    if (isLoading) return <div className="p-10 text-center text-slate-400 font-bold animate-pulse">Synchronizing Dashboard Intelligence...</div>;
+    const completionRate = ticketStats.total > 0 ? Math.round((ticketStats.resolved / ticketStats.total) * 100 * 10) / 10 : 0;
+
+    if (isLoading) return <div className="p-10 text-center text-slate-400 font-bold animate-pulse">Synchronizing Property Intelligence...</div>;
 
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <StatCard title="Active Tenants" value={stats.activeTenants} icon={Users} color="text-blue-600" bg="bg-blue-50" />
-                <StatCard title="Occupancy Rate" value={`${stats.occupancyRate}%`} icon={Building2} color="text-emerald-600" bg="bg-emerald-50" />
-                <StatCard title="Open Tickets" value={stats.openTickets} icon={Ticket} color="text-amber-600" bg="bg-amber-50" />
-                <StatCard title="Completed Requests" value={`${stats.completedTickets} / ${stats.totalTickets}`} icon={CheckCircle2} color="text-rose-600" bg="bg-rose-50" />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-6 bg-blue-500 rounded-full"></span>
-                            <h3 className="text-lg font-black text-text-primary tracking-tight">Recent Intelligence</h3>
-                        </div>
-                        <button className="text-primary text-[10px] font-black hover:bg-primary/5 px-3 py-1.5 rounded-lg uppercase tracking-widest transition-all">View All Activity</button>
-                    </div>
-                    <div className="space-y-6">
-                        {activities.length > 0 ? activities.map((item, idx) => (
-                            <ActivityItem
-                                key={item.id + idx}
-                                icon={item.icon}
-                                color={item.color}
-                                title={item.title}
-                                desc={item.desc}
-                                time={formatTimeAgo(item.time)}
-                                onClick={() => item.id && router.push(`/tickets/${item.id}`)}
-                            />
-                        )) : (
-                            <p className="text-center py-10 text-slate-400 font-bold">No recent activities found.</p>
-                        )}
-                    </div>
+        <div className="min-h-screen bg-background -m-8 lg:-m-12">
+            {/* Header Section */}
+            <div className="bg-[#708F96] px-8 lg:px-12 py-10 border-b border-white/10 shadow-lg">
+                <div className="flex items-center justify-between mb-5">
+                    <h1 className="text-3xl font-black text-white">Unified Dashboard</h1>
+                    <Search className="w-6 h-6 text-white/70 cursor-pointer hover:text-white transition-colors" />
+                </div>
+                <div className="flex items-center gap-2 mb-5">
+                    <span className="text-white text-sm font-bold">Dashboard / {property?.name || 'Property'}</span>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
-                            <h3 className="text-lg font-black text-text-primary tracking-tight">Maintenance Schedule</h3>
+                {/* KPI Cards Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Open Tickets</div>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-black text-slate-900">{ticketStats.open + ticketStats.in_progress}</span>
+                            <span className="text-[10px] text-rose-500 font-bold uppercase">{ticketStats.sla_breached} SLA breached</span>
                         </div>
-                        <Calendar className="w-5 h-5 text-text-tertiary" />
                     </div>
-                    <div className="space-y-4">
-                        <InspectionItem date="Jan 15" unit="Unit 201" status="Scheduled" />
-                        <InspectionItem date="Jan 18" unit="Unit 505" status="Scheduled" />
-                        <InspectionItem date="Jan 20" unit="Lobby Area" status="Maintenance" />
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Resolved</div>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-black text-slate-900">{ticketStats.resolved}</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Avg {ticketStats.avg_resolution_hours}h resolution</span>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Completion Rate</div>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-black text-slate-900">{completionRate}%</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">{ticketStats.resolved} of {ticketStats.total} closed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="px-8 lg:px-12 py-5 space-y-5">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    {/* Left Column */}
+                    <div className="lg:col-span-3 space-y-5">
+                        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
+                            <h3 className="text-sm font-black text-slate-900 mb-2">Diesel Consumption</h3>
+                            <div className="text-primary text-xs font-bold mb-4 flex items-center gap-2"><span className="w-2 h-2 bg-primary rounded-full animate-pulse" />Real-time Tank Status</div>
+                            <div className="flex justify-center my-6"><DieselSphere percentage={Math.min(100, (dieselStats.total_consumption / 5000) * 100)} /></div>
+                            <div className="space-y-1">
+                                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total consumption</div>
+                                <div className="text-3xl font-black text-slate-900 flex items-baseline gap-1">{dieselStats.total_consumption.toLocaleString()}<span className="text-sm text-slate-400 font-bold">L</span></div>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
+                            <h3 className="text-sm font-black text-slate-900 mb-2">Vendor Revenue</h3>
+                            <div className="text-slate-400 text-xs font-bold mb-2">Today</div>
+                            <div className="text-3xl font-black text-slate-900">₹ {vendorStats.total_revenue.toLocaleString()}</div>
+                            <div className="text-xs text-slate-500 mt-2">Commission: ₹ {vendorStats.total_commission.toLocaleString()} from {vendorStats.total_vendors} vendors</div>
+                        </div>
+                    </div>
+
+                    {/* Center Column - Property Card */}
+                    <div className="lg:col-span-4">
+                        <div className="bg-yellow-400 rounded-3xl p-5 h-full relative overflow-hidden">
+                            <h3 className="text-2xl font-black text-slate-900 mb-2 truncate">{property?.name || 'Property'}</h3>
+                            <div className="text-red-600 text-sm font-bold mb-5 truncate">Property: {property?.code || 'N/A'}</div>
+                            <div className="bg-yellow-500/50 rounded-[2rem] h-56 mb-5 flex items-center justify-center overflow-hidden border-4 border-white/30 shadow-2xl group relative">
+                                {property?.image_url ? (
+                                    <><img src={property.image_url} alt={property.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /><div className="absolute inset-0 bg-gradient-to-t from-yellow-400/20 to-transparent" /></>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2"><Building2 className="w-20 h-20 text-yellow-600/30" /><span className="text-[10px] font-black text-yellow-700/40 uppercase tracking-widest">Awaiting Visuals</span></div>
+                                )}
+                            </div>
+                            <div className="space-y-4">
+                                <div><div className="text-slate-700 text-xs font-bold">Visitors Today</div><div className="text-2xl font-black text-slate-900">{vmsStats.total_visitors_today}</div></div>
+                                <div><div className="text-slate-700 text-xs font-bold">Checked In / Out</div><div className="text-2xl font-black text-slate-900">{vmsStats.checked_in} / {vmsStats.checked_out}</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="lg:col-span-5 space-y-5">
+                        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
+                            <h3 className="text-sm font-black text-slate-900 mb-4">Recent Tickets</h3>
+                            <div className="space-y-3 max-h-48 overflow-y-auto">
+                                {recentTickets.map((t, idx) => (
+                                    <div key={t.id || idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                                        <div><div className="font-bold text-slate-900 text-sm truncate max-w-[200px]">{t.title}</div><div className="text-xs text-slate-500 capitalize">{t.status?.replace('_', ' ')}</div></div>
+                                        <div className="text-right"><div className="text-xs text-slate-400">{new Date(t.created_at).toLocaleDateString()}</div></div>
+                                    </div>
+                                ))}
+                                {recentTickets.length === 0 && <div className="text-center text-slate-400 py-4">No recent tickets.</div>}
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
+                            <h3 className="text-sm font-black text-slate-900 mb-4">Module Summary</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-blue-50 rounded-xl"><div className="text-xs font-bold text-blue-600 mb-1">Tickets</div><div className="text-2xl font-black text-blue-900">{ticketStats.total}</div></div>
+                                <div className="p-4 bg-emerald-50 rounded-xl"><div className="text-xs font-bold text-emerald-600 mb-1">Visitors</div><div className="text-2xl font-black text-emerald-900">{vmsStats.total_visitors_today}</div></div>
+                                <div className="p-4 bg-primary/5 rounded-xl"><div className="text-xs font-bold text-primary mb-1">Diesel (L)</div><div className="text-2xl font-black text-slate-900">{dieselStats.total_consumption}</div></div>
+                                <div className="p-4 bg-purple-50 rounded-xl"><div className="text-xs font-bold text-purple-600 mb-1">Vendors</div><div className="text-2xl font-black text-purple-900">{vendorStats.total_vendors}</div></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

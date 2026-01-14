@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage } from '@/utils/image-compression';
+import { useTheme } from '@/context/ThemeContext';
 
 // Types
 interface Ticket {
@@ -63,6 +64,7 @@ interface Comment {
 export default function TicketDetailPage() {
     const { ticketId } = useParams();
     const router = useRouter();
+    const { theme } = useTheme();
     const supabase = createClient();
 
     // State
@@ -410,10 +412,10 @@ export default function TicketDetailPage() {
     const isAssignedToMe = userId === ticket.assigned_to;
     const canManage = userRole === 'admin';
     const canWork = userRole === 'staff' && isAssignedToMe;
-    const isDark = userRole === 'staff';
+    const isDark = theme === 'dark';
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-[#0f1419] text-white' : 'bg-[#F8F9FC] text-slate-900'} font-inter pb-12 transition-colors duration-300`}>
+        <div className={`min-h-screen ${isDark ? 'bg-[#0f1419] text-white' : 'bg-white text-slate-900'} font-inter pb-12 transition-colors duration-300`}>
             {/* Toast Notification */}
             <AnimatePresence>
                 {notification && (

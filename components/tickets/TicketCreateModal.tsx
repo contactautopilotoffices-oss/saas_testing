@@ -145,13 +145,13 @@ export default function TicketCreateModal({
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="premium-card w-full max-w-lg"
+                    className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-200"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-border/10">
-                        <h2 className="text-lg font-display font-semibold text-text-primary">Raise a New Request</h2>
-                        <button onClick={onClose} className="text-text-tertiary hover:text-text-primary transition-smooth">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                        <h2 className="text-xl font-black text-slate-900">Raise a New Request</h2>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors p-1 hover:bg-slate-100 rounded-lg">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -187,12 +187,12 @@ export default function TicketCreateModal({
                             <>
                                 {/* Description Input */}
                                 <div>
-                                    <label className="text-xs font-body font-semibold text-text-primary mb-2 block">Description</label>
+                                    <label className="text-sm font-bold text-slate-700 mb-2 block">Description</label>
                                     <textarea
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         placeholder="Describe the issue in your own words...&#10;Example: Leaking tap in kitchenette, 2nd floor"
-                                        className="w-full h-32 px-4 py-3 bg-text-primary/5 border border-border/10 rounded-lg text-text-primary placeholder-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 font-body transition-smooth"
+                                        className="w-full h-32 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     />
                                 </div>
 
@@ -213,12 +213,12 @@ export default function TicketCreateModal({
                                 )}
 
                                 {/* Actions Row */}
-                                <div className="flex items-center justify-between pt-2">
-                                    <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-between pt-4">
+                                    <div className="flex items-center gap-3">
                                         {/* Photo Upload */}
-                                        <label className="flex items-center gap-2 px-3 py-2 bg-text-primary/5 border border-border/10 rounded-lg cursor-pointer hover:bg-text-primary/10 transition-smooth">
-                                            <Paperclip className="w-4 h-4 text-text-tertiary" />
-                                            <span className="text-xs font-body font-medium text-text-secondary">Photo</span>
+                                        <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors">
+                                            <Paperclip className="w-4 h-4 text-slate-600" />
+                                            <span className="text-sm font-bold text-slate-700">Photo</span>
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -228,11 +228,11 @@ export default function TicketCreateModal({
                                         </label>
 
                                         {/* Internal Toggle */}
-                                        <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg hover:bg-text-primary/5 transition-smooth">
-                                            <div className={`w-8 h-4 rounded-full transition-colors flex-shrink-0 ${isInternal ? 'bg-primary' : 'bg-border/20'}`}>
-                                                <div className={`w-3 h-3 bg-white rounded-full m-0.5 transition-transform ${isInternal ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors">
+                                            <div className={`w-10 h-5 rounded-full transition-colors flex-shrink-0 ${isInternal ? 'bg-primary' : 'bg-slate-300'}`}>
+                                                <div className={`w-4 h-4 bg-white rounded-full m-0.5 shadow transition-transform ${isInternal ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </div>
-                                            <span className="text-xs font-body font-medium text-text-secondary">Internal</span>
+                                            <span className="text-sm font-bold text-slate-700">Internal</span>
                                         </label>
                                     </div>
 
@@ -240,7 +240,7 @@ export default function TicketCreateModal({
                                     <button
                                         onClick={handleSubmit}
                                         disabled={isSubmitting || !description.trim()}
-                                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-text-inverse font-body font-semibold text-xs rounded-lg transition-smooth"
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-colors shadow-lg shadow-primary/30"
                                     >
                                         {isSubmitting ? (
                                             <Loader2 className="w-4 h-4 animate-spin" />

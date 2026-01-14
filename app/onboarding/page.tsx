@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowRight, ArrowLeft, MapPin, Building2, UserCircle2,
-    Sparkles, PartyPopper, Check, Loader2, AlertCircle
+    Sparkles, PartyPopper, Check, Loader2, AlertCircle, Phone
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -108,6 +108,7 @@ const FireworksAnimation = ({ onComplete }: { onComplete: () => void }) => {
 export default function OnboardingPage() {
     const [step, setStep] = useState(0);
     const [userName, setUserName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [properties, setProperties] = useState<Property[]>([]);
     const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
     const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -137,7 +138,7 @@ export default function OnboardingPage() {
                     // Fallback to DB check
                     const { data: dbUser } = await supabase
                         .from('users')
-                        .select('full_name')
+                        .select('full_name, phone')
                         .eq('id', user.id)
                         .maybeSingle();
 
@@ -145,6 +146,10 @@ export default function OnboardingPage() {
                         setUserName(dbUser.full_name.split(' ')[0]);
                     } else {
                         setUserName('there');
+                    }
+
+                    if (dbUser?.phone) {
+                        setPhoneNumber(dbUser.phone);
                     }
                 }
             } catch (err) {
@@ -270,10 +275,13 @@ export default function OnboardingPage() {
                 }
             }
 
-            // 2️⃣ Update ONLY onboarding_completed
+            // 2️⃣ Update user profile with phone and onboarding status
             const { error: userUpdateError } = await supabase
                 .from('users')
-                .update({ onboarding_completed: true } as any)
+                .update({
+                    onboarding_completed: true,
+                    phone: phoneNumber
+                } as any)
                 .eq('id', authUser.id);
 
             if (userUpdateError) {
@@ -292,7 +300,7 @@ export default function OnboardingPage() {
             setError(err.message || 'Failed to complete setup.');
             setSubmitting(false);
         }
-    }, [user, selectedProperty, selectedRole, supabase]);
+    }, [user, selectedProperty, selectedRole, phoneNumber, supabase]);
 
 
 
@@ -303,7 +311,7 @@ export default function OnboardingPage() {
     };
 
     const nextStep = () => {
-        if (step === 2) {
+        if (step === 3) {
             handleComplete();
         } else {
             setStep((prev) => prev + 1);
@@ -315,8 +323,9 @@ export default function OnboardingPage() {
     const canProceed = () => {
         switch (step) {
             case 0: return true;
-            case 1: return selectedProperty !== null;
-            case 2: return selectedRole !== null;
+            case 1: return phoneNumber.length >= 10;
+            case 2: return selectedProperty !== null;
+            case 3: return selectedRole !== null;
             default: return false;
         }
     };
@@ -339,7 +348,7 @@ export default function OnboardingPage() {
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 font-sans">
                 <div className="w-full max-w-md mb-12">
                     <div className="flex gap-2">
-                        {[0, 1, 2].map((i) => (
+                        {[0, 1, 2, 3].map((i) => (
                             <motion.div
                                 key={i}
                                 className={`h-1.5 flex-1 rounded-full transition-all duration-500`}
@@ -350,7 +359,7 @@ export default function OnboardingPage() {
                         ))}
                     </div>
                     <p className="text-center text-slate-500 text-sm font-medium mt-4">
-                        Step {step + 1} of 3
+                        Step {step + 1} of 4
                     </p>
                 </div>
 
@@ -377,6 +386,34 @@ export default function OnboardingPage() {
 
 
                         {step === 1 && (
+                            <motion.div
+                                key="phone" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
+                                className="flex flex-col items-center"
+                            >
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-6 shadow-xl">
+                                    <Phone className="w-8 h-8 text-white" />
+                                </div>
+                                <h2 className="text-3xl font-black text-white mb-2 text-center">Contact Details</h2>
+                                <p className="text-slate-400 font-medium mb-8 text-center">Please enter your valid phone number</p>
+
+                                <div className="w-full max-w-sm">
+                                    <input
+                                        type="tel"
+                                        placeholder="Mobile Number (e.g. 9876543210)"
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                                        className="w-full p-5 rounded-2xl bg-slate-800/50 border border-slate-700 text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-600 tracking-wider text-center"
+                                        maxLength={15}
+                                    />
+                                    <p className="text-xs text-slate-500 mt-4 text-center">
+                                        We will use this for important notifications only.
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
+
+
+                        {step === 2 && (
                             <motion.div
                                 key="property" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
                                 className="flex flex-col items-center"
@@ -426,7 +463,7 @@ export default function OnboardingPage() {
                             </motion.div>
                         )}
 
-                        {step === 2 && (
+                        {step === 3 && (
                             <motion.div
                                 key="role" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
                                 className="flex flex-col items-center"
@@ -480,7 +517,7 @@ export default function OnboardingPage() {
                         onClick={nextStep} disabled={!canProceed() || submitting}
                         className={`px-8 py-4 font-black rounded-2xl flex items-center gap-3 transition-all shadow-xl ${canProceed() && !submitting ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-violet-500/30 hover:scale-105' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
                     >
-                        {submitting ? <><Loader2 className="w-5 h-5 animate-spin" />Setting up...</> : step === 2 ? <>Complete Setup <Sparkles className="w-5 h-5" /></> : <>Continue <ArrowRight className="w-5 h-5" /></>}
+                        {submitting ? <><Loader2 className="w-5 h-5 animate-spin" />Setting up...</> : step === 3 ? <>Complete Setup <Sparkles className="w-5 h-5" /></> : <>Continue <ArrowRight className="w-5 h-5" /></>}
                     </button>
                 </div>
             </div>

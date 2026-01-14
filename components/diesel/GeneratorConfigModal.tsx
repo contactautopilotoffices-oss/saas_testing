@@ -90,10 +90,10 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                     className={`relative ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white'} border rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden`}
                 >
                     {/* Header */}
-                    <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-[#21262d] bg-gradient-to-r from-[#0d1117] to-[#161b22]' : 'border-slate-100 bg-gradient-to-r from-amber-50 to-white'}`}>
+                    <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-[#21262d] bg-gradient-to-r from-[#0d1117] to-[#161b22]' : 'border-slate-100 bg-gradient-to-r from-slate-50 to-white'}`}>
                         <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 ${isDark ? 'bg-emerald-500/10' : 'bg-amber-100'} rounded-xl flex items-center justify-center`}>
-                                <Settings2 className={`w-5 h-5 ${isDark ? 'text-emerald-500' : 'text-amber-600'}`} />
+                            <div className={`w-10 h-10 ${isDark ? 'bg-primary/10' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
+                                <Settings2 className={`w-5 h-5 ${isDark ? 'text-primary' : 'text-primary'}`} />
                             </div>
                             <div>
                                 <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -129,7 +129,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     value={formData.name}
                                     onChange={(e) => updateField('name', e.target.value)}
                                     placeholder="e.g., DG-1"
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                                 />
                             </label>
                             <label className="flex flex-col gap-1.5">
@@ -139,7 +139,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     value={formData.make}
                                     onChange={(e) => updateField('make', e.target.value)}
                                     placeholder="e.g., Cummins"
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                                 />
                             </label>
                         </div>
@@ -152,7 +152,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     type="number"
                                     value={formData.capacity_kva}
                                     onChange={(e) => updateField('capacity_kva', parseInt(e.target.value) || 0)}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                                 />
                             </label>
                             <label className="flex flex-col gap-1.5">
@@ -161,7 +161,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     type="number"
                                     value={formData.tank_capacity_litres}
                                     onChange={(e) => updateField('tank_capacity_litres', parseInt(e.target.value) || 0)}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                                 />
                             </label>
                         </div>
@@ -175,7 +175,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     step="0.1"
                                     value={formData.fuel_efficiency_lphr}
                                     onChange={(e) => updateField('fuel_efficiency_lphr', parseFloat(e.target.value) || 0)}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                                 />
                             </label>
                             <label className="flex flex-col gap-1.5">
@@ -183,7 +183,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                 <select
                                     value={formData.status}
                                     onChange={(e) => updateField('status', e.target.value)}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border cursor-not-allowed`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border cursor-not-allowed`}
                                 >
                                     <option value="active">Active</option>
                                     <option value="standby">Standby</option>
@@ -200,7 +200,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     type="date"
                                     value={formData.last_maintenance_date || ''}
                                     onChange={(e) => updateField('last_maintenance_date', e.target.value)}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                                 />
                             </label>
                             <label className="flex flex-col gap-1.5">
@@ -209,15 +209,15 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     type="date"
                                     value={formData.next_maintenance_date || ''}
                                     onChange={(e) => updateField('next_maintenance_date', e.target.value)}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-emerald-500' : 'bg-white border-slate-200 focus:border-amber-400'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-emerald-500/10' : 'focus:ring-amber-100'} border`}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
                                 />
                             </label>
                         </div>
 
                         {/* Info Box */}
-                        <div className={`${isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-50 border-amber-100'} rounded-lg p-4 flex items-start gap-3 border`}>
-                            <Fuel className={`w-5 h-5 ${isDark ? 'text-emerald-500' : 'text-amber-500'} mt-0.5 flex-shrink-0`} />
-                            <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-amber-700'}`}>
+                        <div className={`${isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/5 border-primary/20'} rounded-lg p-4 flex items-start gap-3 border`}>
+                            <Fuel className={`w-5 h-5 ${isDark ? 'text-primary' : 'text-primary'} mt-0.5 flex-shrink-0`} />
+                            <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-primary'}`}>
                                 <p className="font-bold mb-1">Fuel Rate Calculation</p>
                                 <p>The fuel rate is used to estimate daily consumption. Set this to your generator&apos;s average litres per hour of operation.</p>
                             </div>
@@ -235,7 +235,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className={`flex-1 px-4 py-3 ${isDark ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-amber-500 hover:bg-amber-600'} text-white font-bold rounded-xl transition-colors shadow-lg ${isDark ? 'shadow-emerald-900/40' : 'shadow-amber-200'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+                                className={`flex-1 px-4 py-3 ${isDark ? 'bg-primary hover:bg-primary-dark' : 'bg-primary hover:bg-primary-dark'} text-white font-bold rounded-xl transition-colors shadow-lg ${isDark ? 'shadow-primary/40' : 'shadow-primary/20'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                             >
                                 {isSubmitting ? (
                                     <>

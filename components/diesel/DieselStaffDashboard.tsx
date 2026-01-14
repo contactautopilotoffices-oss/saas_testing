@@ -225,7 +225,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
         return (
             <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0f1419]' : 'bg-[#f9fbfa]'}`}>
                 <div className="flex flex-col items-center gap-4">
-                    <div className={`w-12 h-12 border-4 ${isDark ? 'border-emerald-500/20 border-t-emerald-500' : 'border-amber-200 border-t-amber-600'} rounded-full animate-spin`} />
+                    <div className={`w-12 h-12 border-4 ${isDark ? 'border-primary/20 border-t-primary' : 'border-slate-200 border-t-primary'} rounded-full animate-spin`} />
                     <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-bold`}>Loading diesel logger...</p>
                 </div>
             </div>
@@ -235,13 +235,13 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
     return (
         <div className={`min-h-screen ${isDark ? 'bg-[#0f1419]' : 'bg-[#f9fbfa]'} pb-24 transition-colors duration-300`}>
             {/* Top Navigation */}
-            <header className={`sticky top-0 z-30 w-full border-b ${isDark ? 'border-[#21262d] bg-[#161b22]/80' : 'border-amber-100 bg-white/80'} backdrop-blur-md`}>
+            <header className={`sticky top-0 z-30 w-full border-b ${isDark ? 'border-[#21262d] bg-[#161b22]/80' : 'border-slate-200 bg-white/80'} backdrop-blur-md`}>
                 <div className="px-4 sm:px-6 lg:px-8 py-3 mx-auto max-w-[1440px]">
                     <div className="flex items-center justify-between">
                         {/* Left: Property Context Lock */}
                         <div className="flex items-center gap-3">
-                            <div className={`flex items-center gap-2 ${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-amber-50 border-amber-100'} px-3 py-1.5 rounded-full border select-none`}>
-                                <Lock className={`w-4 h-4 ${isDark ? 'text-emerald-500' : 'text-amber-600'}`} />
+                            <div className={`flex items-center gap-2 ${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-slate-50 border-slate-200'} px-3 py-1.5 rounded-full border select-none`}>
+                                <Lock className={`w-4 h-4 ${isDark ? 'text-primary' : 'text-primary'}`} />
                                 <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'} tracking-tight`}>
                                     {property?.name || 'Property'}
                                 </span>
@@ -250,7 +250,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
 
                         {/* Right: Meta Info */}
                         <div className="flex items-center gap-4 sm:gap-6">
-                            <div className={`hidden sm:flex items-center gap-2 ${isDark ? 'text-emerald-500' : 'text-amber-600'} text-sm font-medium animate-pulse`}>
+                            <div className={`hidden sm:flex items-center gap-2 ${isDark ? 'text-primary' : 'text-primary'} text-sm font-medium animate-pulse`}>
                                 <CheckCircle className="w-4 h-4" />
                                 <span>Auto-saved</span>
                             </div>
@@ -267,8 +267,8 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
                 {/* Feature Header */}
                 <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <div className={`flex items-center gap-2 mb-2 ${isDark ? 'text-emerald-500' : 'text-amber-600'} font-bold tracking-wider text-xs uppercase`}>
-                            <span className={`w-2 h-2 rounded-full ${isDark ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <div className={`flex items-center gap-2 mb-2 ${isDark ? 'text-primary' : 'text-primary'} font-bold tracking-wider text-xs uppercase`}>
+                            <span className={`w-2 h-2 rounded-full ${isDark ? 'bg-primary' : 'bg-primary'}`} />
                             Live Logging
                         </div>
                         <h1 className={`text-3xl md:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -307,7 +307,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`${isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-green-50 border-green-200 text-green-700'} mb-6 px-4 py-3 rounded-xl flex items-center gap-2 border`}
+                        className={`${isDark ? 'bg-primary/10 border-primary/20 text-primary-light' : 'bg-green-50 border-green-200 text-green-700'} mb-6 px-4 py-3 rounded-xl flex items-center gap-2 border`}
                     >
                         <CheckCircle className="w-5 h-5" />
                         {successMessage}
@@ -331,12 +331,12 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
                 {/* Generators Grid */}
                 {generators.length === 0 ? (
                     <div className={`${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-100 shadow-sm'} rounded-3xl p-12 text-center border`}>
-                        <Fuel className={`w-16 h-16 ${isDark ? 'text-emerald-500/20' : 'text-amber-300'} mx-auto mb-4`} />
+                        <Fuel className={`w-16 h-16 ${isDark ? 'text-primary/20' : 'text-primary/20'} mx-auto mb-4`} />
                         <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'} mb-2`}>No Generators Configured</h3>
                         <p className={`${isDark ? 'text-slate-500' : 'text-slate-500'} mb-6`}>Add your first diesel generator to start logging.</p>
                         <button
                             onClick={() => setShowConfigModal(true)}
-                            className={`px-6 py-3 ${isDark ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'} text-white font-bold rounded-xl transition-colors shadow-lg`}
+                            className={`px-6 py-3 ${isDark ? 'bg-primary hover:bg-primary-dark shadow-primary/40' : 'bg-primary hover:bg-primary-dark shadow-primary/20'} text-white font-bold rounded-xl transition-colors shadow-lg`}
                         >
                             + Add Generator
                         </button>
@@ -385,7 +385,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
 
                         <div className="flex items-center gap-4">
                             {warningsCount > 0 && (
-                                <div className={`hidden lg:flex items-center gap-2 text-xs font-medium ${isDark ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' : 'text-amber-600 bg-amber-50 border-amber-100'} px-3 py-1.5 rounded-full border`}>
+                                <div className={`hidden lg:flex items-center gap-2 text-xs font-medium ${isDark ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' : 'text-rose-600 bg-rose-50 border-rose-100'} px-3 py-1.5 rounded-full border`}>
                                     <AlertTriangle className="w-4 h-4" />
                                     {warningsCount} Warning{warningsCount > 1 ? 's' : ''} pending review
                                 </div>
@@ -393,7 +393,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
                             <button
                                 onClick={handleSubmitAll}
                                 disabled={isSubmitting || validReadingsCount === 0}
-                                className={`${isDark ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-300/30'} text-white text-base font-bold py-3 px-8 rounded-lg shadow-lg active:scale-95 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`${isDark ? 'bg-primary hover:bg-primary-dark shadow-primary/40' : 'bg-primary hover:bg-primary-dark shadow-primary/20'} text-white text-base font-bold py-3 px-8 rounded-lg shadow-lg active:scale-95 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <CheckCircle className={`w-5 h-5 ${!isSubmitting ? 'group-hover:animate-bounce' : ''}`} />
                                 {isSubmitting ? 'Submitting...' : 'SUBMIT ALL'}

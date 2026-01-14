@@ -18,7 +18,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 
 // Types
-type Tab = 'overview' | 'requests' | 'checkinout' | 'visitors' | 'diesel' | 'cafeteria' | 'settings' | 'profile';
+type Tab = 'overview' | 'requests' | 'checkinout' | 'visitors' | 'diesel' | 'settings' | 'profile';
 
 interface Property {
     id: string;
@@ -86,9 +86,9 @@ const SecurityDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-background flex font-inter text-foreground">
+        <div className="min-h-screen bg-white flex font-inter text-text-primary">
             {/* Sidebar */}
-            <aside className="w-72 bg-sidebar border-r border-border flex flex-col fixed h-full z-10 transition-all duration-300">
+            <aside className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-20">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse font-bold text-lg shadow-lg shadow-slate-200">
@@ -111,28 +111,30 @@ const SecurityDashboard = () => {
                         <div className="grid grid-cols-2 gap-2 px-2">
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-blue-50/50 hover:border-blue-200 transition-all text-left"
+                                className="flex flex-col items-center justify-center gap-1 p-2 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
                             >
-                                <Plus className="w-4 h-4 text-blue-600" />
-                                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">New Request</span>
+                                <div className="w-7 h-7 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <Plus className="w-4 h-4 font-black" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-tight text-center">New Request</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab('checkinout')}
-                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 transition-all text-left"
+                                className="flex flex-col items-start gap-1 p-2 bg-muted border border-border rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 transition-all text-left"
                             >
                                 <LogIn className="w-4 h-4 text-emerald-600" />
                                 <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Check In/Out</span>
                             </button>
                             <button
                                 onClick={() => alert('URGENT: Emergency SOS Signal Broadcasted to all Staff.')}
-                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-rose-50/50 hover:border-rose-200 transition-all text-left"
+                                className="flex flex-col items-start gap-1 p-2 bg-muted border border-border rounded-xl hover:bg-rose-50/50 hover:border-rose-200 transition-all text-left"
                             >
                                 <Shield className="w-4 h-4 text-rose-600" />
                                 <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Emergency</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab('visitors')}
-                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-indigo-50/50 hover:border-indigo-200 transition-all text-left"
+                                className="flex flex-col items-start gap-1 p-2 bg-muted border border-border rounded-xl hover:bg-indigo-50/50 hover:border-indigo-200 transition-all text-left"
                             >
                                 <UsersRound className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">View Visitors</span>
@@ -149,9 +151,9 @@ const SecurityDashboard = () => {
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-text-secondary hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'overview'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -159,9 +161,9 @@ const SecurityDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-text-secondary hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'requests'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -169,9 +171,9 @@ const SecurityDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('checkinout')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'checkinout'
-                                    ? 'bg-secondary text-text-inverse shadow-lg shadow-secondary/25'
-                                    : 'text-text-secondary hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'checkinout'
+                                    ? 'bg-secondary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <LogIn className="w-4 h-4" />
@@ -189,9 +191,9 @@ const SecurityDashboard = () => {
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('visitors')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'visitors'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -199,23 +201,13 @@ const SecurityDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('diesel')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'diesel'
-                                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'diesel'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Fuel className="w-4 h-4" />
                                 Diesel Logger
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('cafeteria')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'cafeteria'
-                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <Coffee className="w-4 h-4" />
-                                Cafeteria
                             </button>
                         </div>
                     </div>
@@ -229,9 +221,9 @@ const SecurityDashboard = () => {
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-text-secondary hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'settings'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -239,9 +231,9 @@ const SecurityDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('profile')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-text-secondary hover:bg-muted'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'profile'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
@@ -296,7 +288,7 @@ const SecurityDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-72 min-h-screen p-8 lg:p-12 overflow-y-auto">
+            <main className="flex-1 ml-72 min-h-screen p-8 lg:p-12 overflow-y-auto bg-white">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}
@@ -319,13 +311,6 @@ const SecurityDashboard = () => {
                         )}
                         {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
                         {activeTab === 'diesel' && <DieselStaffDashboard />}
-                        {activeTab === 'cafeteria' && (
-                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
-                                <Coffee className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-text-primary mb-2">Cafeteria</h3>
-                                <p className="text-text-secondary">Property cafeteria services.</p>
-                            </div>
-                        )}
                         {activeTab === 'settings' && (
                             <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
                                 <Settings className="w-16 h-16 text-text-tertiary mx-auto mb-4" />

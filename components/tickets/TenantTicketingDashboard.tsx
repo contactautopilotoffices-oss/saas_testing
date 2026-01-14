@@ -5,6 +5,7 @@ import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquar
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { compressImage } from '@/utils/image-compression';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Ticket {
     id: string;
@@ -47,6 +48,7 @@ export default function TenantTicketingDashboard({
     isStaff = false
 }: TenantTicketingDashboardProps) {
     const router = useRouter();
+    const { theme } = useTheme();
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [classification, setClassification] = useState<Classification | null>(null);
@@ -201,7 +203,7 @@ export default function TenantTicketingDashboard({
         waitlist: 'text-slate-400',
     };
 
-    const isDark = isStaff;
+    const isDark = theme === 'dark';
 
     return (
         <div className={`min-h-screen ${isDark ? 'bg-[#0f1419] text-white' : 'bg-[var(--canvas-bg)] text-slate-900'} p-8 font-body transition-colors duration-300`}>

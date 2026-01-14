@@ -14,9 +14,10 @@ import { HapticCard } from '@/components/ui/HapticCard';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/components/ui/SignOutModal';
 import AdminSPOCDashboard from '../tickets/AdminSPOCDashboard';
+import SettingsView from './SettingsView';
 
 // Types
-type Tab = 'overview' | 'properties' | 'requests' | 'users' | 'visitors' | 'cafeteria' | 'settings' | 'profile' | 'revenue';
+type Tab = 'overview' | 'properties' | 'requests' | 'visitors' | 'settings' | 'profile' | 'revenue';
 
 interface Property {
     id: string;
@@ -89,7 +90,6 @@ const OrgAdminDashboard = () => {
         if (org) {
             fetchProperties(); // ALWAYS fetch properties for the dropdown
             fetchUserRole(); // Fetch user role for profile
-            if (activeTab === 'users') fetchOrgUsers();
         }
     }, [activeTab, org]);
 
@@ -346,16 +346,27 @@ const OrgAdminDashboard = () => {
     return (
         <div className="min-h-screen bg-background flex font-inter text-foreground">
             {/* Sidebar */}
-            <aside className="w-72 bg-[var(--sidebar-bg)] border-r border-border flex flex-col fixed h-full z-10 transition-smooth">
+            <aside className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-20 transition-smooth">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-primary rounded-[var(--radius-md)] flex items-center justify-center text-text-inverse font-display font-semibold text-lg shadow-sm">
-                            {org?.name?.substring(0, 1) || 'O'}
-                        </div>
+                        <img src="/autopilot-logo.png" alt="Logo" className="w-20 h-20 object-contain" />
                         <div>
                             <h2 className="font-display font-semibold text-sm leading-tight text-text-primary truncate max-w-[150px]">{org?.name || 'Organization'}</h2>
                             <p className="text-[10px] text-text-tertiary font-body font-medium mt-1">Super Admin Console</p>
                         </div>
+                    </div>
+
+                    {/* Quick Action: New Request - Bold & Clear */}
+                    <div className="mb-6 px-1">
+                        <button
+                            onClick={() => setActiveTab('requests')}
+                            className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
+                        >
+                            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                <Plus className="w-5 h-5 font-black" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
+                        </button>
                     </div>
                 </div>
 
@@ -369,9 +380,9 @@ const OrgAdminDashboard = () => {
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'overview'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -379,9 +390,9 @@ const OrgAdminDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'requests'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -398,20 +409,10 @@ const OrgAdminDashboard = () => {
                         </p>
                         <div className="space-y-1">
                             <button
-                                onClick={() => setActiveTab('users')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
-                                    }`}
-                            >
-                                <Users className="w-4 h-4" />
-                                User Management
-                            </button>
-                            <button
                                 onClick={() => setActiveTab('properties')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'properties'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'properties'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Building2 className="w-4 h-4" />
@@ -419,23 +420,13 @@ const OrgAdminDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('visitors')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'visitors'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
                                 Visitor Management
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('revenue')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'revenue'
-                                    ? 'bg-amber-500 text-white'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
-                                    }`}
-                            >
-                                <IndianRupee className="w-4 h-4" />
-                                Cafeteria Revenue
                             </button>
                         </div>
                     </div>
@@ -449,9 +440,9 @@ const OrgAdminDashboard = () => {
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'settings'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -459,9 +450,9 @@ const OrgAdminDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('profile')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'profile'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
@@ -504,7 +495,7 @@ const OrgAdminDashboard = () => {
             />
 
             {/* Main Content */}
-            <main className={`flex-1 ml-72 overflow-y-auto min-h-screen ${activeTab === 'overview' ? '' : 'p-8 lg:p-12'}`}>
+            <main className={`flex-1 ml-72 overflow-y-auto min-h-screen bg-white ${activeTab === 'overview' ? '' : 'p-8 lg:p-12'}`}>
                 {/* Only show header for non-overview tabs */}
                 {activeTab !== 'overview' && (
                     <header className="flex justify-between items-center mb-10">
@@ -634,29 +625,10 @@ const OrgAdminDashboard = () => {
                                 />
                             </div>
                         )}
-                        {activeTab === 'users' && (
-                            <UserDirectory
-                                orgId={org?.id}
-                                propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
-                                properties={properties.map(p => ({ id: p.id, name: p.name }))}
-                                onUserUpdated={fetchOrgUsers}
-                            />
-                        )}
+
                         {activeTab === 'visitors' && <VisitorsTab properties={properties} selectedPropertyId={selectedPropertyId} />}
-                        {activeTab === 'cafeteria' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Cafeteria Management</h3>
-                                <p className="text-slate-500">Cafeteria management module coming soon.</p>
-                            </div>
-                        )}
-                        {activeTab === 'settings' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Settings</h3>
-                                <p className="text-slate-500">System settings coming soon.</p>
-                            </div>
-                        )}
+
+                        {activeTab === 'settings' && <SettingsView />}
                         {activeTab === 'profile' && (
                             <div className="flex justify-center items-start py-8">
                                 <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
@@ -756,7 +728,7 @@ const OrgAdminDashboard = () => {
 
 const DieselSphere = ({ percentage }: { percentage: number }) => {
     return (
-        <div className="relative w-40 h-40 mx-auto group">
+        <div className="relative w-full aspect-square max-w-[200px] mx-auto group">
             {/* Outer Glass Sphere */}
             <div className="absolute inset-0 rounded-full border-4 border-white/20 bg-slate-900/10 backdrop-blur-[2px] shadow-2xl overflow-hidden group-hover:scale-105 transition-transform duration-700">
                 {/* 3D Inner Shadow for Depth */}
@@ -767,7 +739,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                     initial={{ height: 0 }}
                     animate={{ height: `${percentage}%` }}
                     transition={{ duration: 2, ease: "circOut" }}
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400"
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary-dark via-primary to-primary-light"
                 >
                     {/* Primary Wave */}
                     <motion.div
@@ -779,7 +751,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                             repeat: Infinity,
                             ease: "linear",
                         }}
-                        className="absolute top-0 left-0 w-[400%] h-8 bg-amber-400/50 -translate-y-1/2 opacity-60"
+                        className="absolute top-0 left-0 w-[400%] h-8 bg-primary-light/50 -translate-y-1/2 opacity-60"
                         style={{
                             borderRadius: '38% 42% 35% 45%',
                         }}
@@ -795,7 +767,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                             repeat: Infinity,
                             ease: "linear",
                         }}
-                        className="absolute top-1 left-0 w-[400%] h-8 bg-amber-300/30 -translate-y-1/2 opacity-40"
+                        className="absolute top-1 left-0 w-[400%] h-8 bg-primary-light/30 -translate-y-1/2 opacity-40"
                         style={{
                             borderRadius: '45% 35% 42% 38%',
                         }}
@@ -827,12 +799,12 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
 
                 {/* Reflection/Lighting Highlights */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-white/20 z-30 pointer-events-none" />
-                <div className="absolute top-4 left-10 w-12 h-6 bg-white/20 rounded-full blur-[4px] rotate-[-25deg] z-30 pointer-events-none" />
-                <div className="absolute bottom-6 right-10 w-4 h-4 bg-amber-200/20 rounded-full blur-[2px] z-30 pointer-events-none" />
+                <div className="absolute top-[10%] left-[15%] w-[25%] h-[15%] bg-white/20 rounded-full blur-[4px] rotate-[-25deg] z-30 pointer-events-none" />
+                <div className="absolute bottom-[15%] right-[15%] w-[10%] h-[10%] bg-primary/20 rounded-full blur-[2px] z-30 pointer-events-none" />
             </div>
 
             {/* Percentage Display */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
                 <motion.span
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -845,7 +817,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
             </div>
 
             {/* Bottom Glow */}
-            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-24 h-4 bg-amber-500/20 blur-xl rounded-full transition-opacity duration-300 ${percentage > 0 ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-[60%] h-4 bg-primary/20 blur-xl rounded-full transition-opacity duration-300 ${percentage > 0 ? 'opacity-100' : 'opacity-0'}`} />
         </div>
     );
 };
@@ -1107,7 +1079,7 @@ const OverviewTab = ({
 
                 {/* Breadcrumb */}
                 <div className="flex items-center gap-2 mb-5">
-                    <span className="text-yellow-400 text-sm font-bold">Dashboard /Home</span>
+                    <span className="text-white text-sm font-bold">Dashboard / Home</span>
                 </div>
 
                 {/* KPI Cards Row */}
@@ -1151,8 +1123,8 @@ const OverviewTab = ({
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-black text-slate-900">Diesel Consumption</h3>
                             </div>
-                            <div className="text-amber-500 text-xs font-bold mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                            <div className="text-primary text-xs font-bold mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                                 Real-time Tank Status
                             </div>
 
@@ -1269,9 +1241,9 @@ const OverviewTab = ({
                                     <div className="text-xs font-bold text-emerald-600 mb-1">Visitors</div>
                                     <div className="text-2xl font-black text-emerald-900">{displayVmsStats.total_visitors_today}</div>
                                 </div>
-                                <div className="p-4 bg-amber-50 rounded-xl">
-                                    <div className="text-xs font-bold text-amber-600 mb-1">Diesel (L)</div>
-                                    <div className="text-2xl font-black text-amber-900">{displayDieselStats.total_consumption}</div>
+                                <div className="p-4 bg-primary/5 rounded-xl">
+                                    <div className="text-xs font-bold text-primary mb-1">Diesel (L)</div>
+                                    <div className="text-2xl font-black text-slate-900">{displayDieselStats.total_consumption}</div>
                                 </div>
                                 <div className="p-4 bg-purple-50 rounded-xl">
                                     <div className="text-xs font-bold text-purple-600 mb-1">Vendors</div>

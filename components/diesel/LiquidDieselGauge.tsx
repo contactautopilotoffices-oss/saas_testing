@@ -33,28 +33,28 @@ const LiquidDieselGauge: React.FC<LiquidDieselGaugeProps> = ({
     // Clamp value between 0-100
     const clampedValue = Math.max(0, Math.min(100, value));
 
-    // Golden color palette
+    // Primary color palette (Muted Sky Blue)
     const getColors = (val: number) => {
         if (val < 30) {
-            // Normal - Light gold
+            // Normal
             return {
-                fill: '#F59E0B',     // Amber-500
-                wave: '#FBBF24',     // Amber-400
-                text: '#92400E',     // Amber-800
+                fill: '#708F96',     // Primary
+                wave: '#8AA5AC',     // Primary Light
+                text: '#5A737A',     // Primary Dark
             };
         } else if (val < 70) {
-            // Active - Rich gold
+            // Medium
             return {
-                fill: '#D97706',     // Amber-600
-                wave: '#F59E0B',     // Amber-500
-                text: '#78350F',     // Amber-900
+                fill: '#5A737A',     // Primary Dark
+                wave: '#708F96',     // Primary
+                text: '#1A2332',     // Text Primary
             };
         } else {
-            // High usage - Deep gold/bronze with warning
+            // High usage
             return {
-                fill: '#B45309',     // Amber-700
-                wave: '#D97706',     // Amber-600
-                text: '#451A03',     // Amber-950
+                fill: '#475569',     // Slate-600
+                wave: '#5A737A',     // Primary Dark
+                text: '#0F172A',     // Slate-900
             };
         }
     };
@@ -80,7 +80,7 @@ const LiquidDieselGauge: React.FC<LiquidDieselGaugeProps> = ({
                     { key: '100%', stopColor: colors.fill, stopOpacity: 1, offset: '100%' },
                 ]}
                 circleStyle={{
-                    fill: isDark ? '#0d1117' : '#FEF3C7',
+                    fill: isDark ? '#0d1117' : '#F1F5F9', // Slate-100
                 }}
                 waveStyle={{
                     fill: colors.fill,
@@ -91,7 +91,7 @@ const LiquidDieselGauge: React.FC<LiquidDieselGaugeProps> = ({
                     fontWeight: 700,
                 }}
                 waveTextStyle={{
-                    fill: '#FFFBEB', // Light text on wave
+                    fill: '#F8FAFC', // Light text on wave
                     fontFamily: 'Space Grotesk, system-ui, sans-serif',
                     fontWeight: 700,
                 }}
@@ -101,7 +101,7 @@ const LiquidDieselGauge: React.FC<LiquidDieselGaugeProps> = ({
             )}
             {consumedLitres !== undefined && tankCapacity !== undefined && (
                 <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'} mt-1`}>
-                    <span className={`font-bold ${isDark ? 'text-emerald-500' : 'text-amber-600'}`}>{consumedLitres}L</span>
+                    <span className={`font-bold ${isDark ? 'text-emerald-500' : 'text-primary'}`}>{consumedLitres}L</span>
                     <span className={`${isDark ? 'text-slate-600' : 'text-slate-400'}`}> / {tankCapacity}L</span>
                 </p>
             )}

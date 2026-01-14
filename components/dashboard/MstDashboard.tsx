@@ -15,9 +15,11 @@ import { checkInResolver } from '@/utils/resolver';
 import SignOutModal from '@/components/ui/SignOutModal';
 import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
 import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
+import { useTheme } from '@/context/ThemeContext';
+import SettingsView from './SettingsView';
 
 // Types
-type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'alerts' | 'visitors' | 'diesel' | 'cafeteria' | 'settings';
+type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
 
 interface Property {
     id: string;
@@ -55,7 +57,8 @@ const MstDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(true);
+    const { theme, toggleTheme } = useTheme();
+    const isDarkMode = theme === 'dark';
     const [showQuickActions, setShowQuickActions] = useState(true);
     const [incomingTickets, setIncomingTickets] = useState<Ticket[]>([]);
     const [completedTickets, setCompletedTickets] = useState<Ticket[]>([]);
@@ -119,7 +122,7 @@ const MstDashboard = () => {
     };
 
     if (isLoading) return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+        <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-[#0f1419]' : 'bg-slate-50'}`}>
             <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                 <p className="text-text-secondary font-medium">Loading maintenance portal...</p>
@@ -138,9 +141,9 @@ const MstDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-background flex font-inter text-foreground">
-            {/* Dark Sidebar */}
-            <aside className="w-56 bg-sidebar flex flex-col fixed h-full z-10 border-r border-border">
+        <div className={`min-h-screen ${isDarkMode ? 'bg-[#0d1117]' : 'bg-white'} flex font-inter text-text-primary`}>
+            {/* Sidebar */}
+            <aside className={`w-64 ${isDarkMode ? 'bg-[#161b22]' : 'bg-white'} border-r border-border flex flex-col fixed h-full z-20 transition-all duration-500`}>
                 {/* Logo */}
                 <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
@@ -175,17 +178,21 @@ const MstDashboard = () => {
                         </button>
                     </div>
                     {showQuickActions && (
-                        <div className="grid grid-cols-2 gap-1.5">
+                        <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => setActiveTab('create_request')}
-                                className="col-span-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-surface-elevated hover:bg-muted rounded-md text-[10px] text-slate-300 border border-border transition-all"
+                                className="col-span-1 flex flex-col items-center justify-center gap-1 p-2 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
                             >
-                                <Plus className="w-3 h-3 text-primary" />
-                                New Request
+                                <div className="w-7 h-7 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <Plus className="w-4 h-4 font-black" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-tight text-center">New Request</span>
                             </button>
-                            <button className="col-span-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-surface-elevated hover:bg-muted rounded-md text-[10px] text-slate-300 border border-border transition-all">
-                                <Cog className="w-3 h-3 text-primary" />
-                                Manage Prop
+                            <button className="col-span-1 flex flex-col items-center justify-center gap-1 p-2 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group cursor-not-allowed opacity-60">
+                                <div className="w-7 h-7 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
+                                    <Cog className="w-4 h-4" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-tight text-center">Manage Prop</span>
                             </button>
                         </div>
                     )}
@@ -202,9 +209,9 @@ const MstDashboard = () => {
                         <div className="space-y-0.5">
                             <button
                                 onClick={() => setActiveTab('dashboard')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'dashboard'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'dashboard'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -212,9 +219,9 @@ const MstDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('tasks')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'tasks'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'tasks'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <ClipboardList className="w-4 h-4" />
@@ -222,9 +229,9 @@ const MstDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('projects')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'projects'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'projects'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <FolderKanban className="w-4 h-4" />
@@ -232,23 +239,13 @@ const MstDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'requests'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'requests'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
                                 Requests
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('alerts')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'alerts'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
-                                    }`}
-                            >
-                                <Bell className="w-4 h-4" />
-                                Alerts
                             </button>
                         </div>
                     </div>
@@ -262,9 +259,9 @@ const MstDashboard = () => {
                         <div className="space-y-0.5">
                             <button
                                 onClick={() => setActiveTab('visitors')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'visitors'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'visitors'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -272,23 +269,43 @@ const MstDashboard = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('diesel')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'diesel'
-                                    ? 'bg-amber-500 text-text-primary'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'diesel'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Fuel className="w-4 h-4" />
                                 Diesel Logger
                             </button>
+                        </div>
+                    </div>
+
+                    {/* System & Personal */}
+                    <div className="mb-4">
+                        <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
+                            <span className="w-0.5 h-2.5 bg-primary rounded-full" />
+                            System & Personal
+                        </p>
+                        <div className="space-y-0.5">
                             <button
-                                onClick={() => setActiveTab('cafeteria')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'cafeteria'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-text-secondary hover:bg-[#21262d] hover:text-slate-200'
+                                onClick={() => setActiveTab('settings')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'settings'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
-                                <Coffee className="w-4 h-4" />
-                                Cafeteria
+                                <Settings className="w-4 h-4" />
+                                Settings
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('profile')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'profile'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <UserCircle className="w-4 h-4" />
+                                Profile
                             </button>
                         </div>
                     </div>
@@ -307,7 +324,7 @@ const MstDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 ml-56 flex flex-col min-h-screen">
+            <div className={`flex-1 ml-64 flex flex-col min-h-screen ${isDarkMode ? 'bg-[#0d1117]' : 'bg-white'}`}>
                 {/* Top Header */}
                 <header className="h-14 bg-white border-b border-border flex items-center justify-between px-6 sticky top-0 z-10">
                     <div className="flex items-center gap-4">
@@ -329,7 +346,7 @@ const MstDashboard = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => setIsDarkMode(!isDarkMode)}
+                            onClick={toggleTheme}
                             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-text-tertiary hover:text-text-primary transition-colors"
                         >
                             {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
@@ -366,6 +383,7 @@ const MstDashboard = () => {
                                     propertyId={propertyId}
                                     propertyName={property.name}
                                     userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
+                                    onSettingsClick={() => setActiveTab('settings')}
                                 />
                             )}
                             {activeTab === 'tasks' && <TasksTab />}
@@ -390,10 +408,16 @@ const MstDashboard = () => {
                                     isStaff={true}
                                 />
                             )}
-                            {activeTab === 'alerts' && <AlertsTab />}
                             {activeTab === 'visitors' && <VisitorsTab />}
-                            {activeTab === 'diesel' && <DieselStaffDashboard isDark={true} />}
-                            {activeTab === 'cafeteria' && <CafeteriaTab />}
+                            {activeTab === 'diesel' && <DieselStaffDashboard isDark={isDarkMode} />}
+                            {activeTab === 'settings' && <SettingsView />}
+                            {activeTab === 'profile' && (
+                                <div className="bg-white border border-border rounded-3xl p-12 text-center shadow-sm">
+                                    <UserCircle className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-text-primary mb-2">Profile</h3>
+                                    <p className="text-text-secondary">Update your MST account details here.</p>
+                                </div>
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </main>
@@ -485,7 +509,7 @@ const TicketRow = ({ ticket, onTicketClick, userId, isCompleted }: { ticket: Tic
 );
 
 // Dashboard Tab
-const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName }: { tickets: Ticket[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string }) => {
+const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName, onSettingsClick }: { tickets: Ticket[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string, onSettingsClick?: () => void }) => {
     const total = tickets.length + completedCount;
     const active = tickets.filter(t => t.status === 'in_progress' || t.status === 'assigned' || t.status === 'open').length;
     const completed = completedCount;
@@ -502,7 +526,9 @@ const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoadin
             <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-base font-bold text-text-primary">Dashboard</h2>
-                    <button className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary border border-border px-3 py-1.5 rounded-lg bg-surface-elevated transition-colors">
+                    <button
+                        onClick={onSettingsClick}
+                        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary border border-border px-3 py-1.5 rounded-lg bg-surface-elevated transition-colors">
                         <Settings className="w-3 h-3" />
                         Customize
                     </button>
@@ -645,16 +671,7 @@ const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick,
 
 
 
-// Alerts Tab
-const AlertsTab = () => (
-    <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-text-primary">Alerts</h1>
-        <div className="bg-card border border-border rounded-xl p-12 text-center shadow-sm">
-            <Bell className="w-12 h-12 text-text-tertiary/40 mx-auto mb-3" />
-            <p className="text-text-tertiary text-sm">No alerts at this time</p>
-        </div>
-    </div>
-);
+
 
 // Visitors Tab
 const VisitorsTab = () => (
@@ -667,15 +684,6 @@ const VisitorsTab = () => (
     </div>
 );
 
-// Cafeteria Tab
-const CafeteriaTab = () => (
-    <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-text-primary">Cafeteria</h1>
-        <div className="bg-card border border-border rounded-xl p-12 text-center shadow-sm">
-            <Coffee className="w-12 h-12 text-text-tertiary/40 mx-auto mb-3" />
-            <p className="text-text-tertiary text-sm">Cafeteria management coming soon</p>
-        </div>
-    </div>
-);
+
 
 export default MstDashboard;

@@ -239,7 +239,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
+                    <div className="w-12 h-12 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
                     <p className="text-slate-500 font-bold">Loading analytics...</p>
                 </div>
             </div>
@@ -258,14 +258,14 @@ const DieselAnalyticsDashboard: React.FC = () => {
                             Diesel Analytics
                         </span>
                     </div>
-                    <div className="flex items-center gap-2 text-amber-600 font-medium">
+                    <div className="flex items-center gap-2 text-primary font-medium">
                         <Calendar className="w-4 h-4" />
                         {currentMonth}
                     </div>
                 </div>
                 <button
                     onClick={handleExport}
-                    className="hidden sm:flex items-center gap-2 h-10 px-4 rounded-lg border border-amber-200 text-slate-900 text-sm font-bold hover:bg-amber-50 transition-colors bg-white"
+                    className="hidden sm:flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 text-slate-900 text-sm font-bold hover:bg-slate-50 transition-colors bg-white"
                 >
                     <Download className="w-4 h-4" />
                     <span>Report</span>
@@ -275,13 +275,13 @@ const DieselAnalyticsDashboard: React.FC = () => {
             {/* Metrics Grid */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Today */}
-                <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-6 border border-amber-100 relative overflow-hidden group">
+                <div className="bg-white rounded-xl p-6 border border-slate-200 relative overflow-hidden group shadow-sm">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Fuel className="w-16 h-16 text-amber-500" />
+                        <Fuel className="w-16 h-16 text-primary" />
                     </div>
                     <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="p-1.5 bg-amber-100 rounded-md text-amber-600">
+                            <span className="p-1.5 bg-primary/10 rounded-md text-primary">
                                 <Calendar className="w-4 h-4" />
                             </span>
                             <p className="text-slate-900 text-sm font-bold uppercase tracking-wider opacity-70">Today&apos;s Consumption</p>
@@ -289,8 +289,8 @@ const DieselAnalyticsDashboard: React.FC = () => {
                         <div>
                             <p className="text-slate-900 text-4xl font-bold leading-tight tracking-tight">{metrics.today} L</p>
                             <div className="flex items-center gap-1 mt-1">
-                                <TrendingUp className={`w-4 h-4 ${metrics.todayChange >= 0 ? 'text-amber-500' : 'text-green-500'}`} />
-                                <p className={`text-sm font-bold ${metrics.todayChange >= 0 ? 'text-amber-500' : 'text-green-500'}`}>
+                                <TrendingUp className={`w-4 h-4 ${metrics.todayChange >= 0 ? 'text-rose-500' : 'text-emerald-500'}`} />
+                                <p className={`text-sm font-bold ${metrics.todayChange >= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                                     {metrics.todayChange >= 0 ? '+' : ''}{metrics.todayChange}%
                                 </p>
                                 <p className="text-slate-500 text-sm">vs avg</p>
@@ -300,13 +300,13 @@ const DieselAnalyticsDashboard: React.FC = () => {
                 </div>
 
                 {/* This Month */}
-                <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-6 border border-amber-100 relative overflow-hidden group">
+                <div className="bg-white rounded-xl p-6 border border-slate-200 relative overflow-hidden group shadow-sm">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <BarChart3 className="w-16 h-16 text-amber-500" />
+                        <BarChart3 className="w-16 h-16 text-primary" />
                     </div>
                     <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="p-1.5 bg-amber-100 rounded-md text-amber-600">
+                            <span className="p-1.5 bg-primary/10 rounded-md text-primary">
                                 <Calendar className="w-4 h-4" />
                             </span>
                             <p className="text-slate-900 text-sm font-bold uppercase tracking-wider opacity-70">This Month</p>
@@ -319,13 +319,13 @@ const DieselAnalyticsDashboard: React.FC = () => {
                 </div>
 
                 {/* Daily Average */}
-                <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-6 border border-amber-100 relative overflow-hidden group">
+                <div className="bg-white rounded-xl p-6 border border-slate-200 relative overflow-hidden group shadow-sm">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <TrendingUp className="w-16 h-16 text-amber-500" />
+                        <TrendingUp className="w-16 h-16 text-primary" />
                     </div>
                     <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="p-1.5 bg-amber-100 rounded-md text-amber-600">
+                            <span className="p-1.5 bg-primary/10 rounded-md text-primary">
                                 <BarChart3 className="w-4 h-4" />
                             </span>
                             <p className="text-slate-900 text-sm font-bold uppercase tracking-wider opacity-70">Daily Average</p>
@@ -333,8 +333,8 @@ const DieselAnalyticsDashboard: React.FC = () => {
                         <div>
                             <p className="text-slate-900 text-4xl font-bold leading-tight tracking-tight">{metrics.average} L</p>
                             <div className="flex items-center gap-1 mt-1">
-                                <TrendingUp className="w-4 h-4 text-amber-500" />
-                                <p className="text-amber-500 text-sm font-bold">+{metrics.monthChange}%</p>
+                                <TrendingUp className="w-4 h-4 text-primary" />
+                                <p className="text-primary text-sm font-bold">+{metrics.monthChange}%</p>
                                 <p className="text-slate-500 text-sm">vs last month</p>
                             </div>
                         </div>
@@ -345,7 +345,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
             {/* Chart & Breakdown Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Chart Area */}
-                <div className="lg:col-span-2 flex flex-col bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+                <div className="lg:col-span-2 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h3 className="text-lg font-bold text-slate-900">Consumption Trends</h3>
@@ -354,14 +354,14 @@ const DieselAnalyticsDashboard: React.FC = () => {
                         <div className="flex gap-2">
                             <span
                                 onClick={() => setPeriod('7D')}
-                                className={`px-2 py-1 text-xs font-bold rounded cursor-pointer transition-colors ${period === '7D' ? 'text-amber-600 bg-amber-100' : 'text-slate-500 hover:bg-slate-50'
+                                className={`px-2 py-1 text-xs font-bold rounded cursor-pointer transition-colors ${period === '7D' ? 'text-primary bg-primary/10' : 'text-slate-500 hover:bg-slate-50'
                                     }`}
                             >
                                 7D
                             </span>
                             <span
                                 onClick={() => setPeriod('30D')}
-                                className={`px-2 py-1 text-xs font-bold rounded cursor-pointer transition-colors ${period === '30D' ? 'text-amber-600 bg-amber-100' : 'text-slate-500 hover:bg-slate-50'
+                                className={`px-2 py-1 text-xs font-bold rounded cursor-pointer transition-colors ${period === '30D' ? 'text-primary bg-primary/10' : 'text-slate-500 hover:bg-slate-50'
                                     }`}
                             >
                                 30D
@@ -373,35 +373,35 @@ const DieselAnalyticsDashboard: React.FC = () => {
                     <div className="relative w-full h-[280px]">
                         {/* Average band */}
                         <div
-                            className="absolute left-0 right-0 bg-amber-50/50 border-y border-dashed border-amber-200 pointer-events-none"
+                            className="absolute left-0 right-0 bg-slate-50 border-y border-dashed border-slate-200 pointer-events-none"
                             style={{
                                 top: `${chartHeight - (metrics.average / maxValue) * (chartHeight - 40) - 40}px`,
                                 height: '40px'
                             }}
                         />
-                        <div className="absolute right-2 text-[10px] text-amber-400 font-medium" style={{ top: '40%' }}>
+                        <div className="absolute right-2 text-[10px] text-slate-400 font-medium" style={{ top: '40%' }}>
                             30-day avg band
                         </div>
 
                         <svg className="w-full h-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
                             <defs>
-                                <linearGradient id="gradientGold" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" style={{ stopColor: '#F59E0B', stopOpacity: 0.2 }} />
-                                    <stop offset="100%" style={{ stopColor: '#F59E0B', stopOpacity: 0 }} />
+                                <linearGradient id="gradientPrimary" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style={{ stopColor: '#708F96', stopOpacity: 0.2 }} />
+                                    <stop offset="100%" style={{ stopColor: '#708F96', stopOpacity: 0 }} />
                                 </linearGradient>
                             </defs>
                             {/* Area Fill */}
-                            <path d={areaD} fill="url(#gradientGold)" />
+                            <path d={areaD} fill="url(#gradientPrimary)" />
                             {/* Line Stroke */}
-                            <path d={pathD} fill="none" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round" />
+                            <path d={pathD} fill="none" stroke="#708F96" strokeWidth="3" strokeLinecap="round" />
                             {/* Data Points */}
                             {points.map((p, i) => (
                                 <g key={i}>
-                                    <circle cx={p.x} cy={p.y} r="4" fill="#ffffff" stroke="#F59E0B" strokeWidth="2" />
+                                    <circle cx={p.x} cy={p.y} r="4" fill="#ffffff" stroke="#708F96" strokeWidth="2" />
                                     {i === points.length - 1 && (
                                         <>
-                                            <circle cx={p.x} cy={p.y} r="6" fill="#F59E0B" />
-                                            <circle cx={p.x} cy={p.y} r="12" fill="#F59E0B" opacity="0.2">
+                                            <circle cx={p.x} cy={p.y} r="6" fill="#708F96" />
+                                            <circle cx={p.x} cy={p.y} r="12" fill="#708F96" opacity="0.2">
                                                 <animate attributeName="r" from="6" to="16" dur="1.5s" repeatCount="indefinite" />
                                                 <animate attributeName="opacity" from="0.4" to="0" dur="1.5s" repeatCount="indefinite" />
                                             </circle>
@@ -425,7 +425,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
                         {trendData.map((d, i) => (
                             <span
                                 key={i}
-                                className={i === trendData.length - 1 ? 'text-amber-600 font-bold' : ''}
+                                className={i === trendData.length - 1 ? 'text-primary font-bold' : ''}
                             >
                                 {d.date}
                             </span>
@@ -436,10 +436,10 @@ const DieselAnalyticsDashboard: React.FC = () => {
                 {/* Right Column */}
                 <div className="flex flex-col gap-6">
                     {/* Generator Breakdown */}
-                    <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 flex flex-col gap-4">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-base font-bold text-slate-900">Generator Breakdown</h3>
-                            <button className="text-xs font-bold text-amber-600 hover:underline">View Details</button>
+                            <button className="text-xs font-bold text-primary hover:underline">View Details</button>
                         </div>
 
                         {breakdown.map((gen, i) => (
@@ -462,7 +462,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
                                         initial={{ width: 0 }}
                                         animate={{ width: `${gen.percentage}%` }}
                                         transition={{ duration: 0.5 }}
-                                        className={`h-full rounded-full ${i === 0 ? 'bg-amber-500' : 'bg-amber-300'}`}
+                                        className={`h-full rounded-full ${i === 0 ? 'bg-primary' : 'bg-primary/50'}`}
                                     />
                                 </div>
                                 <div className="flex justify-between text-[11px] text-slate-500">
@@ -478,10 +478,10 @@ const DieselAnalyticsDashboard: React.FC = () => {
                     </div>
 
                     {/* Alerts Panel */}
-                    <div className="bg-white rounded-xl border border-amber-100 shadow-sm p-5 flex flex-col gap-3 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-bl-full -mr-8 -mt-8 z-0" />
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col gap-3 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-bl-full -mr-8 -mt-8 z-0" />
                         <div className="flex items-center gap-2 z-10 relative mb-1">
-                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                            <AlertTriangle className="w-5 h-5 text-rose-500" />
                             <h3 className="text-base font-bold text-slate-900">Active Alerts</h3>
                         </div>
 
@@ -489,9 +489,9 @@ const DieselAnalyticsDashboard: React.FC = () => {
                             alerts.map((alert) => (
                                 <div
                                     key={alert.id}
-                                    className="flex gap-3 items-start p-3 rounded-lg bg-amber-50/50 border border-amber-100/50 z-10"
+                                    className="flex gap-3 items-start p-3 rounded-lg bg-rose-50/50 border border-rose-100 z-10"
                                 >
-                                    <div className="min-w-[4px] h-8 bg-amber-400 rounded-full mt-1" />
+                                    <div className="min-w-[4px] h-8 bg-rose-400 rounded-full mt-1" />
                                     <div className="flex flex-col gap-1">
                                         <p className="text-sm font-bold text-slate-900">High Consumption</p>
                                         <p className="text-xs text-slate-500 leading-relaxed">
@@ -509,7 +509,7 @@ const DieselAnalyticsDashboard: React.FC = () => {
             </div>
 
             {/* Floating CTA Bar */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-t border-slate-100 px-6 py-4">
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-t border-slate-200 px-6 py-4">
                 <div className="max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-4">
                     <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
                         <Calendar className="w-4 h-4" />
@@ -518,14 +518,14 @@ const DieselAnalyticsDashboard: React.FC = () => {
                     <div className="flex w-full md:w-auto gap-3">
                         <button
                             onClick={handleExport}
-                            className="flex-1 md:flex-none h-11 px-6 rounded-lg border border-amber-200 text-slate-900 font-bold text-sm hover:bg-amber-50 transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 md:flex-none h-11 px-6 rounded-lg border border-slate-200 text-slate-900 font-bold text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                         >
                             <Download className="w-4 h-4" />
                             Export Data
                         </button>
                         <button
                             onClick={() => window.location.href = `../staff`}
-                            className="flex-1 md:flex-none h-11 px-6 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-lg shadow-amber-200/50 transition-all flex items-center justify-center gap-2"
+                            className="flex-1 md:flex-none h-11 px-6 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
                             Log Tomorrow

@@ -59,10 +59,9 @@ export default function DashboardSidebar() {
                             href={item.href}
                             className={`
                                 flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] transition-smooth group
-                                ${
-                                    pathname === item.href
-                                        ? 'bg-primary text-text-inverse shadow-sm'
-                                        : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                                ${pathname === item.href
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                 }
                             `}
                         >
@@ -78,12 +77,20 @@ export default function DashboardSidebar() {
                 {/* User Profile */}
                 <div className="px-3 py-3 rounded-[var(--radius-lg)] border border-border/5">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-display font-bold text-sm">
-                            {getUserInitials(user?.email || 'User')}
-                        </div>
+                        {user?.user_metadata?.avatar_url ? (
+                            <img
+                                src={user.user_metadata.avatar_url}
+                                alt="Profile"
+                                className="w-10 h-10 rounded-full object-cover border border-border"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-display font-bold text-sm">
+                                {getUserInitials(user?.email || 'User')}
+                            </div>
+                        )}
                         <div className="flex flex-col flex-1 min-w-0">
                             <span className="text-xs font-semibold text-text-primary font-body truncate">
-                                {user?.email?.split('@')[0] || 'User'}
+                                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
                             </span>
                             <span className="text-[10px] text-text-tertiary font-body font-medium">
                                 {user?.user_metadata?.role || 'User'}
@@ -95,8 +102,8 @@ export default function DashboardSidebar() {
                 {/* Action Buttons */}
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                        <Link 
-                            href="/settings" 
+                        <Link
+                            href={`/${orgId}/settings`}
                             className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-smooth"
                         >
                             <Settings className="w-4 h-4" />
@@ -104,7 +111,7 @@ export default function DashboardSidebar() {
                         </Link>
                         <ThemeToggle />
                     </div>
-                    
+
                     <button
                         onClick={() => setShowSignOutModal(true)}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] text-error hover:bg-error/10 transition-smooth"
