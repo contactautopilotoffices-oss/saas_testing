@@ -334,7 +334,7 @@ const FoodVendorDashboard = () => {
             {/* Sidebar (Very Minimal) */}
             <aside className="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 p-8">
                 <div className="flex items-center gap-3 mb-12">
-                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse">
                         <Store className="w-5 h-5" />
                     </div>
                     <div>
@@ -347,8 +347,8 @@ const FoodVendorDashboard = () => {
                     <button
                         onClick={() => setActiveTab('portal')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'portal'
-                                ? 'bg-indigo-50 text-indigo-600'
-                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                             }`}
                     >
                         <LayoutDashboard className="w-4 h-4" />
@@ -357,8 +357,8 @@ const FoodVendorDashboard = () => {
                     <button
                         onClick={() => setActiveTab('history')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'history'
-                                ? 'bg-indigo-50 text-indigo-600'
-                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                             }`}
                     >
                         <History className="w-4 h-4" />

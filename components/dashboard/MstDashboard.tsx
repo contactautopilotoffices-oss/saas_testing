@@ -138,13 +138,13 @@ const MstDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-[#0f1419] flex font-inter text-white">
+        <div className="min-h-screen bg-background flex font-inter text-foreground dark">
             {/* Dark Sidebar */}
-            <aside className="w-56 bg-[#161b22] flex flex-col fixed h-full z-10 border-r border-[#21262d]">
+            <aside className="w-56 bg-sidebar flex flex-col fixed h-full z-10 border-r border-border">
                 {/* Logo */}
                 <div className="p-4 border-b border-[#21262d]">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-text-inverse font-bold text-sm">
                             <Wrench className="w-4 h-4" />
                         </div>
                         <div>
@@ -180,11 +180,11 @@ const MstDashboard = () => {
                                 onClick={() => setActiveTab('create_request')}
                                 className="col-span-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d] transition-all"
                             >
-                                <Plus className="w-3 h-3 text-emerald-500" />
+                                <Plus className="w-3 h-3 text-primary" />
                                 New Request
                             </button>
                             <button className="col-span-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d] transition-all">
-                                <Cog className="w-3 h-3 text-emerald-500" />
+                                <Cog className="w-3 h-3 text-primary" />
                                 Manage Prop
                             </button>
                         </div>
@@ -196,14 +196,14 @@ const MstDashboard = () => {
                     {/* Daily Work */}
                     <div className="mb-4">
                         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
-                            <span className="w-0.5 h-2.5 bg-emerald-500 rounded-full" />
+                            <span className="w-0.5 h-2.5 bg-primary rounded-full" />
                             Daily Work
                         </p>
                         <div className="space-y-0.5">
                             <button
                                 onClick={() => setActiveTab('dashboard')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'dashboard'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
@@ -213,7 +213,7 @@ const MstDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('tasks')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'tasks'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
@@ -223,7 +223,7 @@ const MstDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('projects')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'projects'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
@@ -233,7 +233,7 @@ const MstDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'requests'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
@@ -243,7 +243,7 @@ const MstDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('alerts')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'alerts'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
@@ -256,14 +256,14 @@ const MstDashboard = () => {
                     {/* Operations */}
                     <div className="mb-4">
                         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
-                            <span className="w-0.5 h-2.5 bg-emerald-500 rounded-full" />
+                            <span className="w-0.5 h-2.5 bg-primary rounded-full" />
                             Operations
                         </p>
                         <div className="space-y-0.5">
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'visitors'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >
@@ -283,7 +283,7 @@ const MstDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('cafeteria')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-medium ${activeTab === 'cafeteria'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-slate-200'
                                     }`}
                             >

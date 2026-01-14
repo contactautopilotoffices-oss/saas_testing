@@ -17,56 +17,57 @@
 
   /* Surfaces & Backgrounds - Phase 3 Premium Gradients */
   --background: #FAFBFC;
-  --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(0,0,0,0.01), transparent 40%), linear-gradient(180deg, #F8FAFC, #F1F5F9);
-  --sidebar-bg: #F8FAFC; /* Match canvas for continuous feel */
+  --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(0, 0, 0, 0.01), transparent 40%), linear-gradient(180deg, #F8FAFC, #F1F5F9);
+  --sidebar-bg: #F8FAFC;
+  /* Match canvas for continuous feel */
   --foreground: #1A2332;
-  
+
   /* Phase 3 Card Surface (Light) */
-  --card-surface: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(245,247,249,0.75) 100%);
-  --card-border: rgba(0,0,0,0.04);
-  --card-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  --card-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(245, 247, 249, 0.75) 100%);
+  --card-border: rgba(0, 0, 0, 0.04);
+  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
   --card-radius: 20px;
 
   /* Phase 3 Large Panel (Light) */
-  --panel-surface: linear-gradient(160deg, rgba(255,255,255,0.9), rgba(248,249,251,0.8));
-  --panel-border: rgba(0,0,0,0.04);
+  --panel-surface: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 251, 0.8));
+  --panel-border: rgba(0, 0, 0, 0.04);
   --panel-radius: 24px;
-  
+
   /* Text Hierarchy - Light Mode (Softened Dark) */
   --text-primary: rgba(26, 35, 50, 0.92);
   --text-secondary: rgba(26, 35, 50, 0.62);
   --text-tertiary: rgba(26, 35, 50, 0.42);
   --text-muted: rgba(26, 35, 50, 0.42);
   --text-inverse: rgba(230, 235, 238, 0.92);
-  
+
   /* Sidebar/Navigation */
   --sidebar: #FFFFFF;
   --sidebar-foreground: #1A2332;
   --sidebar-border: #E2E8F0;
-  
+
   /* Status Colors */
   --success: #10B981;
   --warning: #F59E0B;
   --error: #EF4444;
   --info: #3B82F6;
-  
+
   /* Glass/Dashboard Specific (Light Mode) */
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(226, 232, 240, 0.5);
   --glass-shadow: rgba(0, 0, 0, 0.05);
-  
+
   /* Neon Accents for Charts/Metrics */
   --neon-cyan: #06B6D4;
   --neon-magenta: #EC4899;
   --neon-cyan-glow: rgba(6, 182, 212, 0.4);
   --neon-magenta-glow: rgba(236, 72, 153, 0.4);
-  
+
   /* Elevation Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  
+
   /* 8px Spacing System */
   --space-1: 8px;
   --space-2: 16px;
@@ -76,17 +77,17 @@
   --space-6: 48px;
   --space-8: 64px;
   --space-10: 80px;
-  
+
   /* Border Radius */
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  
+
   /* Typography Scale */
   --font-display: 'Poppins', sans-serif;
   --font-body: 'Urbanist', sans-serif;
-  
+
   /* Transitions */
   --transition-smooth: cubic-bezier(0.4, 0.0, 0.2, 1);
   --duration-fast: 150ms;
@@ -97,36 +98,36 @@
 .dark {
   /* Surfaces & Backgrounds - Phase 3 Premium Dark */
   --background: #0F141A;
-  --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(255,255,255,0.04), transparent 40%), linear-gradient(180deg, #0F141A, #121820);
+  --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(255, 255, 255, 0.04), transparent 40%), linear-gradient(180deg, #0F141A, #121820);
   --sidebar-bg: #0C1117;
   --foreground: #F8FAFC;
 
   /* Phase 3 Card Surface (Dark) */
-  --card-surface: linear-gradient(135deg, rgba(28,35,45,0.9) 0%, rgba(20,26,34,0.85) 100%);
-  --card-border: rgba(255,255,255,0.06);
-  --card-shadow: 0 30px 60px rgba(0,0,0,0.45);
-  
+  --card-surface: linear-gradient(135deg, rgba(28, 35, 45, 0.9) 0%, rgba(20, 26, 34, 0.85) 100%);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+
   /* Phase 3 Large Panel (Dark) */
-  --panel-surface: linear-gradient(160deg, rgba(24,32,44,0.95), rgba(15,20,28,0.92));
-  --panel-border: rgba(255,255,255,0.08);
-  
+  --panel-surface: linear-gradient(160deg, rgba(24, 32, 44, 0.95), rgba(15, 20, 28, 0.92));
+  --panel-border: rgba(255, 255, 255, 0.08);
+
   /* Text Hierarchy - Dark Mode (Softened Light) */
   --text-primary: rgba(230, 235, 238, 0.92);
   --text-secondary: rgba(230, 235, 238, 0.62);
   --text-tertiary: rgba(230, 235, 238, 0.42);
   --text-muted: rgba(230, 235, 238, 0.42);
   --text-inverse: rgba(26, 35, 50, 0.92);
-  
+
   /* Sidebar/Navigation */
   --sidebar: #151B2B;
   --sidebar-foreground: #F8FAFC;
   --sidebar-border: #2D3748;
-  
+
   /* Glass/Dashboard Specific (Dark Mode) */
   --glass-bg: rgba(21, 27, 43, 0.6);
   --glass-border: rgba(45, 55, 72, 0.6);
   --glass-shadow: rgba(0, 0, 0, 0.3);
-  
+
   /* Elevation Shadows (Dark) */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
@@ -146,7 +147,7 @@
   --color-secondary: var(--secondary);
   --color-secondary-light: var(--secondary-light);
   --color-secondary-dark: var(--secondary-dark);
-  
+
   /* Base Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -154,24 +155,24 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
-  
+
   /* Text */
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
   --color-text-inverse: var(--text-inverse);
-  
+
   /* Sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
-  
+
   /* Status */
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-info: var(--info);
-  
+
   /* Neon Accents */
   --color-neon-cyan: var(--neon-cyan);
   --color-neon-magenta: var(--neon-magenta);
@@ -185,6 +186,7 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -195,6 +197,7 @@
       transform: translateY(10px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -206,6 +209,7 @@
       transform: scale(0.95);
       opacity: 0;
     }
+
     to {
       transform: scale(1);
       opacity: 1;
@@ -213,9 +217,12 @@
   }
 
   @keyframes glow-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
       opacity: 1;
     }
+
     50% {
       opacity: 0.6;
     }
@@ -306,25 +313,56 @@
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     @apply tracking-tight;
     color: var(--text-primary);
-    font-weight: 500 !important; /* Strict enforcement of softened headings */
+    font-weight: 500 !important;
+    /* Strict enforcement of softened headings */
   }
 
-  h1 { font-size: 2.25rem; font-weight: 600 !important; } /* Only H1/H2 get 600 */
-  h2 { font-size: 1.75rem; font-weight: 600 !important; }
-  h3 { font-size: 1.5rem; font-weight: 500 !important; }
-  h4 { font-size: 1.25rem; font-weight: 500 !important; }
-  h5 { font-size: 1.125rem; font-weight: 500 !important; }
-  h6 { font-size: 1rem; font-weight: 500 !important; }
+  h1 {
+    font-size: 2.25rem;
+    font-weight: 600 !important;
+  }
+
+  /* Only H1/H2 get 600 */
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 600 !important;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 500 !important;
+  }
+
+  h4 {
+    font-size: 1.25rem;
+    font-weight: 500 !important;
+  }
+
+  h5 {
+    font-size: 1.125rem;
+    font-weight: 500 !important;
+  }
+
+  h6 {
+    font-size: 1rem;
+    font-weight: 500 !important;
+  }
 
   label {
     font-family: var(--font-body);
     font-weight: 500 !important;
     color: var(--text-secondary);
-    text-transform: none !important; /* Kill all caps permanently */
+    text-transform: none !important;
+    /* Kill all caps permanently */
   }
 
   /* Numbers Utility - Command Grade */
@@ -341,6 +379,101 @@
 
 /* Custom Utilities & Components */
 @layer utilities {
+
+  /* Primary/Secondary Color Utilities */
+  .bg-primary {
+    background-color: var(--primary);
+  }
+
+  .bg-primary\/10 {
+    background-color: rgba(112, 143, 150, 0.1);
+  }
+
+  .bg-primary\/20 {
+    background-color: rgba(112, 143, 150, 0.2);
+  }
+
+  .bg-secondary {
+    background-color: var(--secondary);
+  }
+
+  .bg-secondary\/10 {
+    background-color: rgba(170, 137, 95, 0.1);
+  }
+
+  .bg-secondary\/25 {
+    background-color: rgba(170, 137, 95, 0.25);
+  }
+
+  .text-primary {
+    color: var(--primary);
+  }
+
+  .text-secondary {
+    color: var(--secondary);
+  }
+
+  .text-text-inverse {
+    color: var(--text-inverse);
+  }
+
+  .border-primary {
+    border-color: var(--primary);
+  }
+
+  .hover\:border-primary:hover {
+    border-color: var(--primary);
+  }
+
+  .shadow-primary\/25 {
+    box-shadow: 0 10px 15px -3px rgba(112, 143, 150, 0.25);
+  }
+
+  .shadow-secondary\/25 {
+    box-shadow: 0 10px 15px -3px rgba(170, 137, 95, 0.25);
+  }
+
+  /* Background/Surface Utilities */
+  .bg-background {
+    background-color: var(--background);
+  }
+
+  .bg-sidebar {
+    background-color: var(--sidebar-bg);
+  }
+
+  .bg-surface-card {
+    background: var(--surface);
+  }
+
+  .bg-surface-elevated {
+    background: var(--surface-elevated);
+  }
+
+  .hover\:bg-surface-elevated:hover {
+    background: var(--surface-elevated);
+  }
+
+  .text-text-primary {
+    color: var(--text-primary);
+  }
+
+  .text-text-secondary {
+    color: var(--text-secondary);
+  }
+
+  .text-text-tertiary {
+    color: var(--text-tertiary);
+  }
+
+  .hover\:text-text-primary:hover {
+    color: var(--text-primary);
+  }
+
+  .border-border {
+    border-color: var(--border);
+  }
+
   /* --- Phase 4: True Glass (Controlled, Premium) --- */
   .glass-card {
     background: rgba(255, 255, 255, 0.55);
@@ -437,28 +570,85 @@
   }
 
   /* Spacing Utilities (8px system) */
-  .space-1 { margin: var(--space-1); }
-  .space-2 { margin: var(--space-2); }
-  .space-3 { margin: var(--space-3); }
-  .space-4 { margin: var(--space-4); }
-  .space-5 { margin: var(--space-5); }
-  .space-6 { margin: var(--space-6); }
-  .space-8 { margin: var(--space-8); }
-  .space-10 { margin: var(--space-10); }
+  .space-1 {
+    margin: var(--space-1);
+  }
 
-  .gap-1 { gap: var(--space-1); }
-  .gap-2 { gap: var(--space-2); }
-  .gap-3 { gap: var(--space-3); }
-  .gap-4 { gap: var(--space-4); }
-  .gap-5 { gap: var(--space-5); }
-  .gap-6 { gap: var(--space-6); }
+  .space-2 {
+    margin: var(--space-2);
+  }
 
-  .p-1 { padding: var(--space-1); }
-  .p-2 { padding: var(--space-2); }
-  .p-3 { padding: var(--space-3); }
-  .p-4 { padding: var(--space-4); }
-  .p-5 { padding: var(--space-5); }
-  .p-6 { padding: var(--space-6); }
+  .space-3 {
+    margin: var(--space-3);
+  }
+
+  .space-4 {
+    margin: var(--space-4);
+  }
+
+  .space-5 {
+    margin: var(--space-5);
+  }
+
+  .space-6 {
+    margin: var(--space-6);
+  }
+
+  .space-8 {
+    margin: var(--space-8);
+  }
+
+  .space-10 {
+    margin: var(--space-10);
+  }
+
+  .gap-1 {
+    gap: var(--space-1);
+  }
+
+  .gap-2 {
+    gap: var(--space-2);
+  }
+
+  .gap-3 {
+    gap: var(--space-3);
+  }
+
+  .gap-4 {
+    gap: var(--space-4);
+  }
+
+  .gap-5 {
+    gap: var(--space-5);
+  }
+
+  .gap-6 {
+    gap: var(--space-6);
+  }
+
+  .p-1 {
+    padding: var(--space-1);
+  }
+
+  .p-2 {
+    padding: var(--space-2);
+  }
+
+  .p-3 {
+    padding: var(--space-3);
+  }
+
+  .p-4 {
+    padding: var(--space-4);
+  }
+
+  .p-5 {
+    padding: var(--space-5);
+  }
+
+  .p-6 {
+    padding: var(--space-6);
+  }
 
   /* Smooth Transitions */
   .transition-smooth {
@@ -480,9 +670,12 @@
   }
 
   @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0px);
     }
+
     50% {
       transform: translateY(-4px);
     }

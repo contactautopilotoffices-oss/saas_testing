@@ -170,7 +170,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                     className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
                             <Users className="w-6 h-6 text-indigo-600" />
                         </div>
                         <div>
@@ -183,7 +183,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                     className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center">
                             <LogIn className="w-6 h-6 text-emerald-600" />
                         </div>
                         <div>
@@ -260,7 +260,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status
-                                        ? 'bg-slate-900 text-white'
+                                        ? 'bg-primary text-text-inverse'
                                         : 'bg-white text-slate-500 hover:bg-slate-50'
                                         }`}
                                 >
@@ -353,7 +353,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${visitor.status === 'checked_in'
-                                                ? 'bg-emerald-100 text-emerald-700'
+                                                ? 'bg-primary/10 text-primary'
                                                 : 'bg-slate-100 text-slate-600'
                                                 }`}>
                                                 {visitor.status === 'checked_in' ? 'On Premise' : 'Checked Out'}

@@ -91,7 +91,7 @@ const SecurityDashboard = () => {
             <aside className="w-72 bg-sidebar border-r border-border flex flex-col fixed h-full z-10 transition-all duration-300">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-slate-200">
+                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse font-bold text-lg shadow-lg shadow-slate-200">
                             <Shield className="w-6 h-6" />
                         </div>
                         <div>
@@ -143,14 +143,14 @@ const SecurityDashboard = () => {
                     {/* Core Operations */}
                     <div className="mb-6">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-slate-900 rounded-full"></span>
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             Core Operations
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/25'
+                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
                                     : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
@@ -160,7 +160,7 @@ const SecurityDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/25'
+                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
                                     : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
@@ -170,7 +170,7 @@ const SecurityDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('checkinout')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'checkinout'
-                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                                    ? 'bg-secondary text-text-inverse shadow-lg shadow-secondary/25'
                                     : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
@@ -183,14 +183,14 @@ const SecurityDashboard = () => {
                     {/* Management Hub */}
                     <div className="mb-6">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-slate-900 rounded-full"></span>
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             Management Hub
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/25'
+                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
                                     : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
@@ -210,7 +210,7 @@ const SecurityDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('cafeteria')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'cafeteria'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/25'
+                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
                                     : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
@@ -223,14 +223,14 @@ const SecurityDashboard = () => {
                     {/* System & Personal */}
                     <div className="mb-6">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-slate-900 rounded-full"></span>
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/25'
+                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
                                     : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
@@ -240,7 +240,7 @@ const SecurityDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/25'
+                                    ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
                                     : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >

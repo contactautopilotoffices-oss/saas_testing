@@ -103,12 +103,12 @@ const PropertyAdminDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-[#0f1419] flex font-inter text-white">
+        <div className="min-h-screen bg-background flex font-inter text-foreground dark">
             {/* Sidebar */}
-            <aside className="w-72 bg-[#161b22] border-r border-[#21262d] flex flex-col fixed h-full z-10 transition-all duration-300">
+            <aside className="w-72 bg-sidebar border-r border-border flex flex-col fixed h-full z-10 transition-all duration-300">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse font-bold text-lg">
                             {property?.name?.substring(0, 1) || 'P'}
                         </div>
                         <div>
@@ -124,7 +124,7 @@ const PropertyAdminDashboard = () => {
                         {/* Quick Actions - Simplified Dark Version */}
                         <div className="mb-8">
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-6 mb-4 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
                                 Quick Actions
                             </p>
                             <div className="px-4 grid grid-cols-2 gap-2">
@@ -132,7 +132,7 @@ const PropertyAdminDashboard = () => {
                                     onClick={() => setShowCreateTicketModal(true)}
                                     className="flex flex-col items-center justify-center gap-2 p-3 bg-[#21262d] text-white rounded-xl hover:bg-[#30363d] transition-all border border-[#30363d] group"
                                 >
-                                    <div className="w-8 h-8 bg-emerald-600/20 rounded-lg flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                         <Plus className="w-4 h-4" />
                                     </div>
                                     <span className="text-[10px] font-black uppercase tracking-tight text-center">New Request</span>
@@ -141,7 +141,7 @@ const PropertyAdminDashboard = () => {
                                     onClick={() => setActiveTab('users')}
                                     className="flex flex-col items-center justify-center gap-2 p-3 bg-[#21262d] text-white rounded-xl hover:bg-[#30363d] transition-all border border-[#30363d] group"
                                 >
-                                    <div className="w-8 h-8 bg-emerald-600/20 rounded-lg flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                         <UserCircle className="w-4 h-4" />
                                     </div>
                                     <span className="text-[10px] font-black uppercase tracking-tight text-center">Manage Users</span>
@@ -153,14 +153,14 @@ const PropertyAdminDashboard = () => {
                     {/* Core Operations */}
                     <div className="mb-6">
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             Core Operations
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -170,7 +170,7 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -183,14 +183,14 @@ const PropertyAdminDashboard = () => {
                     {/* Management Hub */}
                     <div className="mb-6">
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             Management Hub
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('users')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -200,7 +200,7 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -210,7 +210,7 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('units')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'units'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -230,7 +230,7 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('vendor_revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'vendor_revenue'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -243,14 +243,14 @@ const PropertyAdminDashboard = () => {
                     {/* System & Personal */}
                     <div className="mb-6">
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -260,7 +260,7 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-primary text-text-inverse'
                                     : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
                                     }`}
                             >
@@ -327,11 +327,11 @@ const PropertyAdminDashboard = () => {
                                 onClick={() => setActiveTab('profile')}
                                 className="flex items-center gap-4 group transition-all"
                             >
-                                <div className="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-bold text-base group-hover:scale-105 transition-transform">
+                                <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-base group-hover:scale-105 transition-transform">
                                     {user?.email?.[0].toUpperCase() || 'P'}
                                 </div>
                                 <div className="text-left hidden md:block">
-                                    <h4 className="text-[15px] font-black text-white leading-none mb-1 group-hover:text-emerald-400 transition-colors">
+                                    <h4 className="text-[15px] font-black text-white leading-none mb-1 group-hover:text-primary transition-colors">
                                         {user?.user_metadata?.full_name || 'Property Admin'}
                                     </h4>
                                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.15em]">
@@ -342,7 +342,7 @@ const PropertyAdminDashboard = () => {
 
                             <div className="hidden lg:flex flex-col items-end border-l border-[#21262d] pl-6 h-8 justify-center">
                                 <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Access Level</span>
-                                <span className="text-xs text-emerald-500 font-black uppercase tracking-widest leading-none">Property admin</span>
+                                <span className="text-xs text-primary font-black uppercase tracking-widest leading-none">Property admin</span>
                             </div>
                         </div>
                     </div>

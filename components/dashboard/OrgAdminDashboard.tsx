@@ -344,17 +344,17 @@ const OrgAdminDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-[#0f1419] flex font-inter text-white">
+        <div className="min-h-screen bg-background flex font-inter text-foreground">
             {/* Sidebar */}
-            <aside className="w-72 bg-[#161b22] border-r border-[#21262d] flex flex-col fixed h-full z-10 transition-all duration-300">
+            <aside className="w-72 bg-[var(--sidebar-bg)] border-r border-border flex flex-col fixed h-full z-10 transition-smooth">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                        <div className="w-10 h-10 bg-primary rounded-[var(--radius-md)] flex items-center justify-center text-text-inverse font-display font-semibold text-lg shadow-sm">
                             {org?.name?.substring(0, 1) || 'O'}
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm leading-tight text-white truncate max-w-[150px]">{org?.name || 'Organization'}</h2>
-                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Super Admin Console</p>
+                            <h2 className="font-display font-semibold text-sm leading-tight text-text-primary truncate max-w-[150px]">{org?.name || 'Organization'}</h2>
+                            <p className="text-[10px] text-text-tertiary font-body font-medium mt-1">Super Admin Console</p>
                         </div>
                     </div>
                 </div>
@@ -362,16 +362,16 @@ const OrgAdminDashboard = () => {
                 <nav className="flex-1 px-4 overflow-y-auto">
                     {/* Core Operations */}
                     <div className="mb-5">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
                             Core Operations
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -380,8 +380,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -392,16 +392,16 @@ const OrgAdminDashboard = () => {
 
                     {/* Management Hub */}
                     <div className="mb-5">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
                             Management Hub
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('users')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Users className="w-4 h-4" />
@@ -410,8 +410,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('properties')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'properties'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Building2 className="w-4 h-4" />
@@ -420,8 +420,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -431,7 +431,7 @@ const OrgAdminDashboard = () => {
                                 onClick={() => setActiveTab('revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'revenue'
                                     ? 'bg-amber-500 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <IndianRupee className="w-4 h-4" />
@@ -442,16 +442,16 @@ const OrgAdminDashboard = () => {
 
                     {/* System & Personal */}
                     <div className="mb-5">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full"></span>
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -460,8 +460,8 @@ const OrgAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse'
+                                    : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
@@ -471,17 +471,17 @@ const OrgAdminDashboard = () => {
                     </div>
                 </nav>
 
-                <div className="pt-5 border-t border-[#21262d] p-5">
+                <div className="pt-5 border-t border-border p-5">
                     {/* User Profile Section */}
                     <div className="flex items-center gap-3 px-2 mb-5">
-                        <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-text-inverse font-bold text-sm">
                             {user?.email?.[0].toUpperCase() || 'O'}
                         </div>
                         <div className="flex flex-col overflow-hidden">
-                            <span className="font-bold text-sm text-white truncate">
+                            <span className="font-display font-semibold text-sm text-text-primary truncate">
                                 {user?.user_metadata?.full_name || 'Super Admin'}
                             </span>
-                            <span className="text-[10px] text-slate-500 truncate font-medium">
+                            <span className="text-[10px] text-text-tertiary truncate font-body font-medium">
                                 {user?.email}
                             </span>
                         </div>
@@ -489,7 +489,7 @@ const OrgAdminDashboard = () => {
 
                     <button
                         onClick={() => setShowSignOutModal(true)}
-                        className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
+                        className="flex items-center gap-3 px-4 py-3 text-text-tertiary hover:text-red-400 hover:bg-red-500/10 rounded-xl w-full transition-smooth text-sm font-body font-medium group"
                     >
                         <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         Sign Out
@@ -509,8 +509,8 @@ const OrgAdminDashboard = () => {
                 {activeTab !== 'overview' && (
                     <header className="flex justify-between items-center mb-10">
                         <div>
-                            <h1 className="text-3xl font-black text-white tracking-tight capitalize">{activeTab}</h1>
-                            <p className="text-slate-500 text-sm font-medium mt-1">Manage your organization's resources.</p>
+                            <h1 className="text-3xl font-display font-semibold text-text-primary tracking-tight capitalize">{activeTab}</h1>
+                            <p className="text-text-tertiary text-sm font-body font-medium mt-1">Manage your organization's resources.</p>
                         </div>
                         <div className="flex items-center gap-4">
                             {/* Property Selector for Requests/Other tabs */}
@@ -518,19 +518,19 @@ const OrgAdminDashboard = () => {
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsPropSelectorOpen(!isPropSelectorOpen)}
-                                        className="flex items-center gap-3 bg-[#161b22] border border-[#21262d] rounded-xl px-4 py-2.5 hover:border-emerald-500 transition-all group min-w-[200px]"
+                                        className="flex items-center gap-3 bg-surface-elevated border border-border rounded-xl px-4 py-2.5 hover:border-primary transition-smooth group min-w-[200px]"
                                     >
-                                        <div className="w-6 h-6 rounded-lg bg-[#21262d] flex items-center justify-center overflow-hidden">
+                                        <div className="w-6 h-6 rounded-lg bg-background flex items-center justify-center overflow-hidden">
                                             {activeProperty?.image_url ? (
                                                 <img src={activeProperty.image_url} alt="" className="w-full h-full object-cover" />
                                             ) : (
-                                                <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                                <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
                                             )}
                                         </div>
-                                        <span className="text-sm font-bold text-white flex-1 text-left">
+                                        <span className="text-sm font-body font-medium text-text-primary flex-1 text-left">
                                             {selectedPropertyId === 'all' ? 'All Properties' : activeProperty?.name}
                                         </span>
-                                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isPropSelectorOpen ? 'rotate-180' : ''}`} />
+                                        <ChevronDown className={`w-4 h-4 text-text-tertiary transition-transform ${isPropSelectorOpen ? 'rotate-180' : ''}`} />
                                     </button>
 
                                     <AnimatePresence>
@@ -544,19 +544,19 @@ const OrgAdminDashboard = () => {
                                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute right-0 mt-2 w-72 bg-[#161b22] rounded-2xl shadow-2xl border border-[#21262d] z-[70] overflow-hidden"
+                                                    className="absolute right-0 mt-2 w-72 bg-surface-elevated rounded-2xl shadow-2xl border border-border z-[70] overflow-hidden"
                                                 >
-                                                    <div className="p-2 border-b border-[#21262d]">
+                                                    <div className="p-2 border-b border-border">
                                                         <button
                                                             onClick={() => { setSelectedPropertyId('all'); setIsPropSelectorOpen(false); }}
-                                                            className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === 'all' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-[#21262d]'}`}
+                                                            className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === 'all' ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:bg-background'}`}
                                                         >
-                                                            <div className="w-8 h-8 rounded-lg bg-[#21262d] flex items-center justify-center">
+                                                            <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center">
                                                                 <LayoutDashboard className="w-4 h-4" />
                                                             </div>
                                                             <div className="text-left">
                                                                 <p className="text-xs font-black uppercase tracking-tight">All Properties</p>
-                                                                <p className="text-[10px] text-slate-500 font-bold">{properties.length} Locations</p>
+                                                                <p className="text-[10px] text-text-tertiary font-body font-medium">{properties.length} Locations</p>
                                                             </div>
                                                         </button>
                                                     </div>
@@ -565,9 +565,9 @@ const OrgAdminDashboard = () => {
                                                             <button
                                                                 key={prop.id}
                                                                 onClick={() => { setSelectedPropertyId(prop.id); setIsPropSelectorOpen(false); }}
-                                                                className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === prop.id ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-[#21262d]'}`}
+                                                                className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === prop.id ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:bg-background'}`}
                                                             >
-                                                                <div className="w-8 h-8 rounded-lg bg-[#21262d] flex items-center justify-center overflow-hidden">
+                                                                <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center overflow-hidden">
                                                                     {prop.image_url ? (
                                                                         <img src={prop.image_url} alt="" className="w-full h-full object-cover" />
                                                                     ) : (
@@ -589,8 +589,8 @@ const OrgAdminDashboard = () => {
                             )}
 
                             <div className="hidden md:flex flex-col items-end">
-                                <span className="text-sm font-black text-white tracking-tight">System Status</span>
-                                <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Online</span>
+                                <span className="text-sm font-display font-semibold text-text-primary tracking-tight">System Status</span>
+                                <span className="text-[10px] text-primary font-bold uppercase tracking-widest">Online</span>
                             </div>
                         </div>
                     </header>

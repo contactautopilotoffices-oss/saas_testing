@@ -386,7 +386,7 @@ const DashboardTab = () => (
         </div>
 
         {/* Incoming Requests */}
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
+        <div className="bg-surface-card border border-border rounded-xl p-5">
             <div className="mb-4">
                 <h2 className="text-base font-bold text-white">Incoming Requests</h2>
                 <p className="text-xs text-slate-500">Tasks available for you to accept</p>
@@ -397,7 +397,7 @@ const DashboardTab = () => (
         </div>
 
         {/* Dashboard Section */}
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-5">
+        <div className="bg-surface-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-5">
                 <h2 className="text-base font-bold text-white">Dashboard</h2>
                 <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-lg bg-[#21262d]">
@@ -437,7 +437,7 @@ const DashboardTab = () => (
 const TasksTab = () => (
     <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">My Tasks</h1>
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+        <div className="bg-surface-card border border-border rounded-xl p-12 text-center">
             <ClipboardList className="w-12 h-12 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">No tasks assigned to you</p>
         </div>
@@ -448,7 +448,7 @@ const TasksTab = () => (
 const ProjectsTab = () => (
     <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">My Project Work</h1>
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+        <div className="bg-surface-card border border-border rounded-xl p-12 text-center">
             <FolderKanban className="w-12 h-12 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">No projects assigned to you</p>
         </div>
@@ -459,7 +459,7 @@ const ProjectsTab = () => (
 const RequestsTab = () => (
     <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">Requests</h1>
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+        <div className="bg-surface-card border border-border rounded-xl p-12 text-center">
             <Ticket className="w-12 h-12 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">No requests found</p>
         </div>
@@ -470,7 +470,7 @@ const RequestsTab = () => (
 const AlertsTab = () => (
     <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">Alerts</h1>
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+        <div className="bg-surface-card border border-border rounded-xl p-12 text-center">
             <Bell className="w-12 h-12 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">No alerts at this time</p>
         </div>
@@ -481,7 +481,7 @@ const AlertsTab = () => (
 const VisitorsTab = () => (
     <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">Visitors</h1>
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+        <div className="bg-surface-card border border-border rounded-xl p-12 text-center">
             <UsersRound className="w-12 h-12 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">Check-in and verify property visitors</p>
         </div>
@@ -492,7 +492,7 @@ const VisitorsTab = () => (
 const CafeteriaTab = () => (
     <div className="space-y-6">
         <h1 className="text-2xl font-bold text-white">Cafeteria</h1>
-        <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-12 text-center">
+        <div className="bg-surface-card border border-border rounded-xl p-12 text-center">
             <Coffee className="w-12 h-12 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">Cafeteria management coming soon</p>
         </div>
