@@ -131,14 +131,14 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                             <span className="px-3 py-1 bg-[#21262d] rounded-full text-sm">{category.name}</span>
                         )}
                         <span className={`px-3 py-1 rounded-full text-sm ${ticket.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                                ticket.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                                    'bg-blue-500/20 text-blue-400'
+                            ticket.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                                'bg-blue-500/20 text-blue-400'
                             }`}>
                             {(ticket.priority as string)?.charAt(0).toUpperCase() + (ticket.priority as string)?.slice(1)} Priority
                         </span>
                         <span className={`px-3 py-1 rounded-full text-sm ${ticket.status === 'resolved' ? 'bg-green-500/20 text-green-400' :
-                                ticket.status === 'in_progress' ? 'bg-cyan-500/20 text-cyan-400' :
-                                    'bg-gray-500/20 text-gray-400'
+                            ticket.status === 'in_progress' ? 'bg-cyan-500/20 text-cyan-400' :
+                                'bg-gray-500/20 text-gray-400'
                             }`}>
                             {(ticket.status as string)?.replace(/_/g, ' ')}
                         </span>
@@ -161,7 +161,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                                 Reported by: {creator.full_name}
                             </div>
                         )}
-                        {ticket.location && (
+                        {typeof ticket.location === 'string' && ticket.location && (
                             <div className="flex items-center gap-2">
                                 <MapPin className="w-4 h-4" />
                                 {ticket.location as string}

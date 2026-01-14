@@ -72,5 +72,8 @@ export const CAPABILITY_MATRIX: Record<RoleKey, CapabilityMatrix> = {
         tickets: ['create', 'view'],
         visitors: ['create'],
         dashboards: ['view']
+    },
+    vendor: {
+        tickets: ['view']
     }
 };
