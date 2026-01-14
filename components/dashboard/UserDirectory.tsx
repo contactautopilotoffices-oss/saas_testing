@@ -3,15 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import {
     Users, Search, Filter, UserPlus, Trash2, RefreshCw,
-    Edit2, Check, X, ChevronDown, Building2, Star
+    Edit2, Check, X, ChevronDown, Building2, Star, UserCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
+import InviteMemberModal from './InviteMemberModal'; // This is actually our AddMemberModal now
 
 interface UserWithMembership {
     id: string;
     full_name: string;
     email: string;
+    avatar_url?: string;
+    user_photo_url?: string;
     orgRole?: string;
     propertyRole?: string;
     propertyName?: string;
@@ -20,16 +23,18 @@ interface UserWithMembership {
     organizationName?: string;
     is_active: boolean;
     joined_at: string;
+    phone?: string;
 }
 
 interface UserDirectoryProps {
     orgId?: string;
+    orgName?: string;
     propertyId?: string;
     properties?: { id: string; name: string }[];
     onUserUpdated?: () => void;
 }
 
-const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: UserDirectoryProps) => {
+const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpdated }: UserDirectoryProps) => {
     const [users, setUsers] = useState<UserWithMembership[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +44,8 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
     const [editingRole, setEditingRole] = useState('');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [selectedUserForProfile, setSelectedUserForProfile] = useState<UserWithMembership | null>(null);
 
     const supabase = createClient();
 
@@ -63,7 +70,7 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     is_active,
                     created_at,
                     property:properties (id, name),
-                    user:users (id, full_name, email)
+                    user:users (id, full_name, email, user_photo_url, phone)
                 `)
                 .eq('property_id', propertyId);
 
@@ -72,11 +79,13 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     id: item.user.id,
                     full_name: item.user.full_name,
                     email: item.user.email,
+                    user_photo_url: item.user.user_photo_url,
                     propertyRole: item.role,
                     propertyName: item.property?.name,
                     propertyId: item.property?.id,
                     is_active: item.is_active,
-                    joined_at: item.created_at
+                    joined_at: item.created_at,
+                    phone: item.user.phone
                 }));
                 setUsers(formattedUsers);
             }
@@ -88,7 +97,7 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     role,
                     is_active,
                     created_at,
-                    user:users (id, full_name, email)
+                    user:users (id, full_name, email, user_photo_url, phone)
                 `)
                 .eq('organization_id', orgId);
 
@@ -99,7 +108,7 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     is_active,
                     created_at,
                     property:properties!inner (id, name, organization_id),
-                    user:users (id, full_name, email)
+                    user:users (id, full_name, email, user_photo_url, phone)
                 `)
                 .eq('properties.organization_id', orgId);
 
@@ -110,10 +119,12 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     id: item.user.id,
                     full_name: item.user.full_name,
                     email: item.user.email,
+                    user_photo_url: item.user.user_photo_url,
                     orgRole: item.role,
                     organizationId: orgId,
                     is_active: item.is_active,
-                    joined_at: item.created_at
+                    joined_at: item.created_at,
+                    phone: item.user.phone
                 });
             });
 
@@ -128,11 +139,13 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                         id: item.user.id,
                         full_name: item.user.full_name,
                         email: item.user.email,
+                        user_photo_url: item.user.user_photo_url,
                         propertyRole: item.role,
                         propertyName: item.property?.name,
                         propertyId: item.property?.id,
                         is_active: item.is_active,
-                        joined_at: item.created_at
+                        joined_at: item.created_at,
+                        phone: item.user.phone
                     });
                 }
             });
@@ -262,6 +275,23 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">User Management</h2>
                     <p className="text-slate-500 font-medium text-sm mt-1">Manage user access, roles, and permissions.</p>
                 </div>
+                {orgId && (
+                    <button
+                        onClick={() => {
+                            // Check if a parent component (like PropertyAdminDashboard) provided a specific modal trigger
+                            const parentTrigger = (onUserUpdated as any)?.__triggerModal;
+                            if (parentTrigger) {
+                                parentTrigger();
+                            } else {
+                                setShowInviteModal(true);
+                            }
+                        }}
+                        className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-black text-sm rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                    >
+                        <UserPlus className="w-4 h-4" />
+                        Add Member
+                    </button>
+                )}
             </div>
 
             {/* Filters */}
@@ -328,92 +358,106 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     filteredUsers.map((user) => (
                         <div
                             key={user.id}
-                            className="bg-white border border-slate-100 rounded-2xl p-5 hover:shadow-md transition-shadow"
+                            onClick={() => setSelectedUserForProfile(user)}
+                            className="bg-white border border-slate-100 rounded-2xl p-5 hover:shadow-md transition-shadow cursor-pointer group"
                         >
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                {/* User Info */}
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-bold text-slate-900">{user.full_name}</h3>
-                                    <p className="text-sm text-slate-500">{user.email}</p>
-
-                                    {/* Tags */}
-                                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                                        {/* Role Badge - Always visible */}
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-100">
-                                            <Star className="w-3 h-3" />
-                                            {formatRole(user.orgRole || user.propertyRole || 'member')}
-                                        </span>
-
-                                        {/* Property Badge */}
-                                        {user.propertyName && (
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">
-                                                <Building2 className="w-3 h-3" />
-                                                {user.propertyName}
-                                            </span>
-                                        )}
-
-                                        {/* Edit Role */}
-                                        {editingUserId === user.id ? (
-                                            <div className="flex items-center gap-2">
-                                                <select
-                                                    value={editingRole}
-                                                    onChange={(e) => setEditingRole(e.target.value)}
-                                                    className="px-2 py-1 text-xs font-bold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                                                >
-                                                    {roleOptions.map(role => (
-                                                        <option key={role} value={role}>{formatRole(role)}</option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    onClick={() => handleUpdateRole(user.id, editingRole)}
-                                                    className="p-1 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
-                                                >
-                                                    <Check className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => setEditingUserId(null)}
-                                                    className="p-1 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                {/* Left Side: User Info + Badges */}
+                                <div className="flex items-start gap-4 flex-1">
+                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 flex items-center justify-center mt-1 group-hover:scale-105 transition-transform">
+                                        {user.user_photo_url || user.avatar_url ? (
+                                            <img
+                                                src={user.user_photo_url || user.avatar_url}
+                                                alt={user.full_name}
+                                                className="w-full h-full object-cover"
+                                            />
                                         ) : (
-                                            <button
-                                                onClick={() => {
-                                                    setEditingUserId(user.id);
-                                                    setEditingRole(user.orgRole || user.propertyRole || 'staff');
-                                                }}
-                                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-200 transition-colors"
-                                            >
-                                                <Edit2 className="w-3 h-3" />
-                                                Edit Role
-                                            </button>
+                                            <UserCircle className="w-8 h-8 text-slate-300" />
                                         )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-primary transition-colors">{user.full_name}</h3>
+                                        <p className="text-sm text-slate-500 truncate mb-2">{user.email}</p>
 
-                                        {/* Status Badge */}
-                                        <span className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-lg border ${user.is_active
-                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                            : 'bg-slate-100 text-slate-500 border-slate-200'
-                                            }`}>
-                                            {user.is_active ? 'approved' : 'pending'}
-                                        </span>
+                                        {/* Badges & Edit Role - Now below name/email */}
+                                        <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                            {/* Role Badge */}
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-amber-100">
+                                                <Star className="w-3 h-3" />
+                                                {formatRole(user.orgRole || user.propertyRole || 'member')}
+                                            </span>
+
+                                            {/* Property Badge */}
+                                            {user.propertyName && (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-blue-100">
+                                                    <Building2 className="w-3 h-3" />
+                                                    {user.propertyName}
+                                                </span>
+                                            )}
+
+                                            {/* Status Badge */}
+                                            <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg border ${user.is_active
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                : 'bg-slate-100 text-slate-500 border-slate-200'
+                                                }`}>
+                                                {user.is_active ? 'approved' : 'pending'}
+                                            </span>
+
+                                            {/* Edit Role Logic */}
+                                            {editingUserId === user.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        value={editingRole}
+                                                        onChange={(e) => setEditingRole(e.target.value)}
+                                                        className="px-2 py-1 text-[10px] font-black uppercase border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                                    >
+                                                        {roleOptions.map(role => (
+                                                            <option key={role} value={role}>{formatRole(role)}</option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        onClick={() => handleUpdateRole(user.id, editingRole)}
+                                                        className="p-1 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                                                    >
+                                                        <Check className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingUserId(null)}
+                                                        className="p-1 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingUserId(user.id);
+                                                        setEditingRole(user.orgRole || user.propertyRole || 'staff');
+                                                    }}
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-slate-200 hover:bg-slate-200 transition-colors"
+                                                >
+                                                    <Edit2 className="w-3 h-3" />
+                                                    Edit Role
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Actions */}
-                                <div className="flex items-center gap-2 shrink-0">
+                                {/* Right Side: Action Buttons */}
+                                <div className="flex items-center gap-2 shrink-0 md:self-center" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={() => handleResetPassword(user.id, user.email)}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
                                     >
-                                        <RefreshCw className="w-4 h-4" />
+                                        <RefreshCw className="w-3.5 h-3.5" />
                                         Reset Password
                                     </button>
                                     <button
                                         onClick={() => handleDeleteUser(user.id, user.full_name)}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white font-bold text-sm rounded-xl hover:bg-rose-600 transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white font-bold text-xs rounded-xl hover:bg-rose-600 transition-colors shadow-md shadow-rose-100"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="w-3.5 h-3.5" />
                                         Delete
                                     </button>
                                 </div>
@@ -422,6 +466,21 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                     ))
                 )}
             </div>
+
+            {/* Add Member Modal */}
+            {orgId && (
+                <InviteMemberModal
+                    isOpen={showInviteModal}
+                    onClose={() => setShowInviteModal(false)}
+                    orgId={orgId}
+                    orgName={orgName || 'Organization'}
+                    properties={properties}
+                    onSuccess={() => {
+                        fetchUsers();
+                        showToast('Member account created successfully!');
+                    }}
+                />
+            )}
 
             {/* Toast */}
             <AnimatePresence>
@@ -438,6 +497,102 @@ const UserDirectory = ({ orgId, propertyId, properties = [], onUserUpdated }: Us
                             }`}>
                             <span className="font-bold text-sm tracking-tight">{toast.message}</span>
                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            {/* User Profile Modal */}
+            <AnimatePresence>
+                {selectedUserForProfile && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4"
+                        onClick={() => setSelectedUserForProfile(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-white border border-slate-100 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Card Header with Autopilot Logo */}
+                            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                {/* Autopilot Logo */}
+                                <div className="flex items-center justify-center mb-6">
+                                    <img
+                                        src="/autopilot-logo-new.png"
+                                        alt="Autopilot Logo"
+                                        className="h-10 w-auto object-contain invert mix-blend-screen"
+                                    />
+                                </div>
+
+                                {/* User Avatar */}
+                                <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4 overflow-hidden shadow-xl">
+                                    {selectedUserForProfile.user_photo_url || selectedUserForProfile.avatar_url ? (
+                                        <img
+                                            src={selectedUserForProfile.user_photo_url || selectedUserForProfile.avatar_url}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-4xl font-black text-white">
+                                            {selectedUserForProfile.full_name?.[0]?.toUpperCase() || 'U'}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Role Badge */}
+                                <span className="px-4 py-1.5 bg-amber-500 text-slate-900 rounded-full text-xs font-black uppercase tracking-wider shadow-lg">
+                                    {formatRole(selectedUserForProfile.orgRole || selectedUserForProfile.propertyRole || 'User')}
+                                </span>
+                            </div>
+
+                            {/* Card Body with User Info */}
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
+                                        <span className="text-sm font-bold text-slate-900">
+                                            {selectedUserForProfile.full_name}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                                        <span className="text-sm font-bold text-slate-900">
+                                            {selectedUserForProfile.phone || 'Not Set'}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                                        <span className="text-sm font-medium text-slate-700 truncate max-w-[200px]">
+                                            {selectedUserForProfile.email}
+                                        </span>
+                                    </div>
+
+                                    {selectedUserForProfile.propertyName && (
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</span>
+                                            <span className="text-sm font-bold text-slate-900">
+                                                {selectedUserForProfile.propertyName}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4 flex justify-center">
+                                        <button
+                                            onClick={() => setSelectedUserForProfile(null)}
+                                            className="px-8 py-2.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all w-full"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>

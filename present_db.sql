@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   username text UNIQUE,
   full_name text,
   avatar_url text,
+  user_photo_url text,
   metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()

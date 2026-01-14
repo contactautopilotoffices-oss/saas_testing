@@ -10,6 +10,7 @@ interface CreateUserRequest {
     role?: string // matches app_role enum: 'master_admin' | 'org_super_admin' | 'property_admin' | 'staff' | 'tenant'
     username?: string
     create_master_admin?: boolean
+    property_id?: string
 }
 
 /**
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
             .eq('id', currentUser.id)
             .single()
 
-        const isCurrentMasterAdmin = masterAdminData?.is_master_admin
+        const isCurrentMasterAdmin = !!masterAdminData?.is_master_admin
 
         // Permission Check
         if (createMasterAdmin) {
@@ -81,12 +82,33 @@ export async function POST(request: NextRequest) {
         } else {
             // If not creating master admin, check if org admin (or master admin)
             if (!isCurrentMasterAdmin) {
-                const { data: isAdmin, error: permError } = await supabase
-                    .rpc('current_user_is_org_admin', { org_uuid: organization_id })
+                // 1. Check Org Admin roles
+                const { data: orgMembership } = await supabase
+                    .from('organization_memberships')
+                    .select('role')
+                    .eq('organization_id', organization_id)
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
 
-                if (permError || !isAdmin) {
+                const isOrgAdmin = orgMembership && ['org_super_admin', 'admin', 'owner'].includes(orgMembership.role);
+
+                // 2. Check Property Admin role (if property_id is provided)
+                let isPropertyAdmin = false;
+                const { property_id } = body;
+                if (property_id) {
+                    const { data: propMembership } = await supabase
+                        .from('property_memberships')
+                        .select('role')
+                        .eq('property_id', property_id)
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+
+                    isPropertyAdmin = !!(propMembership && propMembership.role === 'property_admin');
+                }
+
+                if (!isOrgAdmin && !isPropertyAdmin) {
                     return NextResponse.json(
-                        { error: 'Forbidden. You must be an organization admin or master admin to create users.' },
+                        { error: 'Forbidden. You must be an organization admin, property admin, or master admin to create users.' },
                         { status: 403 }
                     )
                 }
@@ -149,6 +171,8 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        const { property_id } = body
+
         // The database trigger will auto-create user_profiles
         // Now create organization membership IF an organization_id was provided
         if (organization_id) {
@@ -162,7 +186,22 @@ export async function POST(request: NextRequest) {
 
             if (memberError) {
                 console.error('Membership creation error:', memberError)
-                // Don't fail - user was created, membership can be fixed manually
+            }
+        }
+
+        // Create property membership IF a property_id was provided
+        if (property_id) {
+            const { error: propMemberError } = await adminClient
+                .from('property_memberships')
+                .insert({
+                    property_id,
+                    user_id: userData.user.id,
+                    role: role === 'org_super_admin' ? 'property_admin' : role, // Map safely
+                    is_active: true
+                })
+
+            if (propMemberError) {
+                console.error('Property membership creation error:', propMemberError)
             }
         }
 

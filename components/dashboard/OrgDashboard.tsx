@@ -167,13 +167,6 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
 
                 <div className="p-4 border-t border-border space-y-2">
                     <button
-                        onClick={toggleTheme}
-                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                    >
-                        {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                        {isSidebarOpen && <span className="text-sm font-black tracking-tight">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
-                    </button>
-                    <button
                         onClick={() => setShowSignOutModal(true)}
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-all font-bold"
                     >

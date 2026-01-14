@@ -77,9 +77,9 @@ export default function DashboardSidebar() {
                 {/* User Profile */}
                 <div className="px-3 py-3 rounded-[var(--radius-lg)] border border-border/5">
                     <div className="flex items-center gap-3">
-                        {user?.user_metadata?.avatar_url ? (
+                        {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
                             <img
-                                src={user.user_metadata.avatar_url}
+                                src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
                                 alt="Profile"
                                 className="w-10 h-10 rounded-full object-cover border border-border"
                             />

@@ -48,11 +48,17 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Check if current user is org admin using the helper function
-        const { data: isAdmin, error: permError } = await supabase
-            .rpc('current_user_is_org_admin', { org_uuid: organization_id })
+        // Check if current user is org admin
+        const { data: membership, error: permError } = await supabase
+            .from('organization_memberships')
+            .select('role')
+            .eq('organization_id', organization_id)
+            .eq('user_id', currentUser.id)
+            .single();
 
-        if (permError || !isAdmin) {
+        const isOrgAdmin = membership && ['org_super_admin', 'admin', 'owner'].includes(membership.role);
+
+        if (permError || !isOrgAdmin) {
             return NextResponse.json(
                 { error: 'Forbidden. You must be an organization admin to invite users.' },
                 { status: 403 }
@@ -86,7 +92,7 @@ export async function POST(request: NextRequest) {
         // Pre-create organization membership (will be activated when user accepts)
         if (inviteData.user) {
             const { error: memberError } = await adminClient
-                .from('organization_members')
+                .from('organization_memberships')
                 .upsert({
                     organization_id,
                     user_id: inviteData.user.id,

@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-    LayoutDashboard, Ticket, Bell, Settings, LogOut, Plus,
+    LayoutDashboard, Ticket as TicketIcon, Bell, Settings, LogOut, Plus,
     CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle, Fuel,
-    Calendar, Building2, Shield, ChevronRight, Sun, Moon, Menu, X
+    Calendar, Building2, Shield, ChevronRight, Sun, Moon, Menu, X, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useParams, useRouter } from 'next/navigation';
+import NextImage from 'next/image';
 import SignOutModal from '@/components/ui/SignOutModal';
 import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
 import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
@@ -18,7 +19,7 @@ import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashbo
 import SettingsView from './SettingsView';
 
 // Types
-type Tab = 'overview' | 'requests' | 'visitors' | 'diesel' | 'settings' | 'profile';
+type Tab = 'overview' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
 
 interface Property {
     id: string;
@@ -26,6 +27,17 @@ interface Property {
     code: string;
     address: string;
     organization_id: string;
+}
+
+interface Ticket {
+    id: string;
+    ticket_number: string;
+    title: string;
+    description: string;
+    status: string;
+    priority: string;
+    created_at: string;
+    photo_before_url?: string;
 }
 
 const TenantDashboard = () => {
@@ -42,6 +54,9 @@ const TenantDashboard = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [activeTickets, setActiveTickets] = useState<Ticket[]>([]);
+    const [completedTickets, setCompletedTickets] = useState<Ticket[]>([]);
+    const [isFetchingTickets, setIsFetchingTickets] = useState(false);
 
     const supabase = createClient();
 
@@ -69,6 +84,32 @@ const TenantDashboard = () => {
         setIsLoading(false);
     };
 
+    const fetchTickets = async () => {
+        if (!user || !propertyId) return;
+        setIsFetchingTickets(true);
+
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .eq('property_id', propertyId)
+            .eq('raised_by', user.id)
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            const active = data.filter((t: any) => !['resolved', 'closed'].includes(t.status));
+            const completed = data.filter((t: any) => ['resolved', 'closed'].includes(t.status));
+            setActiveTickets(active);
+            setCompletedTickets(completed);
+        }
+        setIsFetchingTickets(false);
+    };
+
+    useEffect(() => {
+        if (propertyId && user) {
+            fetchTickets();
+        }
+    }, [propertyId, user?.id]);
+
     // Removed navItems array as we'll use a hardcoded grouped sidebar
 
     if (isLoading) return (
@@ -93,7 +134,7 @@ const TenantDashboard = () => {
             {/* Mobile Menu Button - Fixed top left */}
             <button
                 onClick={() => setSidebarOpen(true)}
-                className="fixed top-4 left-4 z-50 p-2 bg-primary text-white rounded-lg shadow-md hover:bg-primary-dark transition-colors"
+                className="fixed top-6 left-6 z-50 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl hover:bg-slate-800 transition-all hover:scale-110 active:scale-95 border border-white/20"
             >
                 <Menu className="w-5 h-5" />
             </button>
@@ -143,7 +184,7 @@ const TenantDashboard = () => {
                             {/* Quick Action: New Request - Bold & Clear */}
                             <div className="mb-6">
                                 <button
-                                    onClick={() => { setActiveTab('requests'); setSidebarOpen(false); }}
+                                    onClick={() => { setActiveTab('create_request'); setSidebarOpen(false); }}
                                     className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
                                 >
                                     <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -179,7 +220,7 @@ const TenantDashboard = () => {
                                             : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                             }`}
                                     >
-                                        <Ticket className="w-4 h-4" />
+                                        <TicketIcon className="w-4 h-4" />
                                         My Requests
                                     </button>
                                 </div>
@@ -275,34 +316,118 @@ const TenantDashboard = () => {
             </AnimatePresence>
 
             {/* Main Content - Full width since sidebar is hidden by default */}
-            <main className="min-h-screen p-8 lg:p-12 pt-20 overflow-y-auto bg-white">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                    >
-                        {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} property={property} />}
-                        {activeTab === 'requests' && property && user && (
-                            <TenantTicketingDashboard
-                                propertyId={property.id}
-                                organizationId={property.organization_id}
-                                user={{ id: user.id, full_name: user.user_metadata?.full_name || 'Tenant' }}
-                                propertyName={property.name}
-                            />
-                        )}
-                        {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
-                        {activeTab === 'diesel' && <DieselStaffDashboard isDark={false} />}
-                        {activeTab === 'settings' && <SettingsView />}
-                        {activeTab === 'profile' && (
-                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
-                                <UserCircle className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-text-primary mb-2">Profile</h3>
-                                <p className="text-text-secondary">Update your profile information.</p>
-                            </div>
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+            <main className="min-h-screen px-6 md:px-12 lg:px-20 pt-28 pb-12 overflow-y-auto bg-[#fafafa]">
+                <div className="max-w-5xl mx-auto">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} property={property} />}
+                            {activeTab === 'requests' && property && user && (
+                                <RequestsTab
+                                    activeTickets={activeTickets}
+                                    completedTickets={completedTickets}
+                                    onNavigate={setActiveTab}
+                                    isLoading={isFetchingTickets}
+                                />
+                            )}
+                            {activeTab === 'create_request' && property && user && (
+                                <TenantTicketingDashboard
+                                    propertyId={property.id}
+                                    organizationId={property.organization_id}
+                                    user={{ id: user.id, full_name: user.user_metadata?.full_name || 'Tenant' }}
+                                    propertyName={property.name}
+                                />
+                            )}
+                            {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
+                            {activeTab === 'diesel' && <DieselStaffDashboard isDark={false} />}
+                            {activeTab === 'settings' && <SettingsView />}
+                            {activeTab === 'profile' && (
+                                <div className="flex justify-center items-start py-8">
+                                    <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden animate-in zoom-in duration-300">
+                                        {/* Card Header with Autopilot Logo */}
+                                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                            {/* Autopilot Logo */}
+                                            <div className="flex items-center justify-center mb-6 font-display">
+                                                <img
+                                                    src="/autopilot-logo-new.png"
+                                                    alt="Autopilot Logo"
+                                                    className="h-10 w-auto object-contain invert mix-blend-screen"
+                                                />
+                                            </div>
+
+                                            {/* User Avatar */}
+                                            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4 overflow-hidden shadow-xl">
+                                                {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
+                                                    <NextImage
+                                                        src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
+                                                        alt="Profile"
+                                                        width={96}
+                                                        height={96}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-4xl font-black text-white">
+                                                        {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Role Badge */}
+                                            <span className="px-4 py-1.5 bg-primary text-white rounded-full text-xs font-black uppercase tracking-wider shadow-lg">
+                                                Registered Tenant
+                                            </span>
+                                        </div>
+
+                                        {/* Card Body with User Info */}
+                                        <div className="p-8 space-y-6">
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {user?.user_metadata?.full_name || 'Not Set'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {user?.user_metadata?.phone || 'Not Set'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                                                    <span className="text-sm font-medium text-slate-700">
+                                                        {user?.email || 'Not Set'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {property?.name || 'Not Set'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 flex justify-center">
+                                                <button
+                                                    onClick={() => setActiveTab('settings')}
+                                                    className="px-8 py-2.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all w-full"
+                                                >
+                                                    Edit Profile
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </main>
 
             <SignOutModal
@@ -360,50 +485,51 @@ const OverviewTab = ({ onNavigate, property }: { onNavigate: (tab: Tab) => void,
     const userInitial = user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U';
 
     return (
-        <div className="min-h-screen bg-white p-8">
-            <header className="mb-10 flex items-center justify-between">
-                <div>
-                    <h1 className="text-4xl font-display font-semibold text-text-primary mb-2">
-                        Welcome to AUTOPILOT, <span className="text-secondary">{user?.user_metadata?.full_name?.split(' ')[0] || 'Tenant'}</span>
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-100/50">
+                <div className="space-y-1">
+                    <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-800 tracking-tight">
+                        Welcome to AUTOPILOT, <span className="text-secondary opacity-80">{user?.user_metadata?.full_name?.split(' ')[0] || 'Member'}</span>
                     </h1>
-                    <p className="text-text-secondary font-body font-medium">
+                    <p className="text-slate-500 font-medium text-sm">
                         {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
-                {/* Minimalist Top Profile Card - Primary Accent */}
-                <div className="hidden md:flex items-center gap-4">
-                    <div className="premium-card px-5 py-3 flex items-center gap-4 border-primary/20 bg-primary/5">
-                        <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
-                            {userInitial}
-                        </div>
-                        <div>
-                            <p className="text-sm font-black text-text-primary uppercase tracking-wider">{user?.user_metadata?.full_name || 'Tenant'}</p>
-                            <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em]">Registered Tenant</p>
-                        </div>
+
+                {/* Minimalist Top Profile Card - Floating Capsule Style */}
+                <div className="flex items-center gap-4 bg-white border border-slate-100 rounded-3xl p-2.5 pr-6 shadow-sm shadow-slate-200/50">
+                    <div className="w-12 h-12 bg-slate-400 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-inner">
+                        {userInitial}
+                    </div>
+                    <div className="space-y-0.5">
+                        <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest leading-none">
+                            {user?.user_metadata?.full_name || 'Tenant'}
+                        </p>
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.15em] leading-none">
+                            Registered Tenant
+                        </p>
                     </div>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {/* Helpdesk & Ticketing Card */}
                 <button
                     onClick={() => onNavigate('requests')}
-                    className="relative group kpi-card overflow-hidden text-left border-secondary/20"
+                    className="relative group bg-white border border-slate-100 rounded-[2.5rem] p-10 text-left transition-all hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1"
                 >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
-
                     {/* Badge */}
-                    <div className="absolute top-4 right-4 w-8 h-8 bg-secondary/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-secondary/20">
-                        <span className="text-secondary font-display font-semibold text-xs">{ticketCount.active}</span>
+                    <div className="absolute top-6 right-6 w-9 h-9 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm">
+                        <span className="text-slate-400 font-bold text-xs">{ticketCount.active}</span>
                     </div>
 
                     <div className="relative z-10">
-                        <div className="w-14 h-14 kpi-icon flex items-center justify-center mb-6">
-                            <MessageSquare className="w-7 h-7 text-secondary" />
+                        <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center mb-8 border border-slate-100 group-hover:bg-secondary group-hover:text-white transition-all">
+                            <MessageSquare className="w-8 h-8 text-slate-300 group-hover:text-white" />
                         </div>
-                        <h3 className="text-2xl font-display font-semibold text-text-primary mb-2">Helpdesk & Ticketing</h3>
-                        <p className="text-text-secondary text-sm mb-4 line-clamp-2 font-body">Report issues, track requests & get support</p>
-                        <div className="text-secondary text-xs font-display font-semibold tracking-wider">
+                        <h3 className="text-2xl font-display font-semibold text-slate-800 mb-2">Helpdesk & Ticketing</h3>
+                        <p className="text-slate-500 text-sm mb-6 leading-relaxed">Report issues, track requests & get support instantly.</p>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">
                             • {ticketCount.active} Active • {ticketCount.completed} Completed
                         </div>
                     </div>
@@ -412,18 +538,16 @@ const OverviewTab = ({ onNavigate, property }: { onNavigate: (tab: Tab) => void,
                 {/* Visitor Management Card */}
                 <button
                     onClick={() => onNavigate('visitors')}
-                    className="relative group kpi-card overflow-hidden text-left"
+                    className="relative group bg-white border border-slate-100 rounded-[2.5rem] p-10 text-left transition-all hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1"
                 >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
-
                     <div className="relative z-10">
-                        <div className="w-14 h-14 kpi-icon flex items-center justify-center mb-6">
-                            <UsersRound className="w-7 h-7 text-primary" />
+                        <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center mb-8 border border-slate-100 group-hover:bg-primary group-hover:text-white transition-all">
+                            <UsersRound className="w-8 h-8 text-slate-300 group-hover:text-white" />
                         </div>
-                        <h3 className="text-2xl font-display font-semibold text-text-primary mb-2">Visitor Management</h3>
-                        <p className="text-text-secondary text-sm mb-4 line-clamp-2 font-body">Check-in visitors & manage access control</p>
-                        <div className="text-primary text-xs font-display font-semibold tracking-wider">
-                            {visitorCount} Active Visitors
+                        <h3 className="text-2xl font-display font-semibold text-slate-800 mb-2">Visitor Management</h3>
+                        <p className="text-slate-500 text-sm mb-6 leading-relaxed">Check-in visitors & manage building access control.</p>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                            • {visitorCount} Active Visitors
                         </div>
                     </div>
                 </button>
@@ -431,73 +555,169 @@ const OverviewTab = ({ onNavigate, property }: { onNavigate: (tab: Tab) => void,
                 {/* Room Bookings Card */}
                 <button
                     onClick={() => alert('Room booking feature coming soon!')}
-                    className="relative group kpi-card overflow-hidden text-left"
+                    className="relative group bg-white border border-slate-100 rounded-[2.5rem] p-10 text-left transition-all hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1"
                 >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
-
                     <div className="relative z-10">
-                        <div className="w-14 h-14 kpi-icon flex items-center justify-center mb-6">
-                            <Calendar className="w-7 h-7 text-primary" />
+                        <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center mb-8 border border-slate-100 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                            <Calendar className="w-8 h-8 text-slate-300 group-hover:text-white" />
                         </div>
-                        <h3 className="text-2xl font-display font-semibold text-text-primary mb-2">Room Bookings</h3>
-                        <p className="text-text-secondary text-sm mb-4 line-clamp-2 font-body">Reserve meeting spaces & conference rooms</p>
-                        <div className="text-primary text-xs font-display font-semibold tracking-wider bg-primary/10 px-3 py-1 rounded-lg inline-block border border-primary/20">
+                        <h3 className="text-2xl font-display font-semibold text-slate-800 mb-2">Room Bookings</h3>
+                        <p className="text-slate-500 text-sm mb-6 leading-relaxed">Reserve meeting spaces & conference rooms with ease.</p>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-slate-50 px-4 py-1.5 rounded-full inline-block border border-slate-100">
                             Available Today
                         </div>
                     </div>
                 </button>
-
-
             </div>
         </div>
     );
 };
 
+// Helper Sub-component for Ticket Row (MST Style)
+const TicketRow = ({ ticket, onTicketClick, isCompleted }: { ticket: Ticket, onTicketClick?: (id: string) => void, isCompleted?: boolean }) => (
+    <div
+        onClick={() => onTicketClick?.(ticket.id)}
+        className={`bg-white border rounded-2xl p-5 transition-all group cursor-pointer ${isCompleted ? 'opacity-75 grayscale-[0.3] border-slate-200' : 'border-slate-100 hover:border-primary/50 shadow-sm hover:shadow-md'}`}
+    >
+        <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 ${isCompleted ? 'bg-slate-100' : 'bg-primary/10'} rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110`}>
+                    <MessageSquare className={`w-6 h-6 ${isCompleted ? 'text-slate-400' : 'text-primary'}`} />
+                </div>
+                <div>
+                    <h3 className={`text-lg font-bold truncate max-w-[300px] md:max-w-md ${isCompleted ? 'text-slate-500' : 'text-slate-900'} transition-colors group-hover:text-primary`}>{ticket.title}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">#{ticket.ticket_number}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-[10px] font-bold text-slate-500">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            </div>
+            <div className="flex items-center gap-3">
+                <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider border ${ticket.priority === 'high' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                    ticket.priority === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                        'bg-blue-50 text-blue-600 border-blue-100'
+                    }`}>
+                    {ticket.priority}
+                </span>
+                <button
+                    className={`text-[11px] font-black px-5 py-2 rounded-xl transition-all uppercase tracking-widest ${isCompleted ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white shadow-lg shadow-slate-200 hover:bg-black'}`}
+                >
+                    View
+                </button>
+            </div>
+        </div>
+
+        <div className="flex gap-5">
+            {ticket.photo_before_url && (
+                <div className="relative group/thumb shrink-0">
+                    <img
+                        src={ticket.photo_before_url}
+                        alt="Before"
+                        className="w-20 h-20 rounded-xl object-cover border border-slate-100 group-hover/thumb:border-primary transition-colors"
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 rounded-xl transition-opacity">
+                        <Camera className="w-5 h-5 text-white" />
+                    </div>
+                </div>
+            )}
+            <div className="flex-1 min-w-0">
+                <p className={`text-sm ${isCompleted ? 'text-slate-400' : 'text-slate-600'} line-clamp-2 leading-relaxed`}>{ticket.description}</p>
+                <div className="mt-4 flex items-center gap-4">
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-widest ${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {ticket.status.replace('_', ' ')}
+                    </span>
+                    {ticket.photo_before_url && (
+                        <span className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest">
+                            <Camera className="w-3.5 h-3.5" />
+                            Evidence Logged
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
 // Requests Tab for Tenant
-const RequestsTab = () => {
-    const requests = [
-        { id: 4421, title: 'AC Not Cooling', status: 'in_progress', date: 'Today', priority: 'high' },
-        { id: 4390, title: 'Tap Leakage', status: 'resolved', date: 'Yesterday', priority: 'medium' },
-        { id: 4355, title: 'Door Lock Issue', status: 'resolved', date: '3 days ago', priority: 'low' },
-        { id: 4320, title: 'Electrical Outlet', status: 'resolved', date: '1 week ago', priority: 'medium' },
-    ];
+const RequestsTab = ({ activeTickets, completedTickets, onNavigate, isLoading }: { activeTickets: Ticket[], completedTickets: Ticket[], onNavigate: (tab: Tab) => void, isLoading: boolean }) => {
+    const router = useRouter();
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-text-primary">All Requests</h3>
-                <button className="px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-end">
+                <div>
+                    <h2 className="text-3xl font-display font-semibold text-slate-900 tracking-tight">Support Requests</h2>
+                    <p className="text-slate-500 font-medium mt-1">Track and manage your facility assistance tickets.</p>
+                </div>
+                <button
+                    onClick={() => onNavigate('create_request')}
+                    className="px-8 py-3.5 bg-primary text-white font-black text-xs rounded-2xl uppercase tracking-[0.15em] hover:opacity-95 hover:scale-105 transition-all flex items-center gap-3 shadow-xl shadow-primary/20"
+                >
                     <Plus className="w-4 h-4" />
                     New Request
                 </button>
             </div>
 
-            <div className="bg-card border border-border rounded-[32px] overflow-hidden shadow-sm">
-                <table className="w-full text-left">
-                    <thead className="bg-surface-elevated border-b border-border">
-                        <tr>
-                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Ticket</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Title</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Status</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                        {requests.map((req) => (
-                            <tr key={req.id} className="hover:bg-muted transition-colors cursor-pointer">
-                                <td className="px-6 py-4 font-bold text-text-tertiary text-sm">#{req.id}</td>
-                                <td className="px-6 py-4 font-bold text-text-primary text-sm">{req.title}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${req.status === 'in_progress' ? 'bg-info/10 text-info' : 'bg-success/10 text-success'}`}>
-                                        {req.status.replace('_', ' ')}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-sm font-medium text-text-secondary">{req.date}</td>
-                            </tr>
+            {/* Active Requests */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-3 px-2">
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Requests ({activeTickets.length})</h3>
+                </div>
+
+                {isLoading ? (
+                    <div className="space-y-4">
+                        {[1, 2].map(i => (
+                            <div key={i} className="h-40 bg-slate-50 rounded-3xl animate-pulse border border-slate-100" />
                         ))}
-                    </tbody>
-                </table>
+                    </div>
+                ) : activeTickets.length === 0 ? (
+                    <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] p-20 text-center">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                            <TicketIcon className="w-8 h-8 text-slate-200" />
+                        </div>
+                        <h4 className="text-lg font-bold text-slate-900 mb-2">No active requests</h4>
+                        <p className="text-slate-500 max-w-xs mx-auto">You don't have any requests in progress at the moment.</p>
+                        <button
+                            onClick={() => onNavigate('create_request')}
+                            className="mt-8 text-primary font-black text-[10px] uppercase tracking-widest hover:underline"
+                        >
+                            Create your first request
+                        </button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        {activeTickets.map(ticket => (
+                            <TicketRow
+                                key={ticket.id}
+                                ticket={ticket}
+                                onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {/* Completed Requests */}
+            {completedTickets.length > 0 && (
+                <div className="space-y-4 pt-8">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Recently Resolved ({completedTickets.length})</h3>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        {completedTickets.map(ticket => (
+                            <TicketRow
+                                key={ticket.id}
+                                ticket={ticket}
+                                isCompleted
+                                onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

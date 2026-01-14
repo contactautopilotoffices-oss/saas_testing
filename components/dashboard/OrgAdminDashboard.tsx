@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    LayoutDashboard, Building2, Users, Ticket, Settings, UserCircle,
+    LayoutDashboard, Building2, Users, UserPlus, Ticket, Settings, UserCircle,
     Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
-    Coffee, IndianRupee, FileDown, ChevronDown
+    Coffee, IndianRupee, FileDown, ChevronDown, Fuel
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -15,9 +15,12 @@ import UserDirectory from './UserDirectory';
 import SignOutModal from '@/components/ui/SignOutModal';
 import AdminSPOCDashboard from '../tickets/AdminSPOCDashboard';
 import SettingsView from './SettingsView';
+import DieselAnalyticsDashboard from '../diesel/DieselAnalyticsDashboard';
+import InviteMemberModal from './InviteMemberModal';
+import Image from 'next/image';
 
 // Types
-type Tab = 'overview' | 'properties' | 'requests' | 'visitors' | 'settings' | 'profile' | 'revenue';
+type Tab = 'overview' | 'properties' | 'requests' | 'visitors' | 'settings' | 'profile' | 'revenue' | 'users' | 'diesel';
 
 interface Property {
     id: string;
@@ -67,6 +70,7 @@ const OrgAdminDashboard = () => {
     const [editingProperty, setEditingProperty] = useState<Property | null>(null);
     const [showUserModal, setShowUserModal] = useState(false);
     const [editingUser, setEditingUser] = useState<OrgUser | null>(null);
+    const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [selectedPropertyId, setSelectedPropertyId] = useState('all');
@@ -348,16 +352,13 @@ const OrgAdminDashboard = () => {
             {/* Sidebar */}
             <aside className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-20 transition-smooth">
                 <div className="p-8 pb-4">
-                    <div className="flex items-center gap-3 mb-8">
-                        <img src="/autopilot-logo.png" alt="Logo" className="w-20 h-20 object-contain" />
-                        <div>
-                            <h2 className="font-display font-semibold text-sm leading-tight text-text-primary truncate max-w-[150px]">{org?.name || 'Organization'}</h2>
-                            <p className="text-[10px] text-text-tertiary font-body font-medium mt-1">Super Admin Console</p>
-                        </div>
+                    <div className="flex flex-col items-center gap-2 mb-8">
+                        <img src="/autopilot-logo-new.png" alt="Logo" className="h-12 w-auto object-contain" />
+                        <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.2em]">Super Admin Console</p>
                     </div>
 
-                    {/* Quick Action: New Request - Bold & Clear */}
-                    <div className="mb-6 px-1">
+                    {/* Quick Action Row */}
+                    <div className="mb-6 px-1 grid grid-cols-2 gap-2">
                         <button
                             onClick={() => setActiveTab('requests')}
                             className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
@@ -366,6 +367,15 @@ const OrgAdminDashboard = () => {
                                 <Plus className="w-5 h-5 font-black" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
+                        </button>
+                        <button
+                            onClick={() => setShowAddMemberModal(true)}
+                            className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
+                        >
+                            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                                <UserPlus className="w-5 h-5 font-black" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Add Member</span>
                         </button>
                     </div>
                 </div>
@@ -419,6 +429,16 @@ const OrgAdminDashboard = () => {
                                 Property Management
                             </button>
                             <button
+                                onClick={() => setActiveTab('users')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'users'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Users className="w-4 h-4" />
+                                User Management
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'visitors'
                                     ? 'bg-primary text-text-inverse shadow-sm'
@@ -427,6 +447,26 @@ const OrgAdminDashboard = () => {
                             >
                                 <UsersRound className="w-4 h-4" />
                                 Visitor Management
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('revenue')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'revenue'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Coffee className="w-4 h-4" />
+                                Cafeteria Revenue
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('diesel')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'diesel'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Fuel className="w-4 h-4" />
+                                Diesel Analytics
                             </button>
                         </div>
                     </div>
@@ -628,6 +668,22 @@ const OrgAdminDashboard = () => {
 
                         {activeTab === 'visitors' && <VisitorsTab properties={properties} selectedPropertyId={selectedPropertyId} />}
 
+                        {activeTab === 'users' && (
+                            <UserDirectory
+                                orgId={org?.id}
+                                orgName={org?.name}
+                                properties={properties}
+                                onUserUpdated={fetchOrgUsers}
+                            />
+                        )}
+
+                        {activeTab === 'diesel' && (
+                            <DieselAnalyticsDashboard
+                                propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
+                                orgId={org?.id}
+                            />
+                        )}
+
                         {activeTab === 'settings' && <SettingsView />}
                         {activeTab === 'profile' && (
                             <div className="flex justify-center items-start py-8">
@@ -635,19 +691,29 @@ const OrgAdminDashboard = () => {
                                     {/* Card Header with Autopilot Logo */}
                                     <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
                                         {/* Autopilot Logo */}
-                                        <div className="flex items-center gap-1 mb-4">
-                                            <div className="w-8 h-8 relative flex items-center justify-center">
-                                                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] border-b-white" />
-                                                <div className="absolute w-1.5 h-1.5 bg-slate-900 rounded-full top-3 left-1/2 -translate-x-1/2" />
-                                            </div>
-                                            <span className="text-white text-2xl font-black tracking-tight">UTOPILOT</span>
+                                        <div className="flex items-center justify-center mb-6">
+                                            <img
+                                                src="/autopilot-logo-new.png"
+                                                alt="Autopilot Logo"
+                                                className="h-10 w-auto object-contain invert mix-blend-screen"
+                                            />
                                         </div>
 
                                         {/* User Avatar */}
-                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4">
-                                            <span className="text-4xl font-black text-white">
-                                                {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-                                            </span>
+                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4 overflow-hidden">
+                                            {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
+                                                <Image
+                                                    src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
+                                                    alt="Profile"
+                                                    width={96}
+                                                    height={96}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-4xl font-black text-white">
+                                                    {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Role Badge */}
@@ -667,9 +733,9 @@ const OrgAdminDashboard = () => {
                                             </div>
 
                                             <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">User ID</span>
-                                                <span className="text-xs font-mono text-slate-600 bg-slate-50 px-2 py-1 rounded-lg">
-                                                    {user?.id?.slice(0, 8) || 'N/A'}...
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {user?.user_metadata?.phone || 'Not Set'}
                                                 </span>
                                             </div>
 
@@ -722,6 +788,18 @@ const OrgAdminDashboard = () => {
                     />
                 )
             }
+
+            <InviteMemberModal
+                isOpen={showAddMemberModal}
+                onClose={() => setShowAddMemberModal(false)}
+                orgId={org?.id || ''}
+                orgName={org?.name || 'Organization'}
+                properties={properties}
+                onSuccess={() => {
+                    fetchOrgUsers();
+                    setActiveTab('users');
+                }}
+            />
         </div >
     );
 };

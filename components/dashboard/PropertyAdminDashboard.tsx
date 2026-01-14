@@ -13,6 +13,7 @@ import { useParams, useRouter } from 'next/navigation';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/components/ui/SignOutModal';
 import DieselAnalyticsDashboard from '@/components/diesel/DieselAnalyticsDashboard';
+import Image from 'next/image';
 import VendorExportModal from '@/components/vendor/VendorExportModal';
 import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
 import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
@@ -21,6 +22,7 @@ import TicketsView from './TicketsView';
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import SettingsView from './SettingsView';
+import AddMemberModal from './InviteMemberModal';
 
 // Types
 type Tab = 'overview' | 'requests' | 'users' | 'visitors' | 'diesel' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
@@ -58,6 +60,7 @@ const PropertyAdminDashboard = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
+    const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [statsVersion, setStatsVersion] = useState(0);
 
     const supabase = createClient();
@@ -109,12 +112,9 @@ const PropertyAdminDashboard = () => {
             {/* Sidebar */}
             <aside className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-20 transition-all duration-300">
                 <div className="p-8 pb-4">
-                    <div className="flex items-center gap-3 mb-8">
-                        <img src="/autopilot-logo.png" alt="Autopilot Logo" className="h-10 object-contain" />
-                        <div>
-                            <h2 className="font-bold text-sm leading-tight text-text-primary truncate max-w-[160px]">{property?.name}</h2>
-                            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">Property Manager</p>
-                        </div>
+                    <div className="flex flex-col items-center gap-2 mb-8">
+                        <img src="/autopilot-logo-new.png" alt="Autopilot Logo" className="h-12 w-auto object-contain" />
+                        <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.2em]">Property Manager</p>
                     </div>
                 </div>
 
@@ -178,6 +178,17 @@ const PropertyAdminDashboard = () => {
                             Management Hub
                         </p>
                         <div className="space-y-1">
+
+                            <button
+                                onClick={() => setActiveTab('users')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'users'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Users className="w-4 h-4" />
+                                User Management
+                            </button>
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'visitors'
@@ -189,16 +200,6 @@ const PropertyAdminDashboard = () => {
                                 Visitor Management
                             </button>
                             <button
-                                onClick={() => setActiveTab('units')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'units'
-                                    ? 'bg-primary text-text-inverse shadow-sm'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                    }`}
-                            >
-                                <Building2 className="w-4 h-4" />
-                                Units
-                            </button>
-                            <button
                                 onClick={() => setActiveTab('diesel')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'diesel'
                                     ? 'bg-primary text-text-inverse shadow-sm'
@@ -207,6 +208,16 @@ const PropertyAdminDashboard = () => {
                             >
                                 <Fuel className="w-4 h-4" />
                                 Diesel Analytics
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('vendor_revenue')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'vendor_revenue'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Coffee className="w-4 h-4" />
+                                Cafeteria Revenue
                             </button>
                         </div>
                     </div>
@@ -284,15 +295,6 @@ const PropertyAdminDashboard = () => {
                             <p className="text-text-tertiary text-sm font-medium mt-1">{property.address || 'Property Management Hub'}</p>
                         </div>
                         <div className="flex items-center gap-6">
-                            {/* Theme Toggle */}
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2.5 hover:bg-[#21262d] rounded-xl text-slate-500 transition-all group"
-                                title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                            >
-                                {theme === 'light' ? <Moon className="w-5 h-5 group-hover:text-white" /> : <Sun className="w-5 h-5 group-hover:text-amber-500" />}
-                            </button>
-
                             {/* User Account Info - Simplified Level Look */}
                             <div className="flex items-center gap-6">
                                 <button
@@ -330,7 +332,15 @@ const PropertyAdminDashboard = () => {
                         transition={{ duration: 0.2 }}
                     >
                         {activeTab === 'overview' && <OverviewTab propertyId={propertyId} statsVersion={statsVersion} property={property} />}
-                        {activeTab === 'users' && <UserDirectory propertyId={propertyId} />}
+                        {activeTab === 'users' && <UserDirectory
+                            propertyId={propertyId}
+                            orgId={property?.organization_id}
+                            orgName={orgSlug}
+                            properties={property ? [property] : []}
+                            onUserUpdated={Object.assign(() => setStatsVersion((v: number) => v + 1), {
+                                __triggerModal: () => setShowAddMemberModal(true)
+                            })}
+                        />}
                         {activeTab === 'vendor_revenue' && <VendorRevenueTab propertyId={propertyId} />}
                         {activeTab === 'requests' && property && user && (
                             <TicketsView
@@ -358,19 +368,29 @@ const PropertyAdminDashboard = () => {
                                     {/* Card Header with Autopilot Logo */}
                                     <div className="bg-primary/5 p-8 flex flex-col items-center border-b border-border">
                                         {/* Autopilot Logo */}
-                                        <div className="flex items-center gap-1 mb-4">
-                                            <div className="w-8 h-8 relative flex items-center justify-center">
-                                                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] border-b-primary" />
-                                                <div className="absolute w-1.5 h-1.5 bg-white rounded-full top-3 left-1/2 -translate-x-1/2" />
-                                            </div>
-                                            <span className="text-text-primary text-2xl font-black tracking-tight">UTOPILOT</span>
+                                        <div className="flex items-center justify-center mb-6">
+                                            <img
+                                                src="/autopilot-logo-new.png"
+                                                alt="Autopilot Logo"
+                                                className="h-10 w-auto object-contain"
+                                            />
                                         </div>
 
                                         {/* User Avatar */}
-                                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center border-4 border-white mb-4">
-                                            <span className="text-4xl font-black text-primary">
-                                                {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-                                            </span>
+                                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center border-4 border-white mb-4 overflow-hidden">
+                                            {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
+                                                <Image
+                                                    src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
+                                                    alt="Profile"
+                                                    width={96}
+                                                    height={96}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-4xl font-black text-primary">
+                                                    {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Role Badge */}
@@ -390,9 +410,9 @@ const PropertyAdminDashboard = () => {
                                             </div>
 
                                             <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">User ID</span>
-                                                <span className="text-xs font-mono text-slate-600 bg-slate-50 px-2 py-1 rounded-lg">
-                                                    {user?.id?.slice(0, 8) || 'N/A'}...
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {user?.user_metadata?.phone || 'Not Set'}
                                                 </span>
                                             </div>
 
@@ -424,6 +444,16 @@ const PropertyAdminDashboard = () => {
                     </motion.div>
                 </AnimatePresence>
             </main>
+
+            <AddMemberModal
+                isOpen={showAddMemberModal}
+                onClose={() => setShowAddMemberModal(false)}
+                orgId={property?.organization_id || ''}
+                orgName={orgSlug || 'Organization'}
+                properties={property ? [property] : []}
+                fixedPropertyId={propertyId}
+                onSuccess={() => setStatsVersion(v => v + 1)}
+            />
         </div>
     );
 };

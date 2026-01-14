@@ -154,11 +154,12 @@ export default function HeroSection() {
                         {/* Brand Logo */}
                         <div className="flex items-center group cursor-pointer">
                             <Image
-                                src="/autopilot-logo.png"
+                                src="/autopilot-logo-new.png"
                                 alt="Autopilot Logo"
-                                width={180}
-                                height={60}
-                                className="brightness-0 invert object-contain"
+                                width={240}
+                                height={80}
+                                className="object-contain invert mix-blend-screen"
+                                priority
                             />
                         </div>
                     </div>

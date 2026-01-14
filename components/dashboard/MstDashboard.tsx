@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
     LogOut, Bell, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, RefreshCw, Cog, X,
-    AlertOctagon, BarChart3, FileText, Wrench, Camera, Layers
+    AlertOctagon, BarChart3, FileText, Wrench, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -13,14 +13,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import { checkInResolver } from '@/utils/resolver';
 import SignOutModal from '@/components/ui/SignOutModal';
+import Image from 'next/image';
 import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
 import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
 import { useTheme } from '@/context/ThemeContext';
 import SettingsView from './SettingsView';
-import { MstTicketDashboard } from '@/components/mst';
+import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
 
 // Types
-type Tab = 'dashboard' | 'my_work' | 'department' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
+type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
 
 interface Property {
     id: string;
@@ -64,6 +65,7 @@ const MstDashboard = () => {
     const [incomingTickets, setIncomingTickets] = useState<Ticket[]>([]);
     const [completedTickets, setCompletedTickets] = useState<Ticket[]>([]);
     const [isFetching, setIsFetching] = useState(false);
+    const [userRole, setUserRole] = useState('MST Professional');
 
     const supabase = createClient();
 
@@ -71,11 +73,34 @@ const MstDashboard = () => {
         if (propertyId) {
             fetchPropertyDetails();
             fetchTickets();
+            fetchUserRole();
             if (user?.id) {
                 checkInResolver(user.id, propertyId);
             }
         }
     }, [propertyId, user?.id]);
+
+    const fetchUserRole = async () => {
+        if (!user) return;
+        const { data: member } = await supabase
+            .from('property_memberships')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('property_id', propertyId)
+            .single();
+
+        if (member) {
+            setUserRole(member.role.replace('_', ' '));
+        } else {
+            // Check org membership if property not found
+            const { data: orgMember } = await supabase
+                .from('organization_memberships')
+                .select('role')
+                .eq('user_id', user.id)
+                .single();
+            if (orgMember) setUserRole(orgMember.role.replace('_', ' '));
+        }
+    };
 
     const fetchTickets = async () => {
         if (!user || !propertyId) return;
@@ -219,24 +244,14 @@ const MstDashboard = () => {
                                 Overview
                             </button>
                             <button
-                                onClick={() => setActiveTab('my_work')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'my_work'
+                                onClick={() => setActiveTab('requests')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'requests'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
-                                <ClipboardList className="w-4 h-4" />
-                                My Work
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('department')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'department'
-                                    ? 'bg-primary text-text-inverse shadow-sm'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                    }`}
-                            >
-                                <Layers className="w-4 h-4" />
-                                Department
+                                <Ticket className="w-4 h-4" />
+                                Requests
                             </button>
                             <button
                                 onClick={() => setActiveTab('tasks')}
@@ -346,12 +361,6 @@ const MstDashboard = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={toggleTheme}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-text-tertiary hover:text-text-primary transition-colors"
-                        >
-                            {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                        </button>
                         <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-text-tertiary hover:text-text-primary transition-colors">
                             <Bell className="w-4 h-4" />
                         </button>
@@ -387,22 +396,6 @@ const MstDashboard = () => {
                                     onSettingsClick={() => setActiveTab('settings')}
                                 />
                             )}
-                            {activeTab === 'my_work' && property && user && (
-                                <MstTicketDashboard
-                                    propertyId={propertyId}
-                                    userId={user.id}
-                                    propertyName={property.name}
-                                    userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
-                                />
-                            )}
-                            {activeTab === 'department' && property && user && (
-                                <MstTicketDashboard
-                                    propertyId={propertyId}
-                                    userId={user.id}
-                                    propertyName={property.name}
-                                    userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
-                                />
-                            )}
                             {activeTab === 'tasks' && <ProjectsTab />}
                             {activeTab === 'projects' && <ProjectsTab />}
                             {activeTab === 'requests' && user && (
@@ -425,27 +418,101 @@ const MstDashboard = () => {
                                     isStaff={true}
                                 />
                             )}
-                            {activeTab === 'visitors' && <VisitorsTab />}
+                            {activeTab === 'visitors' && propertyId && (
+                                <VMSAdminDashboard propertyId={propertyId} />
+                            )}
                             {activeTab === 'diesel' && <DieselStaffDashboard isDark={isDarkMode} />}
                             {activeTab === 'settings' && <SettingsView />}
                             {activeTab === 'profile' && (
-                                <div className="bg-white border border-border rounded-3xl p-12 text-center shadow-sm">
-                                    <UserCircle className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-                                    <h3 className="text-xl font-bold text-text-primary mb-2">Profile</h3>
-                                    <p className="text-text-secondary">Update your MST account details here.</p>
+                                <div className="flex justify-center items-start py-8">
+                                    <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
+                                        {/* Card Header with Autopilot Logo */}
+                                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                            {/* Autopilot Logo */}
+                                            <div className="flex items-center justify-center mb-6">
+                                                <img
+                                                    src="/autopilot-logo-new.png"
+                                                    alt="Autopilot Logo"
+                                                    className="h-10 w-auto object-contain invert mix-blend-screen"
+                                                />
+                                            </div>
+
+                                            {/* User Avatar */}
+                                            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4 overflow-hidden">
+                                                {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
+                                                    <Image
+                                                        src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
+                                                        alt="Profile"
+                                                        width={96}
+                                                        height={96}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-4xl font-black text-white">
+                                                        {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Role Badge */}
+                                            <span className="px-4 py-1.5 bg-primary text-text-inverse rounded-full text-xs font-black uppercase tracking-wider">
+                                                {userRole}
+                                            </span>
+                                        </div>
+
+                                        {/* Card Body with User Info */}
+                                        <div className="p-8 space-y-6">
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {user?.user_metadata?.full_name || 'Not Set'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {user?.user_metadata?.phone || 'Not Set'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                                                    <span className="text-sm font-medium text-slate-700">
+                                                        {user?.email || 'Not Set'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {property?.name || 'Not Assigned'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Work Email</span>
+                                                    <span className="text-xs font-medium text-primary">
+                                                        {user?.email}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </motion.div>
                     </AnimatePresence>
                 </main>
-            </div>
+            </div >
 
             <SignOutModal
                 isOpen={showSignOutModal}
                 onClose={() => setShowSignOutModal(false)}
                 onConfirm={signOut}
             />
-        </div>
+        </div >
     );
 };
 

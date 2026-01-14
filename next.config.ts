@@ -6,6 +6,17 @@ const nextConfig: NextConfig = {
 
   // Enforce strict TypeScript checks in production builds
   typescript: { ignoreBuildErrors: false },
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'xvucakstcmtfoanmgcql.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

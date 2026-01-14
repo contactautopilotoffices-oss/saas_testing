@@ -273,10 +273,10 @@ function AuthContent() {
                     {/* Logo */}
                     <div className="flex items-center gap-2 mb-4 -mt-[10px]">
                         <Image
-                            src="/autopilot-logo.png"
+                            src="/autopilot-logo-new.png"
                             alt="Autopilot Logo"
-                            width={240}
-                            height={80}
+                            width={260}
+                            height={90}
                             className="object-contain"
                         />
                     </div>

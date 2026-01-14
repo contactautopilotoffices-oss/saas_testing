@@ -9,6 +9,7 @@ import {
     Shield, Building, CheckCircle2, AlertCircle, Home
 } from 'lucide-react';
 import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
 
 interface RoleInfo {
     role: string;
@@ -63,8 +64,8 @@ export default function SettingsView() {
                 .eq('user_id', user?.id);
 
             setProfile(userData);
-            if (userData.avatar_url) {
-                setAvatarPreview(userData.avatar_url);
+            if (userData.user_photo_url) {
+                setAvatarPreview(userData.user_photo_url);
             }
 
             // Process Roles
@@ -110,26 +111,44 @@ export default function SettingsView() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+
+            // Allow only JPG/JPEG format as requested
+            const fileType = file.type;
+            if (fileType !== 'image/jpeg' && fileType !== 'image/jpg') {
+                showToast('Only JPG/JPEG formats are allowed', 'error');
+                return;
+            }
+
             setAvatarFile(file);
             setAvatarPreview(URL.createObjectURL(file));
         }
     };
 
+
     const uploadAvatar = async (userId: string): Promise<string | null> => {
         if (!avatarFile) return null;
 
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${userId}-${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
-
         try {
+            // Add Compressor before storing
+            const options = {
+                maxSizeMB: 0.1, // 100KB
+                maxWidthOrHeight: 512,
+                useWebWorker: true,
+            };
+
+            const compressedFile = await imageCompression(avatarFile, options);
+
+            const filePath = `${userId}/profile.jpg`;
+
             const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, avatarFile);
+                .from('user-photos')
+                .upload(filePath, compressedFile, {
+                    upsert: true
+                });
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            const { data } = supabase.storage.from('user-photos').getPublicUrl(filePath);
             return data.publicUrl;
         } catch (err) {
             console.error('Error uploading avatar:', err);
@@ -150,13 +169,13 @@ export default function SettingsView() {
                 if (url) avatarUrl = url;
             }
 
-            // Update users table - USING 'phone' instead of 'phone_number'
+            // Update users table - Only use columns that exist
             const { error: dbError } = await supabase
                 .from('users')
                 .update({
                     full_name: profile.full_name,
                     phone: profile.phone,
-                    avatar_url: avatarUrl
+                    user_photo_url: avatarUrl // Use the correct column
                 })
                 .eq('id', user.id);
 
@@ -167,6 +186,7 @@ export default function SettingsView() {
                 data: {
                     full_name: profile.full_name,
                     avatar_url: avatarUrl,
+                    user_photo_url: avatarUrl,
                     phone: profile.phone
                 }
             });
@@ -243,9 +263,9 @@ export default function SettingsView() {
                                 ref={fileInputRef}
                                 onChange={handleFileChange}
                                 className="hidden"
-                                accept="image/*"
+                                accept=".jpg,.jpeg"
                             />
-                            <p className="text-xs font-semibold text-slate-500">Allowed *.jpeg, *.jpg, *.png, *.gif</p>
+                            <p className="text-xs font-semibold text-slate-500">Allowed *.jpg, *.jpeg</p>
                         </div>
 
                         {/* Fields */}

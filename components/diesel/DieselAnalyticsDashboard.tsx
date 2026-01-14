@@ -45,9 +45,14 @@ interface Alert {
  * Admin/Super Admin analytics dashboard for diesel consumption
  * Matches the provided HTML mockup design with golden theme
  */
-const DieselAnalyticsDashboard: React.FC = () => {
+interface DieselAnalyticsDashboardProps {
+    propertyId?: string;
+    orgId?: string;
+}
+
+const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ propertyId: propIdFromProps, orgId }) => {
     const params = useParams();
-    const propertyId = params?.propertyId as string;
+    const propertyId = propIdFromProps || (params?.propertyId as string);
     const supabase = createClient();
 
     // State
@@ -66,144 +71,174 @@ const DieselAnalyticsDashboard: React.FC = () => {
     const [period, setPeriod] = useState<'7D' | '30D'>('7D');
     const [tankCapacity, setTankCapacity] = useState(1000);
     const [nextMaintenanceDate, setNextMaintenanceDate] = useState<Date | null>(null);
+    const [orgData, setOrgData] = useState<any>(null);
 
     // Fetch data
+    // Fetch data
     const fetchData = useCallback(async () => {
-        if (!propertyId) return;
+        if (!propertyId && !orgId) return;
         setIsLoading(true);
 
         try {
-            // Fetch property name
-            const { data: propData } = await supabase
-                .from('properties')
-                .select('name')
-                .eq('id', propertyId)
-                .single();
-            setProperty(propData);
+            if (propertyId) {
+                // Fetch property name
+                const { data: propData } = await supabase
+                    .from('properties')
+                    .select('name')
+                    .eq('id', propertyId)
+                    .single();
+                setProperty(propData);
 
-            // Fetch generators for tank capacity and maintenance date
-            const gensRes = await fetch(`/api/properties/${propertyId}/generators`);
-            const gensData = await gensRes.json();
-            const generators = Array.isArray(gensData) ? gensData : [];
-            const totalTankCapacity = generators.reduce((sum: number, g: any) => sum + (g.tank_capacity_litres || 1000), 0);
-            const nextMaintenance = generators
-                .filter((g: any) => g.next_maintenance_date)
-                .map((g: any) => new Date(g.next_maintenance_date))
-                .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0];
+                // Fetch generators for tank capacity and maintenance date
+                const gensRes = await fetch(`/api/properties/${propertyId}/generators`);
+                const gensData = await gensRes.json();
+                const generators = Array.isArray(gensData) ? gensData : [];
+                const totalTankCapacity = generators.reduce((sum: number, g: any) => sum + (g.tank_capacity_litres || 1000), 0);
+                const nextMaintenance = generators
+                    .filter((g: any) => g.next_maintenance_date)
+                    .map((g: any) => new Date(g.next_maintenance_date))
+                    .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0];
 
-            // Fetch today's readings
-            const todayRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=today`);
-            const todayData = await todayRes.json();
-            const todayTotal = (todayData || []).reduce((sum: number, r: any) =>
-                sum + (r.computed_consumed_litres || 0), 0);
+                // Fetch today's readings
+                const todayRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=today`);
+                const todayData = await todayRes.json();
+                const todayTotal = (todayData || []).reduce((sum: number, r: any) =>
+                    sum + (r.computed_consumed_litres || 0), 0);
 
-            // Fetch this month's readings
-            const monthRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=month`);
-            const monthData = await monthRes.json();
-            const monthTotal = (monthData || []).reduce((sum: number, r: any) =>
-                sum + (r.computed_consumed_litres || 0), 0);
+                // Fetch this month's readings
+                const monthRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=month`);
+                const monthData = await monthRes.json();
+                const monthTotal = (monthData || []).reduce((sum: number, r: any) =>
+                    sum + (r.computed_consumed_litres || 0), 0);
 
-            // Fetch previous month's readings for comparison
-            const prevMonthStart = new Date();
-            prevMonthStart.setMonth(prevMonthStart.getMonth() - 2);
-            const prevMonthEnd = new Date();
-            prevMonthEnd.setMonth(prevMonthEnd.getMonth() - 1);
-            const prevMonthRes = await fetch(
-                `/api/properties/${propertyId}/diesel-readings?startDate=${prevMonthStart.toISOString().split('T')[0]}&endDate=${prevMonthEnd.toISOString().split('T')[0]}`
-            );
-            const prevMonthData = await prevMonthRes.json();
-            const prevMonthTotal = (prevMonthData || []).reduce((sum: number, r: any) =>
-                sum + (r.computed_consumed_litres || 0), 0);
+                // Fetch previous month's readings for comparison
+                const prevMonthStart = new Date();
+                prevMonthStart.setMonth(prevMonthStart.getMonth() - 2);
+                const prevMonthEnd = new Date();
+                prevMonthEnd.setMonth(prevMonthEnd.getMonth() - 1);
+                const prevMonthRes = await fetch(
+                    `/api/properties/${propertyId}/diesel-readings?startDate=${prevMonthStart.toISOString().split('T')[0]}&endDate=${prevMonthEnd.toISOString().split('T')[0]}`
+                );
+                const prevMonthData = await prevMonthRes.json();
+                const prevMonthTotal = (prevMonthData || []).reduce((sum: number, r: any) =>
+                    sum + (r.computed_consumed_litres || 0), 0);
 
-            // Calculate daily average
-            const uniqueDays = new Set((monthData || []).map((r: any) => r.reading_date)).size;
-            const avgDaily = uniqueDays > 0 ? Math.round(monthTotal / uniqueDays) : 0;
+                // Calculate daily average
+                const uniqueDays = new Set((monthData || []).map((r: any) => r.reading_date)).size;
+                const avgDaily = uniqueDays > 0 ? Math.round(monthTotal / uniqueDays) : 0;
 
-            // Calculate month-over-month change
-            const monthChange = prevMonthTotal > 0
-                ? Math.round(((monthTotal - prevMonthTotal) / prevMonthTotal) * 100)
-                : 0;
+                // Calculate month-over-month change
+                const monthChange = prevMonthTotal > 0
+                    ? Math.round(((monthTotal - prevMonthTotal) / prevMonthTotal) * 100)
+                    : 0;
 
-            setMetrics({
-                today: Math.round(todayTotal),
-                month: Math.round(monthTotal),
-                average: avgDaily,
-                todayChange: avgDaily > 0 ? Math.round(((todayTotal - avgDaily) / avgDaily) * 100) : 0,
-                monthChange,
-            });
-
-            // Store additional data for UI
-            setTankCapacity(totalTankCapacity);
-            setNextMaintenanceDate(nextMaintenance || null);
-
-            // Calculate generator breakdown
-            const genBreakdown: Record<string, { litres: number; name: string; capacity?: number }> = {};
-            (monthData || []).forEach((r: any) => {
-                const genId = r.generator_id;
-                if (!genBreakdown[genId]) {
-                    genBreakdown[genId] = {
-                        litres: 0,
-                        name: r.generator?.name || 'Unknown',
-                        capacity: r.generator?.capacity_kva,
-                    };
-                }
-                genBreakdown[genId].litres += r.computed_consumed_litres || 0;
-            });
-
-            const totalMonthLitres = Object.values(genBreakdown).reduce((sum, g) => sum + g.litres, 0);
-            const breakdownArr: GeneratorBreakdown[] = Object.entries(genBreakdown)
-                .map(([id, data]) => ({
-                    id,
-                    name: data.name,
-                    capacity_kva: data.capacity,
-                    totalLitres: Math.round(data.litres),
-                    percentage: totalMonthLitres > 0 ? Math.round((data.litres / totalMonthLitres) * 100) : 0,
-                }))
-                .sort((a, b) => b.totalLitres - a.totalLitres);
-            setBreakdown(breakdownArr);
-
-            // Build trend data based on selected period (7D or 30D)
-            const daysToFetch = period === '30D' ? 30 : 7;
-            const trendRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=${period === '30D' ? 'month' : 'week'}`);
-            const trendRawData = await trendRes.json();
-            const dailyTotals: Record<string, number> = {};
-            (trendRawData || []).forEach((r: any) => {
-                const date = r.reading_date;
-                if (!dailyTotals[date]) dailyTotals[date] = 0;
-                dailyTotals[date] += r.computed_consumed_litres || 0;
-            });
-
-            // Fill in missing days
-            const trend: { date: string; value: number }[] = [];
-            for (let i = daysToFetch - 1; i >= 0; i--) {
-                const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-                const dateStr = d.toISOString().split('T')[0];
-                trend.push({
-                    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                    value: Math.round(dailyTotals[dateStr] || 0),
+                setMetrics({
+                    today: Math.round(todayTotal),
+                    month: Math.round(monthTotal),
+                    average: avgDaily,
+                    todayChange: avgDaily > 0 ? Math.round(((todayTotal - avgDaily) / avgDaily) * 100) : 0,
+                    monthChange,
                 });
-            }
-            setTrendData(trend);
 
-            // Get alerts (high consumption readings)
-            const alertsList: Alert[] = (monthData || [])
-                .filter((r: any) => r.alert_status === 'warning' || r.alert_status === 'critical')
-                .slice(0, 5)
-                .map((r: any) => ({
-                    id: r.id,
-                    generator_name: r.generator?.name || 'Unknown',
-                    message: `${r.generator?.name} consumption is high (${r.computed_consumed_litres}L)`,
-                    time: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                    severity: r.alert_status as 'warning' | 'critical',
+                // Store additional data for UI
+                setTankCapacity(totalTankCapacity);
+                setNextMaintenanceDate(nextMaintenance || null);
+
+                // Calculate generator breakdown
+                const genBreakdown: Record<string, { litres: number; name: string; capacity?: number }> = {};
+                (monthData || []).forEach((r: any) => {
+                    const genId = r.generator_id;
+                    if (!genBreakdown[genId]) {
+                        genBreakdown[genId] = {
+                            litres: 0,
+                            name: r.generator?.name || 'Unknown',
+                            capacity: r.generator?.capacity_kva,
+                        };
+                    }
+                    genBreakdown[genId].litres += r.computed_consumed_litres || 0;
+                });
+
+                const totalMonthLitres = Object.values(genBreakdown).reduce((sum, g) => sum + g.litres, 0);
+                const breakdownArr: GeneratorBreakdown[] = Object.entries(genBreakdown)
+                    .map(([id, data]) => ({
+                        id,
+                        name: data.name,
+                        capacity_kva: data.capacity,
+                        totalLitres: Math.round(data.litres),
+                        percentage: totalMonthLitres > 0 ? Math.round((data.litres / totalMonthLitres) * 100) : 0,
+                    }))
+                    .sort((a, b) => b.totalLitres - a.totalLitres);
+                setBreakdown(breakdownArr);
+
+                // Build trend data based on selected period (7D or 30D)
+                const daysToFetch = period === '30D' ? 30 : 7;
+                const trendRes = await fetch(`/api/properties/${propertyId}/diesel-readings?period=${period === '30D' ? 'month' : 'week'}`);
+                const trendRawData = await trendRes.json();
+                const dailyTotals: Record<string, number> = {};
+                (trendRawData || []).forEach((r: any) => {
+                    const date = r.reading_date;
+                    if (!dailyTotals[date]) dailyTotals[date] = 0;
+                    dailyTotals[date] += r.computed_consumed_litres || 0;
+                });
+
+                // Fill in missing days
+                const trend: { date: string; value: number }[] = [];
+                for (let i = daysToFetch - 1; i >= 0; i--) {
+                    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+                    const dateStr = d.toISOString().split('T')[0];
+                    trend.push({
+                        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        value: Math.round(dailyTotals[dateStr] || 0),
+                    });
+                }
+                setTrendData(trend);
+
+                // Get alerts (high consumption readings)
+                const alertsList: Alert[] = (monthData || [])
+                    .filter((r: any) => r.alert_status === 'warning' || r.alert_status === 'critical')
+                    .slice(0, 5)
+                    .map((r: any) => ({
+                        id: r.id,
+                        generator_name: r.generator?.name || 'Unknown',
+                        message: `${r.generator?.name} consumption is high (${r.computed_consumed_litres}L)`,
+                        time: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        severity: r.alert_status as 'warning' | 'critical',
+                    }));
+                setAlerts(alertsList);
+            } else if (orgId) {
+                // Fetch org-level diesel summary
+                const orgRes = await fetch(`/api/organizations/${orgId}/diesel-summary?period=${period === '30D' ? 'month' : 'week'}`);
+                const data = await orgRes.json();
+                setOrgData(data);
+
+                setMetrics({
+                    today: data.org_summary?.today_total || 0,
+                    month: data.org_summary?.total_litres || 0,
+                    average: Math.round((data.org_summary?.total_litres || 0) / (period === '30D' ? 30 : 7)),
+                    todayChange: 0,
+                    monthChange: 0,
+                });
+
+                // Map properties to breakdown
+                const breakdownArr: GeneratorBreakdown[] = (data.properties || []).map((p: any) => ({
+                    id: p.property_id,
+                    name: p.property_name,
+                    totalLitres: p.period_total_litres,
+                    percentage: (data.org_summary?.total_litres || 0) > 0
+                        ? Math.round((p.period_total_litres / data.org_summary.total_litres) * 100)
+                        : 0,
                 }));
-            setAlerts(alertsList);
+                setBreakdown(breakdownArr);
 
+                // Build trend data (placeholder or aggregated if API supported it)
+                setTrendData([]);
+            }
         } catch (err) {
             console.error('Failed to fetch diesel analytics:', err);
         } finally {
             setIsLoading(false);
         }
-    }, [propertyId, period]);
+    }, [propertyId, orgId, period]);
 
     useEffect(() => {
         fetchData();
@@ -213,10 +248,10 @@ const DieselAnalyticsDashboard: React.FC = () => {
     const handleExport = () => {
         const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const today = new Date().toISOString().split('T')[0];
-        window.open(
-            `/api/properties/${propertyId}/diesel-export?startDate=${monthAgo}&endDate=${today}`,
-            '_blank'
-        );
+        const exportUrl = propertyId
+            ? `/api/properties/${propertyId}/diesel-export?startDate=${monthAgo}&endDate=${today}`
+            : `/api/organizations/${orgId}/diesel-export?startDate=${monthAgo}&endDate=${today}`;
+        window.open(exportUrl, '_blank');
     };
 
     // Chart SVG renderer
@@ -348,8 +383,12 @@ const DieselAnalyticsDashboard: React.FC = () => {
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900">Consumption Trends</h3>
-                            <p className="text-sm text-slate-500">Last 7 days vs 30-day average</p>
+                            <h3 className="text-lg font-bold text-slate-900">
+                                {propertyId ? 'Consumption Trends' : 'Aggregated Consumption'}
+                            </h3>
+                            <p className="text-sm text-slate-500">
+                                {propertyId ? 'Last 7 days vs 30-day average' : 'Total consumption across all properties'}
+                            </p>
                         </div>
                         <div className="flex gap-2">
                             <span
@@ -438,7 +477,9 @@ const DieselAnalyticsDashboard: React.FC = () => {
                     {/* Generator Breakdown */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col gap-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-900">Generator Breakdown</h3>
+                            <h3 className="text-base font-bold text-slate-900">
+                                {propertyId ? 'Generator Breakdown' : 'Property Breakdown'}
+                            </h3>
                             <button className="text-xs font-bold text-primary hover:underline">View Details</button>
                         </div>
 
@@ -524,11 +565,11 @@ const DieselAnalyticsDashboard: React.FC = () => {
                             Export Data
                         </button>
                         <button
-                            onClick={() => window.location.href = `../staff`}
+                            onClick={() => window.location.href = propertyId ? `../staff` : `admin/dashboard`}
                             className="flex-1 md:flex-none h-11 px-6 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
-                            Log Tomorrow
+                            {propertyId ? 'Log Tomorrow' : 'Dashboard'}
                         </button>
                     </div>
                 </div>

@@ -262,23 +262,6 @@ const MasterAdminDashboard = () => {
                 </nav>
 
                 <div className="pt-8 border-t border-border">
-                    <button
-                        onClick={toggleTheme}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 font-bold text-sm text-muted-foreground hover:bg-muted mb-4 border border-border"
-                    >
-                        {theme === 'light' ? (
-                            <>
-                                <Moon className="w-4 h-4" />
-                                Dark Mode
-                            </>
-                        ) : (
-                            <>
-                                <Sun className="w-4 h-4" />
-                                Light Mode
-                            </>
-                        )}
-                    </button>
-
                     <div className="bg-orange-500/10 p-4 rounded-2xl border border-orange-500/20 mb-4">
                         <p className="text-[10px] font-black text-brand-orange uppercase tracking-widest mb-1">Status</p>
                         <div className="flex items-center gap-2">
@@ -352,6 +335,12 @@ const MasterAdminDashboard = () => {
                                 <Plus className="w-4 h-4" /> New User
                             </button>
                         )}
+                        <button
+                            onClick={() => setShowSignOutModal(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-rose-500 text-white font-bold text-xs rounded-xl uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-100"
+                        >
+                            <LogOut className="w-4 h-4" /> Sign Out
+                        </button>
                     </div>
                 </header>
 
@@ -684,8 +673,8 @@ const OrganizationsList = ({ organizations, users, isLoading, onSoftDelete, onRe
                         {organizations.map((org) => {
                             // Correct deduplicated count of users in this organization
                             const orgMemberIds = new Set([
-                                ...(users.filter(u => u.organization_memberships?.some(m => m.organization_id === org.id)).map(u => u.id)),
-                                ...(users.filter(u => u.property_memberships?.some(pm => pm.organization_id === org.id)).map(u => u.id))
+                                ...(users.filter(u => Array.isArray(u.organization_memberships) && u.organization_memberships.some(m => m.organization_id === org.id)).map(u => u.id)),
+                                ...(users.filter(u => Array.isArray(u.property_memberships) && u.property_memberships.some(pm => pm.organization_id === org.id)).map(u => u.id))
                             ]);
 
                             const propertiesCount = org.properties?.[0]?.count || 0;
@@ -825,8 +814,8 @@ const UserDirectory = ({ users, organizations, onUpdateRole, onToggleStatus, onD
     const filteredUsers = selectedOrgFilter === 'all'
         ? users
         : users.filter(u =>
-            u.organization_memberships?.some(m => m.organization_id === selectedOrgFilter) ||
-            u.property_memberships?.some(m => m.organization_id === selectedOrgFilter)
+            (Array.isArray(u.organization_memberships) && u.organization_memberships.some(m => m.organization_id === selectedOrgFilter)) ||
+            (Array.isArray(u.property_memberships) && u.property_memberships.some(m => m.organization_id === selectedOrgFilter))
         );
 
     return (
@@ -870,12 +859,11 @@ const UserDirectory = ({ users, organizations, onUpdateRole, onToggleStatus, onD
 
                         // Collect all memberships to display
                         // We want to show specific org memberships if filtered, or ALL memberships if 'all' is selected
-                        const orgMemberships = user.organization_memberships?.filter(m => selectedOrgFilter === 'all' || m.organization_id === selectedOrgFilter) || [];
-                        // Property memberships are not filtered by Org ID currently in the UI filter (as it only lists Orgs), 
-                        // but strictly speaking properties belong to orgs. For now, show all prop memberships if filter is 'all', 
-                        // or filter them if we had org_id on them (we don't in the frontend, only in DB).
-                        // Let's just show all property memberships for now to ensure visibility.
-                        const propMemberships = user.property_memberships || [];
+                        const orgMemberships = Array.isArray(user.organization_memberships)
+                            ? user.organization_memberships.filter(m => selectedOrgFilter === 'all' || m.organization_id === selectedOrgFilter)
+                            : [];
+
+                        const propMemberships = Array.isArray(user.property_memberships) ? user.property_memberships : [];
 
                         const hasMemberships = orgMemberships.length > 0 || propMemberships.length > 0;
 

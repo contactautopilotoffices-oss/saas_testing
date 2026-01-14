@@ -10,12 +10,14 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import SignOutModal from '@/components/ui/SignOutModal';
+import Image from 'next/image';
 import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
 import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
 import VMSKiosk from '@/components/vms/VMSKiosk';
 import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
+import SettingsView from './SettingsView';
 
 // Types
 type Tab = 'overview' | 'requests' | 'checkinout' | 'visitors' | 'diesel' | 'settings' | 'profile';
@@ -41,14 +43,16 @@ const SecurityDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const [userRole, setUserRole] = useState('Security Officer');
 
     const supabase = createClient();
 
     useEffect(() => {
         if (propertyId) {
             fetchPropertyDetails();
+            fetchUserRole();
         }
-    }, [propertyId]);
+    }, [propertyId, user?.id]);
 
     const fetchPropertyDetails = async () => {
         setIsLoading(true);
@@ -66,6 +70,28 @@ const SecurityDashboard = () => {
             setProperty(data);
         }
         setIsLoading(false);
+    };
+
+    const fetchUserRole = async () => {
+        if (!user) return;
+        const { data: member } = await supabase
+            .from('property_memberships')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('property_id', propertyId)
+            .single();
+
+        if (member) {
+            setUserRole(member.role.replace('_', ' '));
+        } else {
+            // Check org membership if property not found
+            const { data: orgMember } = await supabase
+                .from('organization_memberships')
+                .select('role')
+                .eq('user_id', user.id)
+                .single();
+            if (orgMember) setUserRole(orgMember.role.replace('_', ' '));
+        }
     };
 
     if (isLoading) return (
@@ -261,22 +287,6 @@ const SecurityDashboard = () => {
 
                     <div className="space-y-2">
                         <button
-                            onClick={toggleTheme}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-muted transition-all font-bold text-sm"
-                        >
-                            {theme === 'light' ? (
-                                <>
-                                    <Moon className="w-4 h-4" />
-                                    <span>Dark Mode</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sun className="w-4 h-4" />
-                                    <span>Light Mode</span>
-                                </>
-                            )}
-                        </button>
-                        <button
                             onClick={() => setShowSignOutModal(true)}
                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600 transition-all font-bold text-sm"
                         >
@@ -311,18 +321,84 @@ const SecurityDashboard = () => {
                         )}
                         {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
                         {activeTab === 'diesel' && <DieselStaffDashboard />}
-                        {activeTab === 'settings' && (
-                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
-                                <Settings className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-text-primary mb-2">Settings</h3>
-                                <p className="text-text-secondary">Notification and portal settings.</p>
-                            </div>
-                        )}
+                        {activeTab === 'settings' && <SettingsView />}
                         {activeTab === 'profile' && (
-                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
-                                <UserCircle className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-text-primary mb-2">Profile</h3>
-                                <p className="text-text-secondary">Officer profile information.</p>
+                            <div className="flex justify-center items-start py-8">
+                                <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
+                                    {/* Card Header with Autopilot Logo */}
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                        {/* Autopilot Logo */}
+                                        <div className="flex items-center justify-center mb-6">
+                                            <img
+                                                src="/autopilot-logo-new.png"
+                                                alt="Autopilot Logo"
+                                                className="h-10 w-auto object-contain invert mix-blend-screen"
+                                            />
+                                        </div>
+
+                                        {/* User Avatar */}
+                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4 overflow-hidden">
+                                            {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
+                                                <Image
+                                                    src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
+                                                    alt="Profile"
+                                                    width={96}
+                                                    height={96}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-4xl font-black text-white">
+                                                    {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Role Badge */}
+                                        <span className="px-4 py-1.5 bg-primary text-text-inverse rounded-full text-xs font-black uppercase tracking-wider">
+                                            {userRole}
+                                        </span>
+                                    </div>
+
+                                    {/* Card Body with User Info */}
+                                    <div className="p-8 space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {user?.user_metadata?.full_name || 'Not Set'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {user?.user_metadata?.phone || 'Not Set'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                                                <span className="text-sm font-medium text-slate-700">
+                                                    {user?.email || 'Not Set'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</span>
+                                                <span className="text-sm font-bold text-slate-900">
+                                                    {property?.name || 'Not Assigned'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center py-3">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Work Email</span>
+                                                <span className="text-xs font-medium text-primary">
+                                                    {user?.email}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </motion.div>
