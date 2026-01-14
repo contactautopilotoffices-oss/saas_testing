@@ -44,7 +44,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
                 exit="exit"
                 className="min-h-screen"
             >
-                {children}
+                <div>{children}</div>
             </motion.div>
         </AnimatePresence>
     );

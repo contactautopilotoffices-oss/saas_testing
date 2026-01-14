@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
     LogOut, Bell, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, RefreshCw, Cog, X,
-    AlertOctagon, BarChart3, FileText, Wrench, Camera
+    AlertOctagon, BarChart3, FileText, Wrench, Camera, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -17,9 +17,10 @@ import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
 import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashboard';
 import { useTheme } from '@/context/ThemeContext';
 import SettingsView from './SettingsView';
+import { MstTicketDashboard } from '@/components/mst';
 
 // Types
-type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
+type Tab = 'dashboard' | 'my_work' | 'department' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
 
 interface Property {
     id: string;
@@ -215,7 +216,27 @@ const MstDashboard = () => {
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
-                                Dashboard
+                                Overview
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('my_work')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'my_work'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <ClipboardList className="w-4 h-4" />
+                                My Work
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('department')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'department'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Layers className="w-4 h-4" />
+                                Department
                             </button>
                             <button
                                 onClick={() => setActiveTab('tasks')}
@@ -224,28 +245,8 @@ const MstDashboard = () => {
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
-                                <ClipboardList className="w-4 h-4" />
-                                My Tasks
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('projects')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'projects'
-                                    ? 'bg-primary text-text-inverse shadow-sm'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                    }`}
-                            >
                                 <FolderKanban className="w-4 h-4" />
-                                My Project Work
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('requests')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-sm font-bold ${activeTab === 'requests'
-                                    ? 'bg-primary text-text-inverse shadow-sm'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                    }`}
-                            >
-                                <Ticket className="w-4 h-4" />
-                                Requests
+                                Projects
                             </button>
                         </div>
                     </div>
@@ -386,7 +387,23 @@ const MstDashboard = () => {
                                     onSettingsClick={() => setActiveTab('settings')}
                                 />
                             )}
-                            {activeTab === 'tasks' && <TasksTab />}
+                            {activeTab === 'my_work' && property && user && (
+                                <MstTicketDashboard
+                                    propertyId={propertyId}
+                                    userId={user.id}
+                                    propertyName={property.name}
+                                    userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
+                                />
+                            )}
+                            {activeTab === 'department' && property && user && (
+                                <MstTicketDashboard
+                                    propertyId={propertyId}
+                                    userId={user.id}
+                                    propertyName={property.name}
+                                    userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
+                                />
+                            )}
+                            {activeTab === 'tasks' && <ProjectsTab />}
                             {activeTab === 'projects' && <ProjectsTab />}
                             {activeTab === 'requests' && user && (
                                 <RequestsTab

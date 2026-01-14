@@ -66,6 +66,7 @@ export async function GET(
 /**
  * PATCH /api/tickets/[id]
  * Update ticket status, assignment, SLA, photos
+ * Supports MST-driven workflow actions: self_assign, start_work, pause_work, resume_work, complete
  */
 export async function PATCH(
     request: NextRequest,
@@ -82,6 +83,7 @@ export async function PATCH(
 
         const body = await request.json();
         const {
+            // Standard fields
             status,
             assigned_to,
             priority,
@@ -91,6 +93,9 @@ export async function PATCH(
             photo_before_url,
             photo_after_url,
             rating,
+            // MST workflow actions
+            action, // 'self_assign' | 'start_work' | 'pause_work' | 'resume_work' | 'complete'
+            work_pause_reason,
         } = body;
 
         // Get current ticket
@@ -106,8 +111,127 @@ export async function PATCH(
 
         const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-        // Handle status changes
-        if (status && status !== currentTicket.status) {
+        // Handle MST workflow actions
+        if (action) {
+            switch (action) {
+                case 'self_assign':
+                    // MST assigns ticket to themselves
+                    if (currentTicket.assigned_to && currentTicket.assigned_to !== user.id) {
+                        return NextResponse.json({ 
+                            error: 'Ticket already assigned to another MST' 
+                        }, { status: 400 });
+                    }
+                    updates.assigned_to = user.id;
+                    updates.assigned_at = new Date().toISOString();
+                    updates.status = 'assigned';
+                    updates.sla_started = true;
+                    const slaHoursAssign = currentTicket.sla_hours || 24;
+                    updates.sla_deadline = new Date(Date.now() + slaHoursAssign * 60 * 60 * 1000).toISOString();
+                    
+                    await supabase.from('ticket_activity_log').insert({
+                        ticket_id: ticketId,
+                        user_id: user.id,
+                        action: 'self_assigned',
+                        new_value: user.id,
+                    });
+                    break;
+
+                case 'start_work':
+                    // MST starts working on ticket
+                    if (currentTicket.assigned_to !== user.id) {
+                        return NextResponse.json({ 
+                            error: 'You must be assigned to this ticket to start work' 
+                        }, { status: 400 });
+                    }
+                    updates.status = 'in_progress';
+                    updates.work_started_at = new Date().toISOString();
+                    updates.work_paused = false;
+                    
+                    await supabase.from('ticket_activity_log').insert({
+                        ticket_id: ticketId,
+                        user_id: user.id,
+                        action: 'work_started',
+                        old_value: currentTicket.status,
+                        new_value: 'in_progress',
+                    });
+                    break;
+
+                case 'pause_work':
+                    // MST pauses work on ticket (requires reason)
+                    if (currentTicket.assigned_to !== user.id) {
+                        return NextResponse.json({ 
+                            error: 'You must be assigned to this ticket to pause work' 
+                        }, { status: 400 });
+                    }
+                    if (!work_pause_reason) {
+                        return NextResponse.json({ 
+                            error: 'Pause reason is required' 
+                        }, { status: 400 });
+                    }
+                    updates.work_paused = true;
+                    updates.work_paused_at = new Date().toISOString();
+                    updates.work_pause_reason = work_pause_reason;
+                    updates.work_paused_by = user.id;
+                    updates.status = 'paused';
+                    
+                    await supabase.from('ticket_activity_log').insert({
+                        ticket_id: ticketId,
+                        user_id: user.id,
+                        action: 'work_paused',
+                        new_value: work_pause_reason,
+                    });
+                    break;
+
+                case 'resume_work':
+                    // MST resumes paused work
+                    if (currentTicket.assigned_to !== user.id) {
+                        return NextResponse.json({ 
+                            error: 'You must be assigned to this ticket to resume work' 
+                        }, { status: 400 });
+                    }
+                    updates.work_paused = false;
+                    updates.work_paused_at = null;
+                    updates.work_pause_reason = null;
+                    updates.status = 'in_progress';
+                    
+                    await supabase.from('ticket_activity_log').insert({
+                        ticket_id: ticketId,
+                        user_id: user.id,
+                        action: 'work_resumed',
+                        old_value: currentTicket.work_pause_reason,
+                        new_value: 'in_progress',
+                    });
+                    break;
+
+                case 'complete':
+                    // MST completes ticket
+                    if (currentTicket.assigned_to !== user.id) {
+                        return NextResponse.json({ 
+                            error: 'You must be assigned to this ticket to complete it' 
+                        }, { status: 400 });
+                    }
+                    updates.status = 'closed';
+                    updates.resolved_at = new Date().toISOString();
+                    updates.work_paused = false;
+                    
+                    await supabase.from('ticket_activity_log').insert({
+                        ticket_id: ticketId,
+                        user_id: user.id,
+                        action: 'completed',
+                        old_value: currentTicket.status,
+                        new_value: 'closed',
+                    });
+                    break;
+
+                default:
+                    return NextResponse.json({ 
+                        error: `Unknown action: ${action}` 
+                    }, { status: 400 });
+            }
+        }
+
+        // Handle standard status changes (if no action specified)
+        if (!action && status && status !== currentTicket.status) {
             updates.status = status;
 
             if (status === 'in_progress' && !currentTicket.work_started_at) {
@@ -128,8 +252,8 @@ export async function PATCH(
             });
         }
 
-        // Handle assignment
-        if (assigned_to !== undefined && assigned_to !== currentTicket.assigned_to) {
+        // Handle assignment (admin reassignment)
+        if (!action && assigned_to !== undefined && assigned_to !== currentTicket.assigned_to) {
             updates.assigned_to = assigned_to;
             updates.assigned_at = new Date().toISOString();
             updates.status = 'assigned';

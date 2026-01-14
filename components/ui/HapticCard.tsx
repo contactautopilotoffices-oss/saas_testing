@@ -150,7 +150,7 @@ export const HapticCard: React.FC<HapticCardProps> = ({
                         exit="hidden"
                         transition={{ duration: reducedMotion ? 0 : 0.3, ease: 'easeOut' }}
                     >
-                        {expandedContent}
+                        <div>{expandedContent}</div>
                     </motion.div>
                 )}
             </AnimatePresence>

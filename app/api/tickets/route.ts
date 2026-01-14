@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { classifyTicketDepartment } from '@/lib/ticket-classifier';
+import { TicketDepartment } from '@/types/ticketing';
 
 // Classification keywords mapped to category codes
 const CLASSIFICATION_KEYWORDS: Record<string, string[]> = {
@@ -128,7 +130,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/tickets
- * Create a new ticket with plain-language classification
+ * Create a new ticket with automatic department classification
  */
 export async function POST(request: NextRequest) {
     try {
@@ -149,6 +151,7 @@ export async function POST(request: NextRequest) {
             is_internal,
             isInternal,
             title,
+            department: explicitDepartment, // Allow explicit department override
         } = body;
 
         const propId = property_id || propertyId;
@@ -162,10 +165,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Classify ticket into department
+        const classification = classifyTicketDepartment(description, title);
+        const department: TicketDepartment = explicitDepartment || classification.department;
+
         // Simple ticket number generation
         const ticketNumber = `TKT-${Date.now()}`;
 
-        // Create the ticket with minimal fields that match the basic schema
+        // Create the ticket with department classification
+        // Status starts as 'waitlist' for MST-driven workflow
         const { data: ticket, error: insertError } = await supabase
             .from('tickets')
             .insert({
@@ -176,8 +184,11 @@ export async function POST(request: NextRequest) {
                 description,
                 category: 'general',  // Required: NOT NULL in DB
                 priority: 'medium',
-                status: 'open',
+                status: 'waitlist', // New tickets go to waitlist for MST pickup
+                department: department,
                 raised_by: user.id,
+                is_internal: internal,
+                work_paused: false,
             })
             .select('*')
             .single();
@@ -194,9 +205,10 @@ export async function POST(request: NextRequest) {
             success: true,
             ticket,
             classification: {
-                category: 'general',
-                confidence: 100,
-                isVague: false,
+                department: department,
+                confidence: classification.confidence,
+                matchedKeywords: classification.matchedKeywords,
+                isAutoClassified: !explicitDepartment,
             },
         }, { status: 201 });
     } catch (error) {
