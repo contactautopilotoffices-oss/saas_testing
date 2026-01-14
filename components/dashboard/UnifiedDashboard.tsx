@@ -13,8 +13,8 @@ const UnifiedDashboard = () => {
 
     if (isLoading) {
         return (
-            <div className="h-screen w-full flex items-center justify-center bg-black">
-                <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+            <div className="h-screen w-full flex items-center justify-center bg-background">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
             </div>
         );
     }

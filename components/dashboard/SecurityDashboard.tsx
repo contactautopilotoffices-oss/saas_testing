@@ -104,45 +104,45 @@ const SecurityDashboard = () => {
                 <nav className="flex-1 px-4 overflow-y-auto">
                     {/* Quick Actions */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-slate-900 rounded-full"></span>
+                        <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
                             Quick Actions
                         </p>
                         <div className="grid grid-cols-2 gap-2 px-2">
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className="flex flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all text-left"
+                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-blue-50/50 hover:border-blue-200 transition-all text-left"
                             >
                                 <Plus className="w-4 h-4 text-blue-600" />
-                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">New Request</span>
+                                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">New Request</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab('checkinout')}
-                                className="flex flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-emerald-50 hover:border-emerald-200 transition-all text-left"
+                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 transition-all text-left"
                             >
                                 <LogIn className="w-4 h-4 text-emerald-600" />
-                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Check In/Out</span>
+                                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Check In/Out</span>
                             </button>
                             <button
                                 onClick={() => alert('URGENT: Emergency SOS Signal Broadcasted to all Staff.')}
-                                className="flex flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-rose-50 hover:border-rose-200 transition-all text-left"
+                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-rose-50/50 hover:border-rose-200 transition-all text-left"
                             >
                                 <Shield className="w-4 h-4 text-rose-600" />
-                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Emergency</span>
+                                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Emergency</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab('visitors')}
-                                className="flex flex-col items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left"
+                                className="flex flex-col items-start gap-2 p-3 bg-muted border border-border rounded-xl hover:bg-indigo-50/50 hover:border-indigo-200 transition-all text-left"
                             >
                                 <UsersRound className="w-4 h-4 text-indigo-600" />
-                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">View Visitors</span>
+                                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">View Visitors</span>
                             </button>
                         </div>
                     </div>
 
                     {/* Core Operations */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                        <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
                             <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             Core Operations
                         </p>
@@ -151,7 +151,7 @@ const SecurityDashboard = () => {
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
                                     ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    : 'text-text-secondary hover:bg-muted'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -161,7 +161,7 @@ const SecurityDashboard = () => {
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
                                     ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    : 'text-text-secondary hover:bg-muted'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -171,7 +171,7 @@ const SecurityDashboard = () => {
                                 onClick={() => setActiveTab('checkinout')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'checkinout'
                                     ? 'bg-secondary text-text-inverse shadow-lg shadow-secondary/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    : 'text-text-secondary hover:bg-muted'
                                     }`}
                             >
                                 <LogIn className="w-4 h-4" />
@@ -222,7 +222,7 @@ const SecurityDashboard = () => {
 
                     {/* System & Personal */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                        <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
                             <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             System & Personal
                         </p>
@@ -231,7 +231,7 @@ const SecurityDashboard = () => {
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
                                     ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    : 'text-text-secondary hover:bg-muted'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -241,7 +241,7 @@ const SecurityDashboard = () => {
                                 onClick={() => setActiveTab('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
                                     ? 'bg-primary text-text-inverse shadow-lg shadow-primary/25'
-                                    : 'text-slate-600 hover:bg-slate-50'
+                                    : 'text-text-secondary hover:bg-muted'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
@@ -320,24 +320,24 @@ const SecurityDashboard = () => {
                         {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
                         {activeTab === 'diesel' && <DieselStaffDashboard />}
                         {activeTab === 'cafeteria' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Cafeteria</h3>
-                                <p className="text-slate-500">Property cafeteria services.</p>
+                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
+                                <Coffee className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-text-primary mb-2">Cafeteria</h3>
+                                <p className="text-text-secondary">Property cafeteria services.</p>
                             </div>
                         )}
                         {activeTab === 'settings' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Settings</h3>
-                                <p className="text-slate-500">Notification and portal settings.</p>
+                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
+                                <Settings className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-text-primary mb-2">Settings</h3>
+                                <p className="text-text-secondary">Notification and portal settings.</p>
                             </div>
                         )}
                         {activeTab === 'profile' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <UserCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Profile</h3>
-                                <p className="text-slate-500">Officer profile information.</p>
+                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
+                                <UserCircle className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-text-primary mb-2">Profile</h3>
+                                <p className="text-text-secondary">Officer profile information.</p>
                             </div>
                         )}
                     </motion.div>
@@ -362,12 +362,12 @@ const OverviewTab = () => (
                 { label: 'Incidents Today', value: '0', icon: AlertCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                 { label: 'Security Alerts', value: '0', icon: Bell, color: 'text-rose-600', bg: 'bg-rose-50' },
             ].map((stat, i) => (
-                <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div key={i} className="bg-card p-6 rounded-3xl border border-border shadow-sm">
                     <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
                         <stat.icon className="w-6 h-6" />
                     </div>
-                    <p className="text-slate-500 text-sm font-medium">{stat.label}</p>
-                    <h3 className="text-2xl font-black text-slate-900 mt-1">{stat.value}</h3>
+                    <p className="text-text-secondary text-sm font-medium">{stat.label}</p>
+                    <h3 className="text-2xl font-black text-text-primary mt-1">{stat.value}</h3>
                 </div>
             ))}
         </div>

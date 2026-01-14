@@ -103,17 +103,17 @@ const PropertyAdminDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-background flex font-inter text-foreground dark">
+        <div className="min-h-screen bg-background flex font-inter text-foreground">
             {/* Sidebar */}
             <aside className="w-72 bg-sidebar border-r border-border flex flex-col fixed h-full z-10 transition-all duration-300">
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse font-bold text-lg">
+                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-lg border border-primary/20">
                             {property?.name?.substring(0, 1) || 'P'}
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm leading-tight text-white truncate max-w-[160px]">{property?.name}</h2>
-                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Property Manager</p>
+                            <h2 className="font-bold text-sm leading-tight text-text-primary truncate max-w-[160px]">{property?.name}</h2>
+                            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">Property Manager</p>
                         </div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@ const PropertyAdminDashboard = () => {
                             <div className="px-4 grid grid-cols-2 gap-2">
                                 <button
                                     onClick={() => setShowCreateTicketModal(true)}
-                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-[#21262d] text-white rounded-xl hover:bg-[#30363d] transition-all border border-[#30363d] group"
+                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
                                 >
                                     <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                         <Plus className="w-4 h-4" />
@@ -139,7 +139,7 @@ const PropertyAdminDashboard = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('users')}
-                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-[#21262d] text-white rounded-xl hover:bg-[#30363d] transition-all border border-[#30363d] group"
+                                    className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
                                 >
                                     <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                         <UserCircle className="w-4 h-4" />
@@ -160,8 +160,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'overview'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
@@ -170,8 +170,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'requests'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Ticket className="w-4 h-4" />
@@ -190,8 +190,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('users')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'users'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Users className="w-4 h-4" />
@@ -200,8 +200,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'visitors'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <UsersRound className="w-4 h-4" />
@@ -210,8 +210,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('units')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'units'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Building2 className="w-4 h-4" />
@@ -230,8 +230,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('vendor_revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'vendor_revenue'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <IndianRupee className="w-4 h-4" />
@@ -250,8 +250,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'settings'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <Settings className="w-4 h-4" />
@@ -260,8 +260,8 @@ const PropertyAdminDashboard = () => {
                             <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${activeTab === 'profile'
-                                    ? 'bg-primary text-text-inverse'
-                                    : 'text-slate-400 hover:bg-[#21262d] hover:text-white'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <UserCircle className="w-4 h-4" />
@@ -275,7 +275,7 @@ const PropertyAdminDashboard = () => {
                     <div className="space-y-2">
                         <button
                             onClick={() => setShowSignOutModal(true)}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all font-bold text-sm"
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:bg-red-50 hover:text-red-600 transition-all font-bold text-sm"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
@@ -308,8 +308,8 @@ const PropertyAdminDashboard = () => {
             <main className="flex-1 ml-72 p-8 lg:p-12 overflow-y-auto min-h-screen">
                 <header className="flex justify-between items-center mb-10">
                     <div>
-                        <h1 className="text-3xl font-black text-white tracking-tight capitalize">{activeTab}</h1>
-                        <p className="text-slate-500 text-sm font-medium mt-1">{property.address || 'Property Management Hub'}</p>
+                        <h1 className="text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab}</h1>
+                        <p className="text-text-tertiary text-sm font-medium mt-1">{property.address || 'Property Management Hub'}</p>
                     </div>
                     <div className="flex items-center gap-6">
                         {/* Theme Toggle */}
@@ -327,21 +327,21 @@ const PropertyAdminDashboard = () => {
                                 onClick={() => setActiveTab('profile')}
                                 className="flex items-center gap-4 group transition-all"
                             >
-                                <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-base group-hover:scale-105 transition-transform">
+                                <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-base group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
                                     {user?.email?.[0].toUpperCase() || 'P'}
                                 </div>
                                 <div className="text-left hidden md:block">
-                                    <h4 className="text-[15px] font-black text-white leading-none mb-1 group-hover:text-primary transition-colors">
+                                    <h4 className="text-[15px] font-black text-text-primary leading-none mb-1 group-hover:text-primary transition-colors">
                                         {user?.user_metadata?.full_name || 'Property Admin'}
                                     </h4>
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.15em]">
+                                    <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.15em]">
                                         View Profile
                                     </p>
                                 </div>
                             </button>
 
-                            <div className="hidden lg:flex flex-col items-end border-l border-[#21262d] pl-6 h-8 justify-center">
-                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Access Level</span>
+                            <div className="hidden lg:flex flex-col items-end border-l border-border pl-6 h-8 justify-center">
+                                <span className="text-[11px] font-black text-text-tertiary uppercase tracking-widest leading-none mb-1">Access Level</span>
                                 <span className="text-xs text-primary font-black uppercase tracking-widest leading-none">Property admin</span>
                             </div>
                         </div>
@@ -389,19 +389,19 @@ const PropertyAdminDashboard = () => {
                             <div className="flex justify-center items-start py-8">
                                 <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
                                     {/* Card Header with Autopilot Logo */}
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                    <div className="bg-primary/5 p-8 flex flex-col items-center border-b border-border">
                                         {/* Autopilot Logo */}
                                         <div className="flex items-center gap-1 mb-4">
                                             <div className="w-8 h-8 relative flex items-center justify-center">
-                                                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] border-b-white" />
-                                                <div className="absolute w-1.5 h-1.5 bg-slate-900 rounded-full top-3 left-1/2 -translate-x-1/2" />
+                                                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] border-b-primary" />
+                                                <div className="absolute w-1.5 h-1.5 bg-white rounded-full top-3 left-1/2 -translate-x-1/2" />
                                             </div>
-                                            <span className="text-white text-2xl font-black tracking-tight">UTOPILOT</span>
+                                            <span className="text-text-primary text-2xl font-black tracking-tight">UTOPILOT</span>
                                         </div>
 
                                         {/* User Avatar */}
-                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4">
-                                            <span className="text-4xl font-black text-white">
+                                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center border-4 border-white mb-4">
+                                            <span className="text-4xl font-black text-primary">
                                                 {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
                                             </span>
                                         </div>
@@ -457,7 +457,7 @@ const PropertyAdminDashboard = () => {
                     </motion.div>
                 </AnimatePresence>
             </main>
-        </div >
+        </div>
     );
 };
 
@@ -547,13 +547,13 @@ const OverviewTab = ({ propertyId, statsVersion }: { propertyId: string, statsVe
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-2">
                             <span className="w-1.5 h-6 bg-blue-500 rounded-full"></span>
-                            <h3 className="text-lg font-black text-slate-900 tracking-tight">Recent Intelligence</h3>
+                            <h3 className="text-lg font-black text-text-primary tracking-tight">Recent Intelligence</h3>
                         </div>
-                        <button className="text-blue-600 text-[10px] font-black hover:bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-widest transition-all">View All Activity</button>
+                        <button className="text-primary text-[10px] font-black hover:bg-primary/5 px-3 py-1.5 rounded-lg uppercase tracking-widest transition-all">View All Activity</button>
                     </div>
                     <div className="space-y-6">
                         {activities.length > 0 ? activities.map((item, idx) => (
@@ -572,13 +572,13 @@ const OverviewTab = ({ propertyId, statsVersion }: { propertyId: string, statsVe
                     </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-2">
                             <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
-                            <h3 className="text-lg font-black text-slate-900 tracking-tight">Maintenance Schedule</h3>
+                            <h3 className="text-lg font-black text-text-primary tracking-tight">Maintenance Schedule</h3>
                         </div>
-                        <Calendar className="w-5 h-5 text-slate-400" />
+                        <Calendar className="w-5 h-5 text-text-tertiary" />
                     </div>
                     <div className="space-y-4">
                         <InspectionItem date="Jan 15" unit="Unit 201" status="Scheduled" />
@@ -606,46 +606,46 @@ const formatTimeAgo = (date: Date) => {
 };
 
 const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
-    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+    <div className="bg-white p-6 rounded-3xl border border-border shadow-sm">
         {Icon && (
             <div className={`w-12 h-12 ${bg} ${color} rounded-2xl flex items-center justify-center mb-4`}>
                 <Icon className="w-6 h-6" />
             </div>
         )}
-        <h3 className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">{title}</h3>
-        <p className="text-3xl font-black text-slate-900">{value}</p>
+        <h3 className="text-text-tertiary font-bold text-xs uppercase tracking-widest mb-1">{title}</h3>
+        <p className="text-3xl font-black text-text-primary">{value}</p>
     </div>
 );
 
 const ActivityItem = ({ icon: Icon, color, title, desc, time, onClick }: any) => (
     <div
-        className={`flex gap-4 p-2 rounded-xl transition-all ${onClick ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+        className={`flex gap-4 p-2 rounded-xl transition-all ${onClick ? 'cursor-pointer hover:bg-muted' : ''}`}
         onClick={onClick}
     >
         <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center shrink-0`}>
             <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1">
-            <h4 className="text-sm font-bold text-slate-900">{title}</h4>
-            <p className="text-xs text-slate-500">{desc}</p>
+            <h4 className="text-sm font-bold text-text-primary">{title}</h4>
+            <p className="text-xs text-text-secondary">{desc}</p>
         </div>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{time}</span>
+        <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-tighter">{time}</span>
     </div>
 );
 
 const InspectionItem = ({ date, unit, status }: any) => (
-    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+    <div className="flex items-center justify-between p-4 bg-surface-elevated rounded-2xl border border-border">
         <div className="flex items-center gap-4">
-            <div className="bg-white w-12 py-2 rounded-xl text-center border border-slate-200">
-                <span className="block text-[8px] font-black text-slate-400 uppercase tracking-tighter">Jan</span>
-                <span className="block font-black text-sm text-slate-900 leading-none">{date.split(' ')[1]}</span>
+            <div className="bg-white w-12 py-2 rounded-xl text-center border border-border">
+                <span className="block text-[8px] font-black text-text-tertiary uppercase tracking-tighter">Jan</span>
+                <span className="block font-black text-sm text-text-primary leading-none">{date.split(' ')[1]}</span>
             </div>
             <div>
-                <p className="font-bold text-slate-900 text-sm">{unit}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{status}</p>
+                <p className="font-bold text-text-primary text-sm">{unit}</p>
+                <p className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">{status}</p>
             </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-slate-300" />
+        <ChevronRight className="w-4 h-4 text-text-tertiary" />
     </div>
 );
 
@@ -781,15 +781,15 @@ const VendorRevenueTab = ({ propertyId }: { propertyId: string }) => {
                 />
             </div>
 
-            <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white">
+            <div className="bg-white border border-border rounded-3xl overflow-hidden shadow-sm">
+                <div className="p-8 border-b border-border flex justify-between items-center bg-white">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Cafeteria Performance</h3>
-                        <p className="text-slate-500 text-xs font-medium mt-1">Real-time revenue tracking per vendor.</p>
+                        <h3 className="text-xl font-bold text-text-primary">Cafeteria Performance</h3>
+                        <p className="text-text-secondary text-xs font-medium mt-1">Real-time revenue tracking per vendor.</p>
                     </div>
                     <button
                         onClick={() => setShowExportModal(true)}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-black hover:bg-slate-800 transition-all"
+                        className="flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-primary/20"
                     >
                         <FileDown className="w-4 h-4" /> Export
                     </button>
@@ -797,13 +797,13 @@ const VendorRevenueTab = ({ propertyId }: { propertyId: string }) => {
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50 border-b border-slate-100">
+                        <thead className="bg-surface-elevated border-b border-border">
                             <tr>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor / Shop</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Commission %</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Today's Revenue</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Commission Due</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Vendor / Shop</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest text-center">Commission %</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest text-right">Today's Revenue</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest text-right">Commission Due</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">

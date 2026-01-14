@@ -1021,55 +1021,55 @@ const OverviewTab = ({
         : 0;
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-background">
             {/* Header Section */}
-            <div className="bg-slate-900 px-8 lg:px-12 py-8 rounded-b-[40px]">
-                <div className="flex items-center justify-between mb-5">
+            <div className="bg-[#708F96] px-8 lg:px-12 py-10 border-b border-white/10 shadow-lg relative z-[100]">
+                <div className="flex items-center justify-between mb-5 relative z-10">
                     <div className="flex items-center gap-4">
                         <h1 className="text-3xl font-black text-white">Unified Dashboard</h1>
 
                         <div className="relative">
                             <button
                                 onClick={() => setIsOverviewSelectorOpen(!isOverviewSelectorOpen)}
-                                className="flex items-center gap-3 bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 shadow-sm hover:border-yellow-400 transition-all group min-w-[220px]"
+                                className="flex items-center gap-3 bg-[#5A737A] text-white border border-white/10 rounded-xl px-4 py-2.5 shadow-sm hover:border-white/50 transition-all group min-w-[220px]"
                             >
-                                <div className="w-6 h-6 rounded-lg bg-slate-700 flex items-center justify-center overflow-hidden">
+                                <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden border border-white/10">
                                     {activeProperty?.image_url ? (
                                         <img src={activeProperty.image_url} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                        <Building2 className="w-3.5 h-3.5 text-white/70" />
                                     )}
                                 </div>
                                 <span className="text-sm font-bold flex-1 text-left">
                                     {selectedPropertyId === 'all' ? 'All Properties' : activeProperty?.name}
                                 </span>
-                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOverviewSelectorOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${isOverviewSelectorOpen ? 'rotate-180' : ''}`} />
                             </button>
 
                             <AnimatePresence>
                                 {isOverviewSelectorOpen && (
                                     <>
                                         <div
-                                            className="fixed inset-0 z-[60]"
+                                            className="fixed inset-0 z-[110]"
                                             onClick={() => setIsOverviewSelectorOpen(false)}
                                         />
                                         <motion.div
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute left-0 mt-2 w-80 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 z-[70] overflow-hidden"
+                                            className="absolute left-0 mt-2 w-80 bg-[#5A737A] rounded-2xl shadow-2xl border border-white/10 z-[120] overflow-hidden"
                                         >
-                                            <div className="p-2 border-b border-slate-800">
+                                            <div className="p-2 border-b border-white/10">
                                                 <button
                                                     onClick={() => { setSelectedPropertyId('all'); setIsOverviewSelectorOpen(false); }}
-                                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${selectedPropertyId === 'all' ? 'bg-yellow-400 text-slate-900' : 'text-slate-300 hover:bg-slate-800'}`}
+                                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${selectedPropertyId === 'all' ? 'bg-yellow-400 text-slate-900' : 'text-white hover:bg-white/10'}`}
                                                 >
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/10">
                                                         <LayoutDashboard className="w-5 h-5" />
                                                     </div>
                                                     <div className="text-left">
                                                         <p className="text-xs font-black uppercase tracking-tight">Show All Properties</p>
-                                                        <p className={`text-[10px] font-bold ${selectedPropertyId === 'all' ? 'text-slate-900/60' : 'text-slate-500'}`}>{properties.length} Active Locations</p>
+                                                        <p className={`text-[10px] font-bold ${selectedPropertyId === 'all' ? 'text-slate-900/60' : 'text-white/60'}`}>{properties.length} Active Locations</p>
                                                     </div>
                                                 </button>
                                             </div>
@@ -1078,18 +1078,18 @@ const OverviewTab = ({
                                                     <button
                                                         key={prop.id}
                                                         onClick={() => { setSelectedPropertyId(prop.id); setIsOverviewSelectorOpen(false); }}
-                                                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${selectedPropertyId === prop.id ? 'bg-yellow-400 text-slate-900' : 'text-slate-300 hover:bg-slate-800'}`}
+                                                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${selectedPropertyId === prop.id ? 'bg-yellow-400 text-slate-900' : 'text-white hover:bg-white/10'}`}
                                                     >
-                                                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700">
+                                                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/10">
                                                             {prop.image_url ? (
                                                                 <img src={prop.image_url} alt="" className="w-full h-full object-cover" />
                                                             ) : (
-                                                                <Building2 className="w-5 h-5 text-slate-500" />
+                                                                <Building2 className="w-5 h-5 text-white/50" />
                                                             )}
                                                         </div>
                                                         <div className="text-left overflow-hidden">
                                                             <p className="text-xs font-black uppercase tracking-tight truncate">{prop.name}</p>
-                                                            <p className={`text-[10px] font-bold uppercase tracking-widest ${selectedPropertyId === prop.id ? 'text-slate-900/60' : 'text-slate-500'}`}>{prop.code}</p>
+                                                            <p className={`text-[10px] font-bold uppercase tracking-widest ${selectedPropertyId === prop.id ? 'text-slate-900/60' : 'text-white/40'}`}>{prop.code}</p>
                                                         </div>
                                                     </button>
                                                 ))}
@@ -1101,7 +1101,7 @@ const OverviewTab = ({
                         </div>
                     </div>
                     <div className="flex items-center gap-5">
-                        <Search className="w-6 h-6 text-slate-400 cursor-pointer hover:text-white transition-colors" />
+                        <Search className="w-6 h-6 text-white/70 cursor-pointer hover:text-white transition-colors" />
                     </div>
                 </div>
 
@@ -1113,29 +1113,29 @@ const OverviewTab = ({
                 {/* KPI Cards Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                     {/* Active Requests */}
-                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                        <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Open Tickets</div>
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                        <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Open Tickets</div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-green-400">{displayTicketStats.open_tickets + displayTicketStats.in_progress}</span>
-                            <span className="text-xs text-white/60 font-bold">{displayTicketStats.sla_breached} SLA breached</span>
+                            <span className="text-4xl font-black text-slate-900">{displayTicketStats.open_tickets + displayTicketStats.in_progress}</span>
+                            <span className="text-[10px] text-rose-500 font-bold uppercase">{displayTicketStats.sla_breached} SLA breached</span>
                         </div>
                     </div>
 
                     {/* Resolved */}
-                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                        <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Resolved</div>
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                        <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Resolved</div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-white">{displayTicketStats.resolved}</span>
-                            <span className="text-xs text-white/60 font-bold">Avg {displayTicketStats.avg_resolution_hours}h resolution</span>
+                            <span className="text-4xl font-black text-slate-900">{displayTicketStats.resolved}</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Avg {displayTicketStats.avg_resolution_hours}h resolution</span>
                         </div>
                     </div>
 
                     {/* Completion Rate */}
-                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                        <div className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Completion Rate</div>
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                        <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Completion Rate</div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-white">{completionRate}%</span>
-                            <span className="text-xs text-white/60 font-bold">{displayTicketStats.resolved} of {displayTicketStats.total_tickets} closed</span>
+                            <span className="text-4xl font-black text-slate-900">{completionRate}%</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">{displayTicketStats.resolved} of {displayTicketStats.total_tickets} closed</span>
                         </div>
                     </div>
                 </div>

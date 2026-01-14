@@ -95,12 +95,12 @@ const StaffDashboard = () => {
                 {/* Logo */}
                 <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm shadow-blue-500/20">
                             SP
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm text-white">AUTOPILOT</h2>
-                            <p className="text-[10px] text-slate-500">Staff Portal</p>
+                            <h2 className="font-bold text-sm text-text-primary">AUTOPILOT</h2>
+                            <p className="text-[10px] text-text-tertiary">Staff Portal</p>
                         </div>
                     </div>
                 </div>
@@ -108,11 +108,11 @@ const StaffDashboard = () => {
                 {/* Search */}
                 <div className="px-3 py-3">
                     <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />
                         <input
                             type="text"
-                            placeholder="Search features... (Ctr"
-                            className="w-full pl-8 pr-3 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-xs text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                            placeholder="Search features..."
+                            className="w-full pl-8 pr-3 py-2 bg-surface-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500"
                         />
                     </div>
                 </div>
@@ -129,38 +129,31 @@ const StaffDashboard = () => {
                         <div className="grid grid-cols-2 gap-1.5">
                             <button
                                 onClick={() => setActiveTab('requests')}
-                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-elevated hover:bg-muted rounded-md text-[10px] text-text-secondary border border-border"
                             >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="w-3 h-3 text-blue-600" />
                                 New Request
                             </button>
                             <button
                                 onClick={() => setActiveTab('visitors')}
-                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-elevated hover:bg-muted rounded-md text-[10px] text-text-secondary border border-border"
                             >
-                                <Cog className="w-3 h-3" />
+                                <Cog className="w-3 h-3 text-blue-600" />
                                 Manage Visitors
                             </button>
                             <button
                                 onClick={() => alert('URGENT: Emergency SOS Signal Broadcasted to all Staff.')}
-                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-elevated hover:bg-muted rounded-md text-[10px] text-text-secondary border border-border"
                             >
-                                <AlertOctagon className="w-3 h-3" />
+                                <AlertOctagon className="w-3 h-3 text-rose-600" />
                                 Emergency
                             </button>
                             <button
                                 onClick={() => setActiveTab('diesel')}
-                                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
+                                className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-elevated hover:bg-muted rounded-md text-[10px] text-text-secondary border border-border"
                             >
-                                <FileText className="w-3 h-3" />
+                                <FileText className="w-3 h-3 text-blue-600" />
                                 Quick Report
-                            </button>
-                            <button
-                                onClick={() => alert('System Health: 100% Operational. All nodes synced.')}
-                                className="col-span-2 flex items-center gap-1.5 px-2 py-1.5 bg-[#21262d] hover:bg-[#30363d] rounded-md text-[10px] text-slate-300 border border-[#30363d]"
-                            >
-                                <BarChart3 className="w-3 h-3" />
-                                System Status
                             </button>
                         </div>
                     )}
@@ -317,22 +310,22 @@ const StaffDashboard = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => setIsDarkMode(!isDarkMode)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#21262d] text-slate-400 hover:text-white transition-colors"
+                            onClick={toggleTheme}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors"
                         >
-                            {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                            {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                         </button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#21262d] text-slate-400 hover:text-white transition-colors">
+                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors">
                             <Bell className="w-4 h-4" />
                         </button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#21262d] text-slate-400 hover:text-white transition-colors">
+                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors">
                             <ChevronRight className="w-4 h-4" />
                         </button>
-                        <div className="flex items-center gap-2 pl-3 border-l border-[#30363d]">
-                            <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                        <div className="flex items-center gap-2 pl-3 border-l border-border">
+                            <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center text-primary text-xs font-medium border border-primary/20">
                                 {user?.email?.[0].toUpperCase() || 'U'}
                             </div>
-                            <span className="text-xs text-slate-400">{user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+                            <span className="text-xs text-text-tertiary font-medium">{user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
                         </div>
                     </div>
                 </header>
@@ -381,51 +374,51 @@ const DashboardTab = () => (
     <div className="space-y-6">
         {/* Header */}
         <div>
-            <h1 className="text-2xl font-bold text-white">Staff Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-1">Monitor and manage facility operations</p>
+            <h1 className="text-2xl font-bold text-text-primary">Staff Dashboard</h1>
+            <p className="text-text-tertiary text-sm mt-1">Monitor and manage facility operations</p>
         </div>
 
         {/* Incoming Requests */}
-        <div className="bg-surface-card border border-border rounded-xl p-5">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <div className="mb-4">
-                <h2 className="text-base font-bold text-white">Incoming Requests</h2>
-                <p className="text-xs text-slate-500">Tasks available for you to accept</p>
+                <h2 className="text-base font-bold text-text-primary">Incoming Requests</h2>
+                <p className="text-xs text-text-tertiary">Tasks available for you to accept</p>
             </div>
-            <div className="flex items-center justify-center py-12 text-slate-500 text-sm">
+            <div className="flex items-center justify-center py-12 text-text-tertiary text-sm italic">
                 No incoming requests
             </div>
         </div>
 
         {/* Dashboard Section */}
-        <div className="bg-surface-card border border-border rounded-xl p-5">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-5">
-                <h2 className="text-base font-bold text-white">Dashboard</h2>
-                <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white border border-[#30363d] px-3 py-1.5 rounded-lg bg-[#21262d]">
+                <h2 className="text-base font-bold text-text-primary">Dashboard</h2>
+                <button className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary border border-border px-3 py-1.5 rounded-lg bg-white transition-all shadow-sm">
                     <Settings className="w-3 h-3" />
                     Customize
                 </button>
             </div>
 
             {/* Requests Overview */}
-            <div className="bg-[#0d1117] border border-[#21262d] rounded-lg p-4">
+            <div className="bg-slate-50 border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-white">Requests Overview</h3>
-                    <button className="text-slate-500 hover:text-white">
+                    <h3 className="text-sm font-semibold text-text-primary">Requests Overview</h3>
+                    <button className="text-text-tertiary hover:text-text-primary">
                         <ChevronRight className="w-4 h-4 rotate-[-45deg]" />
                     </button>
                 </div>
                 <div className="grid grid-cols-3 gap-6">
                     <div className="text-center">
-                        <p className="text-3xl font-bold text-white">0</p>
-                        <p className="text-xs text-slate-500 mt-1">Total</p>
+                        <p className="text-3xl font-bold text-text-primary">0</p>
+                        <p className="text-xs text-text-tertiary mt-1">Total</p>
                     </div>
                     <div className="text-center">
-                        <p className="text-3xl font-bold text-blue-400">0</p>
-                        <p className="text-xs text-slate-500 mt-1">Active</p>
+                        <p className="text-3xl font-bold text-blue-600">0</p>
+                        <p className="text-xs text-text-tertiary mt-1">Active</p>
                     </div>
                     <div className="text-center">
-                        <p className="text-3xl font-bold text-emerald-400">0</p>
-                        <p className="text-xs text-slate-500 mt-1">Completed</p>
+                        <p className="text-3xl font-bold text-emerald-600">0</p>
+                        <p className="text-xs text-text-tertiary mt-1">Completed</p>
                     </div>
                 </div>
             </div>

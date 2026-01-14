@@ -19,7 +19,12 @@
   --background: #FAFBFC;
   --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(0, 0, 0, 0.01), transparent 40%), linear-gradient(180deg, #F8FAFC, #F1F5F9);
   --sidebar-bg: #F8FAFC;
-  /* Match canvas for continuous feel */
+  --surface: #FFFFFF;
+  --surface-elevated: #F8FAFC;
+  --border: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --muted: #F1F5F9;
+  --card: #FFFFFF;
   --foreground: #1A2332;
 
   /* Phase 3 Card Surface (Light) */
@@ -100,6 +105,12 @@
   --background: #0F141A;
   --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(255, 255, 255, 0.04), transparent 40%), linear-gradient(180deg, #0F141A, #121820);
   --sidebar-bg: #0C1117;
+  --surface: #161B22;
+  --surface-elevated: #21262D;
+  --border: #30363D;
+  --border-subtle: #21262D;
+  --muted: #0D1117;
+  --card: #161B22;
   --foreground: #F8FAFC;
 
   /* Phase 3 Card Surface (Dark) */
@@ -155,6 +166,8 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
 
   /* Text */
   --color-text-primary: var(--text-primary);

@@ -87,7 +87,7 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
             <aside className={`bg-sidebar border-r border-border flex flex-col transition-all duration-300 overflow-hidden ${isSidebarOpen ? 'w-80' : 'w-20'}`}>
                 <div className="p-8 pb-12">
                     <div className="flex items-center gap-4 mb-10">
-                        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                        <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-text-inverse shadow-lg shadow-primary/20">
                             {/* Triangle A Icon */}
                             <svg viewBox="0 0 32 40" fill="currentColor" className="h-6">
                                 <path d="M0 40 L16 0 L32 40 L24 40 L16 16 L8 40 Z" />
@@ -95,24 +95,24 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
                         </div>
                         {isSidebarOpen && (
                             <div>
-                                <h1 className="text-xl font-medium text-white tracking-tight flex items-center gap-0.5">
+                                <h1 className="text-xl font-medium text-text-primary tracking-tight flex items-center gap-0.5">
                                     {/* Triangle A + UTOPILOT */}
                                     <svg viewBox="0 0 16 20" fill="currentColor" className="h-5 -mr-0.5">
                                         <path d="M0 20 L8 0 L16 20 L12 20 L8 8 L4 20 Z" />
                                     </svg>
                                     UTOPILOT
                                 </h1>
-                                <p className="text-[10px] font-medium text-blue-500 uppercase tracking-widest leading-none">Admin Portal</p>
+                                <p className="text-[10px] font-medium text-primary uppercase tracking-widest leading-none">Admin Portal</p>
                             </div>
                         )}
                     </div>
 
                     <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 transition-colors group-hover:text-zinc-400" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary transition-colors group-hover:text-text-secondary" />
                         <input
                             type="text"
                             placeholder={isSidebarOpen ? "Search features... (Ctrl+K)" : ""}
-                            className={`bg-zinc-950 border border-zinc-800 rounded-xl py-3 pl-12 pr-4 text-xs font-bold focus:outline-none transition-all ${isSidebarOpen ? 'w-full opacity-100' : 'w-0 opacity-0'}`}
+                            className={`bg-surface-elevated border border-border rounded-xl py-3 pl-12 pr-4 text-xs font-bold focus:outline-none transition-all ${isSidebarOpen ? 'w-full opacity-100' : 'w-0 opacity-0'}`}
                         />
                     </div>
                 </div>
@@ -126,10 +126,10 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
                                     <button
                                         key={i}
                                         onClick={action.action}
-                                        className="flex flex-col items-start gap-2 p-3 bg-zinc-900/40 border border-zinc-800/50 rounded-xl hover:bg-zinc-800/80 transition-all text-left"
+                                        className="flex flex-col items-start gap-2 p-3 bg-surface-elevated border border-border rounded-xl hover:bg-muted transition-all text-left"
                                     >
-                                        <action.icon className="w-4 h-4 text-zinc-400" />
-                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{action.label}</span>
+                                        <action.icon className="w-4 h-4 text-text-secondary" />
+                                        <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest">{action.label}</span>
                                     </button>
                                 ))}
                             </div>
@@ -140,7 +140,7 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
                         {menuItems.map((section, idx) => (
                             <div key={idx}>
                                 {isSidebarOpen && (
-                                    <p className="px-4 text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-4">{section.section}</p>
+                                    <p className="px-4 text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em] mb-4">{section.section}</p>
                                 )}
                                 <div className="space-y-1">
                                     {section.items.map((item) => (

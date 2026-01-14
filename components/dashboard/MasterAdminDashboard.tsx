@@ -236,12 +236,12 @@ const MasterAdminDashboard = () => {
             {/* Sidebar */}
             <div className="w-72 bg-sidebar border-r border-border flex flex-col p-8 sticky top-0 h-screen">
                 <div className="flex items-center gap-3 mb-12">
-                    <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                        <div className="w-5 h-5 border-2 border-white rounded-sm rotate-45"></div>
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
+                        <div className="w-5 h-5 border-2 border-primary rounded-sm rotate-45"></div>
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-black text-xl tracking-tighter">MASTER</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1">Control Hub</span>
+                        <span className="font-black text-xl tracking-tighter text-text-primary">MASTER</span>
+                        <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest -mt-1">Control Hub</span>
                     </div>
                 </div>
 
@@ -321,17 +321,17 @@ const MasterAdminDashboard = () => {
             <main className="flex-1 p-12 overflow-y-auto">
                 <header className="flex justify-between items-center mb-12">
                     <div>
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight capitalize">{activeTab.replace('-', ' ')}</h2>
-                        <p className="text-slate-400 text-sm font-medium mt-1">Real-time system oversight and governance.</p>
+                        <h2 className="text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab.replace('-', ' ')}</h2>
+                        <p className="text-text-tertiary text-sm font-medium mt-1">Real-time system oversight and governance.</p>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                             <input
                                 type="text"
                                 placeholder="Search master data..."
-                                className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-100 w-64"
+                                className="pl-10 pr-4 py-2.5 bg-surface-elevated border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -339,7 +339,7 @@ const MasterAdminDashboard = () => {
                         {activeTab === 'organizations' && (
                             <button
                                 onClick={() => setShowCreateOrgModal(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-primary/20"
                             >
                                 <Plus className="w-4 h-4" /> New Org
                             </button>
@@ -347,7 +347,7 @@ const MasterAdminDashboard = () => {
                         {activeTab === 'users' && (
                             <button
                                 onClick={() => setShowCreateUserModal(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-primary/20"
                             >
                                 <Plus className="w-4 h-4" /> New User
                             </button>
@@ -698,12 +698,12 @@ const OrganizationsList = ({ organizations, users, isLoading, onSoftDelete, onRe
                                 >
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white text-xs font-bold">
+                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
                                                 {org.name.substring(0, 2).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="font-black text-slate-900 text-sm leading-none mb-1">{org.name}</p>
-                                                <p className="text-xs text-slate-400 font-medium">/{org.code}</p>
+                                                <p className="font-black text-text-primary text-sm leading-none mb-1">{org.name}</p>
+                                                <p className="text-xs text-text-tertiary font-medium">/{org.code}</p>
                                             </div>
                                         </div>
                                     </td>

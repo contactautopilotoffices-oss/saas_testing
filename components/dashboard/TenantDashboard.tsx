@@ -70,19 +70,19 @@ const TenantDashboard = () => {
     // Removed navItems array as we'll use a hardcoded grouped sidebar
 
     if (isLoading) return (
-        <div className="min-h-screen flex items-center justify-center bg-[#fafbfc]">
+        <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
-                <p className="text-slate-500 font-bold">Loading your dashboard...</p>
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <p className="text-text-secondary font-bold">Loading your dashboard...</p>
             </div>
         </div>
     );
 
     if (!property) return (
         <div className="p-10 text-center">
-            <h2 className="text-xl font-bold text-red-600">Error Loading Dashboard</h2>
-            <p className="text-slate-600 mt-2">{errorMsg || 'Property not found.'}</p>
-            <button onClick={() => router.back()} className="mt-4 text-orange-600 font-bold hover:underline">Go Back</button>
+            <h2 className="text-xl font-bold text-error">Error Loading Dashboard</h2>
+            <p className="text-text-secondary mt-2">{errorMsg || 'Property not found.'}</p>
+            <button onClick={() => router.back()} className="mt-4 text-primary font-bold hover:underline">Go Back</button>
         </div>
     );
 
@@ -250,24 +250,24 @@ const TenantDashboard = () => {
                         {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
                         {activeTab === 'diesel' && <DieselStaffDashboard isDark={false} />}
                         {activeTab === 'cafeteria' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Cafeteria</h3>
-                                <p className="text-slate-500">Order from property cafeteria coming soon.</p>
+                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
+                                <Coffee className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-text-primary mb-2">Cafeteria</h3>
+                                <p className="text-text-secondary">Order from property cafeteria coming soon.</p>
                             </div>
                         )}
                         {activeTab === 'settings' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Settings</h3>
-                                <p className="text-slate-500">Personal settings and notifications.</p>
+                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
+                                <Settings className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-text-primary mb-2">Settings</h3>
+                                <p className="text-text-secondary">Personal settings and notifications.</p>
                             </div>
                         )}
                         {activeTab === 'profile' && (
-                            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
-                                <UserCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Profile</h3>
-                                <p className="text-slate-500">Update your profile information.</p>
+                            <div className="bg-card border border-border rounded-3xl p-12 text-center shadow-sm">
+                                <UserCircle className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-text-primary mb-2">Profile</h3>
+                                <p className="text-text-secondary">Update your profile information.</p>
                             </div>
                         )}
                     </motion.div>
@@ -418,34 +418,34 @@ const RequestsTab = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-slate-900">All Requests</h3>
-                <button className="px-5 py-2.5 bg-[#f28c33] text-white font-bold text-xs rounded-xl uppercase tracking-widest hover:bg-orange-600 transition-colors flex items-center gap-2">
+                <h3 className="text-xl font-black text-text-primary">All Requests</h3>
+                <button className="px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20">
                     <Plus className="w-4 h-4" />
                     New Request
                 </button>
             </div>
 
-            <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+            <div className="bg-card border border-border rounded-[32px] overflow-hidden shadow-sm">
                 <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
+                    <thead className="bg-surface-elevated border-b border-border">
                         <tr>
-                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ticket</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Title</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Ticket</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Title</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Status</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-text-tertiary uppercase tracking-widest">Date</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-border/50">
                         {requests.map((req) => (
-                            <tr key={req.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
-                                <td className="px-6 py-4 font-bold text-slate-500 text-sm">#{req.id}</td>
-                                <td className="px-6 py-4 font-bold text-slate-900 text-sm">{req.title}</td>
+                            <tr key={req.id} className="hover:bg-muted transition-colors cursor-pointer">
+                                <td className="px-6 py-4 font-bold text-text-tertiary text-sm">#{req.id}</td>
+                                <td className="px-6 py-4 font-bold text-text-primary text-sm">{req.title}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${req.status === 'in_progress' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${req.status === 'in_progress' ? 'bg-info/10 text-info' : 'bg-success/10 text-success'}`}>
                                         {req.status.replace('_', ' ')}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-sm font-medium text-slate-500">{req.date}</td>
+                                <td className="px-6 py-4 text-sm font-medium text-text-secondary">{req.date}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -464,17 +464,17 @@ const CommunityTab = () => {
     ];
 
     return (
-        <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
-            <h3 className="text-xl font-black text-slate-900 mb-6">Community Updates</h3>
+        <div className="bg-card border border-border rounded-[32px] p-8 shadow-sm">
+            <h3 className="text-xl font-black text-text-primary mb-6">Community Updates</h3>
             <div className="space-y-6">
                 {updates.map((update) => (
                     <div key={update.id} className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center">
-                            <update.icon className="w-5 h-5 text-slate-400" />
+                        <div className="w-10 h-10 rounded-full bg-surface-elevated flex-shrink-0 flex items-center justify-center">
+                            <update.icon className="w-5 h-5 text-text-tertiary" />
                         </div>
                         <div>
-                            <p className="text-slate-700 font-medium leading-tight">{update.title}</p>
-                            <p className="text-slate-400 text-xs mt-1 font-bold">{update.time}</p>
+                            <p className="text-text-primary font-medium leading-tight">{update.title}</p>
+                            <p className="text-text-tertiary text-xs mt-1 font-bold">{update.time}</p>
                         </div>
                     </div>
                 ))}
