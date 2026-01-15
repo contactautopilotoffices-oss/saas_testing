@@ -12,11 +12,11 @@ const CLASSIFICATION_KEYWORDS: Record<string, string[]> = {
     lighting_issue: ['light', 'lighting', 'bulb', 'lamp', 'dark', 'tube light', 'led'],
     dg_issue: ['dg', 'generator', 'diesel', 'backup power'],
     chair_broken: ['chair', 'seat', 'broken chair', 'seating'],
-    desk_alignment: ['desk', 'table', 'workstation', 'furniture'],
+    desk_alignment: ['desk', 'table', 'furniture', 'desk broken', 'table repair'],
     water_leakage: ['leak', 'leakage', 'water leak', 'drip', 'seepage'],
     no_water_supply: ['no water', 'water supply', 'tap not working', 'dry tap'],
     washroom_issue: ['washroom', 'toilet', 'bathroom', 'restroom', 'loo', 'flush'],
-    lift_breakdown: ['lift', 'elevator', 'not working'],
+    lift_breakdown: ['lift', 'elevator'],
     stuck_lift: ['stuck', 'trapped', 'lift stuck'],
     fire_alarm_l2: ['fire', 'alarm', 'smoke', 'fire alarm'],
     deep_cleaning: ['deep clean', 'cleaning', 'sanitize', 'housekeeping'],
@@ -37,6 +37,27 @@ function extractFloorNumber(description: string): number | null {
     }
     if (description.toLowerCase().includes('ground floor')) return 0;
     if (description.toLowerCase().includes('basement')) return -1;
+    return null;
+}
+
+// Extract location from description
+function extractLocation(description: string): string | null {
+    const locations: Record<string, string[]> = {
+        'Cafeteria': ['cafeteria', 'canteen', 'pantry', 'kitchen', 'mess'],
+        'Reception': ['lobby', 'reception', 'front desk', 'entrance'],
+        'Parking': ['parking', 'basement', 'garage'],
+        'Terrace': ['terrace', 'roof', 'rooftop'],
+        'Washroom': ['washroom', 'restroom', 'toilet', 'bathroom', 'loo'],
+        'Conference Room': ['conference', 'meeting room', 'board room'],
+        'Cabin': ['cabin', 'cubicle', 'desk', 'workstation'],
+        'Server Room': ['server room', 'data center', 'hub room'],
+        'Electrical Room': ['electrical room', 'ups room', 'dg room']
+    };
+
+    const lowerDesc = description.toLowerCase();
+    for (const [loc, keywords] of Object.entries(locations)) {
+        if (keywords.some(k => lowerDesc.includes(k))) return loc;
+    }
     return null;
 }
 
@@ -165,15 +186,130 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Classify ticket into department
-        const classification = classifyTicketDepartment(description, title);
-        const department: TicketDepartment = explicitDepartment || classification.department;
+        // 1. Granular Classification
+        const { categoryCode, isVague } = classifyTicket(title || description);
+        console.log('[TICKET API] Classification result:', { categoryCode, isVague });
+
+        // 2. Resolve Database IDs (Category & Skill Group)
+        let categoryId = null;
+        let skillGroupId = null;
+        let priority = 'medium';
+        let slaHours = 24;
+
+        if (categoryCode) {
+            console.log('[TICKET API] Looking up category in issue_categories...', { categoryCode });
+
+            // GLOBAL lookup - no property_id filter
+            const { data: catData, error: catError } = await supabase
+                .from('issue_categories')
+                .select('id, skill_group_id, priority, sla_hours')
+                .eq('code', categoryCode)
+                .limit(1)
+                .maybeSingle();
+
+            if (catError) {
+                console.error('[TICKET API] Error fetching category:', catError);
+            }
+
+            if (catData) {
+                categoryId = catData.id;
+                skillGroupId = catData.skill_group_id;
+                priority = catData.priority || 'medium';
+                slaHours = catData.sla_hours || 24;
+                console.log('[TICKET API] ✅ Found category!', { categoryId, skillGroupId, priority });
+            } else {
+                console.warn('[TICKET API] ⚠️ Category code not found in issue_categories:', categoryCode);
+            }
+        }
+
+        // Fallback: If no skill group found, try direct skill_groups lookup
+        if (!skillGroupId) {
+            console.log('[TICKET API] Falling back to skill_groups lookup...');
+            const classification = classifyTicketDepartment(description, title);
+            const skillCode = classification.department === 'soft_services' ? 'soft_services' : 'technical';
+
+            // GLOBAL lookup - no property_id filter
+            const { data: defaultSkill, error: skillError } = await supabase
+                .from('skill_groups')
+                .select('id, code, is_manual_assign')
+                .eq('code', skillCode)
+                .limit(1)
+                .maybeSingle();
+
+            if (skillError) {
+                console.error('[TICKET API] Error fetching skill group:', skillError);
+            }
+
+            if (defaultSkill) {
+                skillGroupId = defaultSkill.id;
+                console.log('[TICKET API] Fallback skill_group_id:', skillGroupId, 'code:', skillCode);
+            } else {
+                console.error('[TICKET API] ❌ NO SKILL GROUP FOUND for code:', skillCode);
+            }
+        }
+
+        console.log('[TICKET API] Final IDs:', { categoryId, skillGroupId });
+
+        // 3. FIND RESOLVER - Direct API assignment
+        let assignedTo: string | null = null;
+        let ticketStatus = 'open';
+        let assignedAt: string | null = null;
+        let slaDeadline: string | null = null;
+
+        if (skillGroupId) {
+            console.log('[TICKET API] Looking for resolver with skill_group_id:', skillGroupId, 'property_id:', propId);
+
+            // Step 1: Find resolver in resolver_stats matching skill + property + available
+            const { data: resolverStats, error: resolverError } = await supabase
+                .from('resolver_stats')
+                .select('user_id, is_available')
+                .eq('skill_group_id', skillGroupId)
+                .eq('property_id', propId)
+                .eq('is_available', true)
+                .limit(1)
+                .maybeSingle();
+
+            if (resolverError) {
+                console.error('[TICKET API] Error finding resolver:', resolverError);
+            }
+
+            if (resolverStats?.user_id) {
+                console.log('[TICKET API] Found resolver in resolver_stats:', resolverStats.user_id);
+
+                // Step 2: Verify user is active member of this property
+                const { data: membership } = await supabase
+                    .from('property_memberships')
+                    .select('user_id, role')
+                    .eq('user_id', resolverStats.user_id)
+                    .eq('property_id', propId)
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                if (membership) {
+                    assignedTo = resolverStats.user_id;
+                    ticketStatus = 'assigned';
+                    assignedAt = new Date().toISOString();
+                    const deadline = new Date();
+                    deadline.setHours(deadline.getHours() + slaHours);
+                    slaDeadline = deadline.toISOString();
+                    console.log('[TICKET API] ✅ Assigned to user_id:', assignedTo, '| Role:', membership.role);
+                } else {
+                    console.warn('[TICKET API] ⚠️ Resolver found but not active member. Ticket goes to WAITLIST.');
+                    ticketStatus = 'waitlist';
+                }
+            } else {
+                console.warn('[TICKET API] ⚠️ No resolver found in resolver_stats. Ticket goes to WAITLIST.');
+                ticketStatus = 'waitlist';
+            }
+        } else {
+            console.warn('[TICKET API] ⚠️ No skill_group_id. Ticket goes to WAITLIST.');
+            ticketStatus = 'waitlist';
+        }
 
         // Simple ticket number generation
         const ticketNumber = `TKT-${Date.now()}`;
 
-        // Create the ticket with department classification
-        // Status starts as 'waitlist' for MST-driven workflow
+        // Create the ticket WITH assignment
         const { data: ticket, error: insertError } = await supabase
             .from('tickets')
             .insert({
@@ -182,13 +318,22 @@ export async function POST(request: NextRequest) {
                 organization_id: orgId,
                 title: title || description.slice(0, 100),
                 description,
-                category: 'general',  // Required: NOT NULL in DB
-                priority: 'medium',
-                status: 'waitlist', // New tickets go to waitlist for MST pickup
-                department: department,
+                category: categoryCode || 'general',
+                category_id: categoryId,
+                skill_group_id: skillGroupId,
+                priority: priority,
+                status: ticketStatus,
                 raised_by: user.id,
+                assigned_to: assignedTo,
+                assigned_at: assignedAt,
+                sla_deadline: slaDeadline,
+                sla_started: assignedTo ? true : false,
                 is_internal: internal,
+                is_vague: isVague,
+                sla_hours: slaHours,
                 work_paused: false,
+                floor_number: extractFloorNumber(title || description) ?? undefined,
+                location: extractLocation(title || description) ?? undefined,
             })
             .select('*')
             .single();
@@ -205,9 +350,7 @@ export async function POST(request: NextRequest) {
             success: true,
             ticket,
             classification: {
-                department: department,
-                confidence: classification.confidence,
-                matchedKeywords: classification.matchedKeywords,
+                categoryCode: categoryCode,
                 isAutoClassified: !explicitDepartment,
             },
         }, { status: 201 });

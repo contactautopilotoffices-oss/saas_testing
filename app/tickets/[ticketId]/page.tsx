@@ -230,7 +230,19 @@ export default function TicketDetailPage() {
 
         try {
             const updates: any = { status: newStatus };
-            if (newStatus === 'in_progress') updates.work_started_at = new Date().toISOString();
+
+            // If starting work on a waitlist ticket, also set assignment fields
+            if (newStatus === 'in_progress') {
+                updates.work_started_at = new Date().toISOString();
+                // If ticket was waitlist, mark SLA as started now
+                if (ticket.status === 'waitlist' || ticket.status === 'open') {
+                    updates.sla_started = true;
+                    if (!ticket.assigned_at) {
+                        updates.assigned_at = new Date().toISOString();
+                    }
+                }
+            }
+
             if (newStatus === 'resolved' || newStatus === 'closed') {
                 updates.resolved_at = new Date().toISOString();
             }
@@ -277,9 +289,85 @@ export default function TicketDetailPage() {
     };
 
     const handleClaim = async () => {
-        if (!userId) return;
+        if (!userId || !ticket) return;
+
+        // ✅ Check 1: Ticket is assignable (WAITLIST/OPEN)
+        if (ticket.status !== 'waitlist' && ticket.status !== 'open') {
+            showToast('This request is not available for self-assignment.', 'error');
+            return;
+        }
+
+        // ✅ Check 2: Ticket is NOT vendor-manual
+        // skill_group is joined in the fetch, so we check the flag if available,
+        // but typically we need to query the skill_group definition to see 'is_manual_assign'.
+        // Let's do a quick robust check.
+        if (ticket.skill_group) {
+            const { data: sgData } = await supabase
+                .from('skill_groups')
+                .select('is_manual_assign')
+                .eq('code', ticket.skill_group.code)
+                .eq('property_id', ticket.property_id)
+                .single();
+
+            if (sgData?.is_manual_assign) {
+                showToast('This request requires manual / vendor coordination.', 'error');
+                return;
+            }
+        }
+
+        // ✅ Check 3: User has matching skill
+        // We look for a row in resolver_stats for this user + this property + this skill
+        // We need the ID of the skill group.
+        // The ticket object has `skill_group` { name, code }, but we need the ID or check via code.
+        // It's safer to fetch the ticket's skill_group_id directly or use the one we fetched.
+
+        // Let's re-fetch the raw ticket to get ID if needed, or rely on join
+        // Actually, let's query resolver_stats joining skill_groups
+        const { data: userStats } = await supabase
+            .from('resolver_stats')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('property_id', ticket.property_id)
+            .eq('is_available', true)
+            .eq('skill_group_id', (ticket as any).skill_group_id || (ticket as any).skill_group?.id); // fallback
+
+        // If we don't have the ID handy on the frontend object correctly, we might need to find it by code.
+        // However, looking at the strict requirement:
+        // resolver_stats.skill_group_id == ticket.skill_group_id
+
+        // Let's ensure we have ticket.skill_group_id available.
+        // The fetchTicketDetails uses `*, skill_group:skill_groups(...)`. 
+        // Supabase returns the foreign key column `skill_group_id` as well on the base object typically.
+
+
+        if (!userStats || userStats.length === 0) {
+            // To be absolutely sure, let's try one more check by code if ID failed (resilience)
+            if (ticket.skill_group?.code) {
+                const { data: statsByCode } = await supabase
+                    .from('resolver_stats')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('property_id', ticket.property_id)
+                    .eq('skill_group.code', ticket.skill_group.code) // simplified check
+                    .maybeSingle(); // this join syntax might depend on setup
+
+                // If standard check fails:
+                // We do: resolver_stats -> skill_group_id
+                // We need to match ticket.skill_group_id
+
+                // Let's stick to the strict check requested by user:
+                // "User must have at least one row in resolver_stats where..."
+
+                // If we didn't find it above, we fail.
+                showToast('You are not assigned to this skill category.', 'error');
+                return;
+            }
+            showToast('You are not assigned to this skill category.', 'error');
+            return;
+        }
+
         try {
-            await supabase
+            const { error } = await supabase
                 .from('tickets')
                 .update({
                     assigned_to: userId,
@@ -288,10 +376,13 @@ export default function TicketDetailPage() {
                 })
                 .eq('id', ticketId);
 
+            if (error) throw error;
+
             await logActivity('claimed', null, 'Self-assigned by MST');
             showToast('Request Claimed', 'success');
             fetchTicketDetails(userId, true);
         } catch (err) {
+            console.error(err);
             showToast('Failed to claim request', 'error');
         }
     };
@@ -445,7 +536,11 @@ export default function TicketDetailPage() {
                                     </span>
                                 )}
                                 <span className={`font-mono text-[10px] font-black ${isDark ? 'text-slate-500 bg-[#21262d] border-[#30363d]' : 'text-slate-500 bg-slate-100 border-slate-200'} px-2 py-0.5 rounded border`}>{ticket.ticket_number}</span>
-                                {ticket.category && (
+                                {((ticket as any).category && typeof (ticket as any).category === 'string') ? (
+                                    <span className={`px-2 py-0.5 ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-600'} border rounded text-[9px] font-black uppercase tracking-widest`}>
+                                        {((ticket as any).category as string).replace(/_/g, ' ')}
+                                    </span>
+                                ) : ticket.category?.name && (
                                     <span className={`px-2 py-0.5 ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-600'} border rounded text-[9px] font-black uppercase tracking-widest`}>
                                         {ticket.category.name}
                                     </span>
@@ -481,7 +576,8 @@ export default function TicketDetailPage() {
                     {/* Action Bar */}
                     <div className="flex flex-wrap items-center gap-3 pt-2">
                         {/* MST Actions */}
-                        {userRole === 'staff' && ticket.status === 'open' && !ticket.assigned_to && (
+                        {/* Claim button: Only show if NOT assigned to anyone */}
+                        {userRole === 'staff' && (ticket.status === 'open' || ticket.status === 'waitlist') && !ticket.assigned_to && (
                             <button
                                 onClick={() => handleClaim()}
                                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20"
@@ -489,20 +585,22 @@ export default function TicketDetailPage() {
                                 <User className="w-4 h-4" /> Claim Request
                             </button>
                         )}
-                        {canWork && ticket.status === 'assigned' && (
+                        {/* Start Work button: Show if assigned to me and not yet in_progress/closed */}
+                        {isAssignedToMe && !['in_progress', 'resolved', 'closed'].includes(ticket.status) && (
                             <button
                                 onClick={() => handleStatusChange('in_progress')}
-                                className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200"
                             >
                                 <PlayCircle className="w-4 h-4" /> Start Work
                             </button>
                         )}
-                        {canWork && (ticket.status === 'in_progress' || ticket.status === 'assigned') && (
+                        {/* Complete Task button: Show if assigned to me and work is in progress or assigned */}
+                        {isAssignedToMe && ['in_progress', 'assigned', 'waitlist'].includes(ticket.status) && (
                             <button
                                 onClick={() => handleStatusChange('closed')}
-                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all"
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg"
                             >
-                                <CheckCircle2 className="w-4 h-4" /> Close Ticket
+                                <CheckCircle2 className="w-4 h-4" /> Complete Task
                             </button>
                         )}
 

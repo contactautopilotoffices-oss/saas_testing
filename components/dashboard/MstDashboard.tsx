@@ -577,8 +577,10 @@ const TicketRow = ({ ticket, onTicketClick, userId, isCompleted }: { ticket: Tic
                     <span>•</span>
                     <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
                     <span>•</span>
-                    <span className={`uppercase font-bold ${isCompleted ? 'text-success/60' : ticket.status === 'in_progress' ? 'text-info' : 'text-text-tertiary'}`}>
-                        {ticket.status === 'closed' || ticket.status === 'resolved' ? 'COMPLETE' : ticket.status.replace('_', ' ')}
+                    <span className={`uppercase font-bold ${isCompleted ? 'text-success/60' : ticket.status === 'in_progress' ? 'text-info' : ticket.assigned_to ? 'text-primary' : 'text-text-tertiary'}`}>
+                        {ticket.status === 'closed' || ticket.status === 'resolved' ? 'COMPLETE' :
+                            ticket.assigned_to && (ticket.status === 'waitlist' || ticket.status === 'open') ? 'ASSIGNED' :
+                                ticket.status.replace('_', ' ')}
                     </span>
                     {ticket.photo_before_url && (
                         <span className="flex items-center gap-1 text-primary font-bold ml-auto bg-primary/5 px-2 py-0.5 rounded border border-primary/10">

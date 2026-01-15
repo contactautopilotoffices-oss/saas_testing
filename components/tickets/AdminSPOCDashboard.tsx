@@ -577,7 +577,13 @@ export default function AdminSPOCDashboard({
                             </div>
 
                             <p className="text-sm font-bold text-slate-900 mb-1">Ticket: {selectedTicket.title}</p>
-                            <p className="text-xs text-slate-500 mb-5 font-medium">Current Category: {selectedTicket.category?.name || 'Unclassified'}</p>
+                            <p className="text-xs text-slate-500 mb-5 font-medium">
+                                Current Category: {
+                                    ((selectedTicket as any).category && typeof (selectedTicket as any).category === 'string')
+                                        ? (selectedTicket as any).category.replace(/_/g, ' ')
+                                        : (selectedTicket.category?.name || 'Unclassified')
+                                }
+                            </p>
 
                             <select
                                 value={overrideCategory}

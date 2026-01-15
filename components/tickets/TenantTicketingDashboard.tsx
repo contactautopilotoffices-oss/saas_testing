@@ -299,7 +299,7 @@ export default function TenantTicketingDashboard({
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
                                             <span className={`${isDark ? 'text-slate-400' : 'text-text-secondary'} font-medium text-sm`}>AI Classification:</span>
-                                            <span className={`${isDark ? 'text-white' : 'text-text-primary'} font-display font-semibold capitalize`}>{classification.category?.replace(/_/g, ' ') || 'General Request'}</span>
+                                            <span className={`${isDark ? 'text-white' : 'text-text-primary'} font-display font-semibold capitalize`}>{(classification as any).categoryCode?.replace(/_/g, ' ') || 'General Request'}</span>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className={`${isDark ? 'text-slate-400' : 'text-text-secondary'} font-medium text-sm`}>System Priority:</span>
@@ -352,7 +352,11 @@ export default function TenantTicketingDashboard({
                                                         <div>
                                                             <p className={`font-display font-semibold ${isDark ? 'text-white group-hover/ticket:text-emerald-400' : 'text-text-primary group-hover/ticket:text-primary'} text-xl mb-1.5 transition-all`}>{ticket.title}</p>
                                                             <div className="flex items-center gap-3">
-                                                                <span className={`text-[10px] font-bold ${isDark ? 'text-slate-500 bg-[#161b22]' : 'text-text-tertiary bg-text-primary/5'} uppercase tracking-widest px-2.5 py-1 rounded-md`}>{ticket.category?.name || 'General'}</span>
+                                                                <span className={`text-[10px] font-bold ${isDark ? 'text-slate-500 bg-[#161b22]' : 'text-text-tertiary bg-text-primary/5'} uppercase tracking-widest px-2.5 py-1 rounded-md`}>
+                                                                    {((ticket as any).category && typeof (ticket as any).category === 'string')
+                                                                        ? (ticket as any).category.replace(/_/g, ' ')
+                                                                        : (ticket.category?.name || 'General')}
+                                                                </span>
                                                                 {sla && <span className={`text-[10px] font-bold uppercase tracking-widest ${sla.color}`}>{sla.text}</span>}
                                                             </div>
                                                         </div>

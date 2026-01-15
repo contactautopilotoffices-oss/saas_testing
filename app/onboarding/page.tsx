@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ArrowRight, ArrowLeft, MapPin, Building2, UserCircle2,
-    Sparkles, PartyPopper, Check, Loader2, AlertCircle, Phone
+    ArrowRight, ArrowLeft, Building2, UserCircle2,
+    Sparkles, PartyPopper, Check, Loader2, Phone, Wrench, Hammer, Briefcase
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -21,12 +21,24 @@ const AUTOPILOT_ORG_ID = process.env.NEXT_PUBLIC_AUTOPILOT_ORG_ID;
 
 const AVAILABLE_ROLES = [
     { id: 'property_admin', label: 'Property Admin', desc: 'Manage property operations & staff', icon: '🏢' },
-    { id: 'staff', label: 'Staff Member', desc: 'Handle tickets & facility tasks', icon: '👷' },
-    { id: 'mst', label: 'MST', desc: 'Maintenance & Support Team member', icon: '🔧' },
+    { id: 'staff', label: 'Soft Services Staff', desc: 'Cleaning, hygiene, pantry & support', icon: '👷' },
+    { id: 'mst', label: 'Maintenance Staff', desc: 'Technical repairs & maintenance', icon: '🔧' },
     { id: 'security', label: 'Security', desc: 'Property security & access control', icon: '🛡️' },
     { id: 'tenant', label: 'Tenant / Resident', desc: 'Raise requests & view updates', icon: '🏠' },
     { id: 'vendor', label: 'Vendor', desc: 'Manage shop revenue & orders', icon: '🍔' },
 ];
+
+const SKILL_OPTIONS: Record<string, { code: string; label: string; icon: any }[]> = {
+    mst: [
+        { code: 'technical', label: 'Technical', icon: Wrench },
+        { code: 'plumbing', label: 'Plumbing', icon: Hammer },
+        { code: 'vendor', label: 'Vendor Coordination', icon: Briefcase },
+    ],
+    staff: [
+        { code: 'technical', label: 'Technical', icon: Wrench },
+        { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
+    ],
+};
 
 // Fireworks particle component
 const Particle = ({ delay }: { delay: number }) => {
@@ -112,6 +124,7 @@ export default function OnboardingPage() {
     const [properties, setProperties] = useState<Property[]>([]);
     const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
     const [selectedRole, setSelectedRole] = useState<string | null>(null);
+    const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showFireworks, setShowFireworks] = useState(false);
@@ -275,7 +288,50 @@ export default function OnboardingPage() {
                 }
             }
 
-            // 2️⃣ Update user profile with phone and onboarding status
+            // 2️⃣ Insert Resolver Stats (if skills selected)
+            if (selectedSkills.length > 0) {
+                // TEMP Debug
+                console.log('Selected skills:', selectedSkills);
+
+                // Fetch skill group IDs (Global/Active check)
+                const { data: skillGroups, error: skillError } = await supabase
+                    .from('skill_groups')
+                    .select('id, code')
+                    .eq('is_active', true)
+                    .in('code', selectedSkills);
+
+                // TEMP Debug
+                console.log('Fetched skill groups:', skillGroups);
+
+                if (skillError) {
+                    console.error('Failed to fetch skill groups:', JSON.stringify(skillError, null, 2));
+                    // Don't throw, just log. We don't want to break the entire flow if skill assign fails.
+                } else if (skillGroups && skillGroups.length > 0) {
+                    const statsToInsert = skillGroups.map(sg => ({
+                        user_id: authUser.id,
+                        property_id: finalPropId,
+                        skill_group_id: sg.id,
+                        current_floor: 1,
+                        avg_resolution_minutes: 60,
+                        total_resolved: 0,
+                        is_available: true
+                    }));
+
+                    const { error: statsError } = await supabase
+                        .from('resolver_stats')
+                        .insert(statsToInsert);
+
+                    if (statsError) {
+                        // Ignore duplicate key errors
+                        if (!statsError.message.toLowerCase().includes('duplicate key')) {
+                            console.error('Failed to insert resolver stats:', statsError);
+                        }
+                    }
+                }
+            }
+
+
+            // 3️⃣ Update user profile with phone and onboarding status
             const { error: userUpdateError } = await supabase
                 .from('users')
                 .update({
@@ -300,7 +356,7 @@ export default function OnboardingPage() {
             setError(err.message || 'Failed to complete setup.');
             setSubmitting(false);
         }
-    }, [user, selectedProperty, selectedRole, phoneNumber, supabase]);
+    }, [user, selectedProperty, selectedRole, phoneNumber, supabase, selectedSkills, userName]);
 
 
 
@@ -311,7 +367,13 @@ export default function OnboardingPage() {
     };
 
     const nextStep = () => {
-        if (step === 3) {
+        if (step === 3 && (selectedRole === 'mst' || selectedRole === 'staff')) {
+            // Need to go to skills step
+            setStep(4);
+        } else if (step === 3) {
+            // For other roles, finish
+            handleComplete();
+        } else if (step === 4) {
             handleComplete();
         } else {
             setStep((prev) => prev + 1);
@@ -320,15 +382,29 @@ export default function OnboardingPage() {
 
     const prevStep = () => setStep((prev) => Math.max(prev - 1, 0));
 
+    const toggleSkill = (code: string) => {
+        setSelectedSkills(prev =>
+            prev.includes(code)
+                ? prev.filter(c => c !== code)
+                : [...prev, code]
+        );
+    };
+
     const canProceed = () => {
         switch (step) {
             case 0: return true;
             case 1: return phoneNumber.length >= 10;
             case 2: return selectedProperty !== null;
             case 3: return selectedRole !== null;
+            case 4: return selectedSkills.length > 0;
             default: return false;
         }
     };
+
+    // Calculate total steps including skill step if relevant
+    const showSkillsStep = selectedRole && (selectedRole === 'mst' || selectedRole === 'staff');
+    const totalSteps = showSkillsStep ? 5 : 4;
+
 
     if ((loading || authLoading) && step === 0) {
         return (
@@ -348,7 +424,7 @@ export default function OnboardingPage() {
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 font-sans">
                 <div className="w-full max-w-md mb-12">
                     <div className="flex gap-2">
-                        {[0, 1, 2, 3].map((i) => (
+                        {Array.from({ length: totalSteps }).map((_, i) => (
                             <motion.div
                                 key={i}
                                 className={`h-1.5 flex-1 rounded-full transition-all duration-500`}
@@ -359,7 +435,7 @@ export default function OnboardingPage() {
                         ))}
                     </div>
                     <p className="text-center text-slate-500 text-sm font-medium mt-4">
-                        Step {step + 1} of 4
+                        Step {step + 1} of {totalSteps}
                     </p>
                 </div>
 
@@ -496,6 +572,50 @@ export default function OnboardingPage() {
                                 </div>
                             </motion.div>
                         )}
+
+                        {step === 4 && selectedRole && SKILL_OPTIONS[selectedRole] && (
+                            <motion.div
+                                key="skills" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
+                                className="flex flex-col items-center"
+                            >
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-6 shadow-xl">
+                                    <Wrench className="w-8 h-8 text-white" />
+                                </div>
+                                <h2 className="text-3xl font-black text-white mb-2 text-center">Select Your Skills</h2>
+                                <p className="text-slate-400 font-medium mb-8 text-center">What kind of tasks do you handle?</p>
+
+                                <div className="w-full space-y-3">
+                                    {SKILL_OPTIONS[selectedRole].map((skill) => {
+                                        const isSelected = selectedSkills.includes(skill.code);
+                                        const Icon = skill.icon;
+                                        return (
+                                            <button
+                                                key={skill.code}
+                                                onClick={() => toggleSkill(skill.code)}
+                                                className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center justify-between group ${isSelected
+                                                    ? 'bg-indigo-500/20 border-indigo-500 text-white'
+                                                    : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSelected ? 'bg-indigo-500' : 'bg-slate-700 group-hover:bg-slate-600'}`}>
+                                                        <Icon className="w-6 h-6" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="font-bold text-lg">{skill.label}</p>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-indigo-500 border-indigo-500' : 'border-slate-600'
+                                                    }`}>
+                                                    {isSelected && <Check className="w-4 h-4 text-white" />}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </motion.div>
+                        )}
+
                     </AnimatePresence>
                 </div>
 
@@ -517,7 +637,7 @@ export default function OnboardingPage() {
                         onClick={nextStep} disabled={!canProceed() || submitting}
                         className={`px-8 py-4 font-black rounded-2xl flex items-center gap-3 transition-all shadow-xl ${canProceed() && !submitting ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-violet-500/30 hover:scale-105' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
                     >
-                        {submitting ? <><Loader2 className="w-5 h-5 animate-spin" />Setting up...</> : step === 3 ? <>Complete Setup <Sparkles className="w-5 h-5" /></> : <>Continue <ArrowRight className="w-5 h-5" /></>}
+                        {submitting ? <><Loader2 className="w-5 h-5 animate-spin" />Setting up...</> : step === (totalSteps - 1) ? <>Complete Setup <Sparkles className="w-5 h-5" /></> : <>Continue <ArrowRight className="w-5 h-5" /></>}
                     </button>
                 </div>
             </div>
