@@ -206,7 +206,7 @@ export default function TenantTicketingDashboard({
     const isDark = theme === 'dark';
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-[#0f1419] text-white' : 'bg-[var(--canvas-bg)] text-slate-900'} p-8 font-body transition-colors duration-300`}>
+        <div className="min-h-screen bg-background text-text-primary p-8 font-body transition-colors duration-300">
             {/* Header */}
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-12">
@@ -218,7 +218,7 @@ export default function TenantTicketingDashboard({
                         <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-text-secondary'} mt-1 font-medium`}>Efficiently handle your facility needs</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-3 ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'premium-panel'} px-6 py-3 rounded-2xl border`}>
+                        <div className="flex items-center gap-3 bg-surface border-border px-6 py-3 rounded-2xl border">
                             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
                                 <User className={`w-5 h-5 ${isDark ? 'text-emerald-500' : 'text-primary'}`} />
                             </div>
@@ -233,8 +233,8 @@ export default function TenantTicketingDashboard({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Left Panel - Raise New Request */}
                     <div className="space-y-6">
-                        <div className={`${isDark ? 'bg-[#161b22] border-[#21262d] shadow-2xl' : 'glass-panel'} p-10 rounded-3xl border transition-all`}>
-                            <h2 className={`text-xs font-bold ${isDark ? 'text-emerald-500' : 'text-secondary'} mb-8 flex items-center gap-3 uppercase tracking-[0.2em]`}>
+                        <div className="bg-surface border-border shadow-2xl p-10 rounded-3xl border transition-all">
+                            <h2 className="text-xs font-bold text-secondary mb-8 flex items-center gap-3 uppercase tracking-[0.2em]">
                                 <Plus className="w-4 h-4" />
                                 Raise a New Request
                             </h2>
@@ -244,7 +244,7 @@ export default function TenantTicketingDashboard({
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder="Describe the issue in your words.&#10;Example: Leaking tap in kitchenette"
-                                    className={`w-full h-40 ${isDark ? 'bg-[#0d1117] text-white border-[#30363d]' : 'bg-text-primary/5 border-border/10'} border rounded-2xl p-6 placeholder-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all font-medium`}
+                                    className="w-full h-40 bg-surface-elevated text-text-primary border-border border rounded-2xl p-6 placeholder-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all font-medium"
                                 />
                                 {!isDark && <div className="absolute inset-0 rounded-2xl border border-primary/5 pointer-events-none group-focus-within:border-primary/20 transition-smooth"></div>}
                             </div>

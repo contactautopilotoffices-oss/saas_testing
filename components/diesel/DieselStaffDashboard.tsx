@@ -223,7 +223,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
 
     if (isLoading) {
         return (
-            <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0f1419]' : 'bg-[#f9fbfa]'}`}>
+            <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">
                     <div className={`w-12 h-12 border-4 ${isDark ? 'border-primary/20 border-t-primary' : 'border-slate-200 border-t-primary'} rounded-full animate-spin`} />
                     <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-bold`}>Loading diesel logger...</p>
@@ -233,16 +233,16 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
     }
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-[#0f1419]' : 'bg-[#f9fbfa]'} pb-24 transition-colors duration-300`}>
+        <div className="min-h-screen bg-background pb-24 transition-colors duration-300">
             {/* Top Navigation */}
-            <header className={`sticky top-0 z-30 w-full border-b ${isDark ? 'border-[#21262d] bg-[#161b22]/80' : 'border-slate-200 bg-white/80'} backdrop-blur-md`}>
+            <header className="sticky top-0 z-30 w-full border-b border-border bg-surface/80 backdrop-blur-md">
                 <div className="px-4 sm:px-6 lg:px-8 py-3 mx-auto max-w-[1440px]">
                     <div className="flex items-center justify-between">
                         {/* Left: Property Context Lock */}
                         <div className="flex items-center gap-3">
-                            <div className={`flex items-center gap-2 ${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-slate-50 border-slate-200'} px-3 py-1.5 rounded-full border select-none`}>
-                                <Lock className={`w-4 h-4 ${isDark ? 'text-primary' : 'text-primary'}`} />
-                                <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'} tracking-tight`}>
+                            <div className="flex items-center gap-2 bg-surface-elevated border-border px-3 py-1.5 rounded-full border select-none">
+                                <Lock className="w-4 h-4 text-primary" />
+                                <span className="text-sm font-bold text-text-primary tracking-tight">
                                     {property?.name || 'Property'}
                                 </span>
                             </div>

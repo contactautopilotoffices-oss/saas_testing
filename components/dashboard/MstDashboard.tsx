@@ -19,6 +19,7 @@ import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashbo
 import { useTheme } from '@/context/ThemeContext';
 import SettingsView from './SettingsView';
 import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
+import ShiftStatus, { ShiftToast } from '@/components/mst/ShiftStatus';
 
 // Types
 type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
@@ -68,6 +69,15 @@ const MstDashboard = () => {
     const [userRole, setUserRole] = useState('MST Professional');
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
+    // Shift Tracking State
+    const [isCheckedIn, setIsCheckedIn] = useState(false);
+    const [isShiftLoading, setIsShiftLoading] = useState(false);
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error', visible: boolean }>({
+        message: '',
+        type: 'success',
+        visible: false
+    });
+
     const supabase = createClient();
 
     useEffect(() => {
@@ -75,11 +85,56 @@ const MstDashboard = () => {
             fetchPropertyDetails();
             fetchTickets();
             fetchUserRole();
+            fetchShiftStatus();
             if (user?.id) {
                 checkInResolver(user.id, propertyId);
             }
         }
     }, [propertyId, user?.id]);
+
+    const fetchShiftStatus = async () => {
+        if (!propertyId) return;
+        try {
+            const res = await fetch(`/api/mst/shift?propertyId=${propertyId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setIsCheckedIn(data.isCheckedIn);
+            }
+        } catch (error) {
+            console.error('Failed to fetch shift status:', error);
+        }
+    };
+
+    const handleShiftToggle = async () => {
+        if (!propertyId) return;
+        setIsShiftLoading(true);
+        try {
+            const action = isCheckedIn ? 'check-out' : 'check-in';
+            const res = await fetch('/api/mst/shift', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ propertyId, action })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setIsCheckedIn(data.isCheckedIn);
+                showToast(data.message, 'success');
+            } else {
+                const err = await res.json();
+                showToast(err.error || 'Operation failed', 'error');
+            }
+        } catch (error) {
+            showToast('Network error occurred', 'error');
+        } finally {
+            setIsShiftLoading(false);
+        }
+    };
+
+    const showToast = (message: string, type: 'success' | 'error') => {
+        setToast({ message, type, visible: true });
+        setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
+    };
 
     const fetchUserRole = async () => {
         if (!user) return;
@@ -149,7 +204,7 @@ const MstDashboard = () => {
     };
 
     if (isLoading) return (
-        <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-[#0f1419]' : 'bg-slate-50'}`}>
+        <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                 <p className="text-text-secondary font-medium">Loading maintenance portal...</p>
@@ -174,7 +229,7 @@ const MstDashboard = () => {
     };
 
     return (
-        <div className={`min-h-screen ${isDarkMode ? 'bg-[#0d1117]' : 'bg-white'} flex font-inter text-text-primary`}>
+        <div className="min-h-screen bg-background flex font-inter text-text-primary">
             {/* Mobile Side Toggle Button */}
             <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -212,7 +267,7 @@ const MstDashboard = () => {
 
             {/* Sidebar */}
             <aside className={`
-                w-64 ${isDarkMode ? 'bg-[#161b22]' : 'bg-white'} border-r border-border flex flex-col h-screen z-50 transition-all duration-300
+                w-64 bg-sidebar flex flex-col h-screen z-50 transition-all duration-300
                 fixed lg:sticky top-0
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
@@ -268,6 +323,15 @@ const MstDashboard = () => {
                             </button>
                         </div>
                     )}
+                </div>
+
+                {/* Shift Status Widget */}
+                <div className="px-3 mb-4">
+                    <ShiftStatus 
+                        isCheckedIn={isCheckedIn} 
+                        isLoading={isShiftLoading} 
+                        onToggle={handleShiftToggle} 
+                    />
                 </div>
 
                 {/* Navigation */}
@@ -386,7 +450,7 @@ const MstDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <div className={`flex-1 lg:ml-0 flex flex-col min-h-screen ${isDarkMode ? 'bg-[#0d1117]' : 'bg-white'}`}>
+            <div className="flex-1 lg:ml-0 flex flex-col min-h-screen bg-background">
                 {/* Top Header */}
                 <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
                     <div className="flex items-center gap-4">
@@ -479,7 +543,7 @@ const MstDashboard = () => {
                                                 <img
                                                     src="/autopilot-logo-new.png"
                                                     alt="Autopilot Logo"
-                                                    className="h-10 w-auto object-contain invert mix-blend-screen"
+                                                    className="h-10 w-auto object-contain dark:invert transition-smooth"
                                                 />
                                             </div>
 
@@ -557,6 +621,12 @@ const MstDashboard = () => {
                 isOpen={showSignOutModal}
                 onClose={() => setShowSignOutModal(false)}
                 onConfirm={signOut}
+            />
+
+            <ShiftToast 
+                message={toast.message} 
+                type={toast.type} 
+                visible={toast.visible} 
             />
         </div >
     );

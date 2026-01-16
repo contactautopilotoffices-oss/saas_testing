@@ -80,14 +80,34 @@ export function classifyTicket(text: string): ClassificationResult {
         const groupMatches = matches.filter(m => m.skill_group === skillGroup);
 
         if (groupMatches.length > 0) {
-            // Rule 3: Within the group, longest keyword wins (specificity)
-            const bestMatch = groupMatches.reduce((best, current) =>
-                current.keyword_length > best.keyword_length ? current : best
-            );
+            // Rule 3: Within the group, pick issue_code with MOST keyword matches
+            // Count matches per issue_code
+            const counts: Record<string, number> = {};
+            groupMatches.forEach(m => {
+                counts[m.issue_code] = (counts[m.issue_code] || 0) + 1;
+            });
+
+            // Find issue_code with highest count
+            let bestIssueCode = groupMatches[0].issue_code;
+            let maxCount = 0;
+
+            for (const [code, count] of Object.entries(counts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    bestIssueCode = code;
+                } else if (count === maxCount) {
+                    // Tie-breaker: Longest keyword length among all matches for this code
+                    const currentMaxLen = Math.max(...groupMatches.filter(m => m.issue_code === code).map(m => m.keyword_length));
+                    const bestMaxLen = Math.max(...groupMatches.filter(m => m.issue_code === bestIssueCode).map(m => m.keyword_length));
+                    if (currentMaxLen > bestMaxLen) {
+                        bestIssueCode = code;
+                    }
+                }
+            }
 
             return {
-                issue_code: bestMatch.issue_code,
-                skill_group: bestMatch.skill_group,
+                issue_code: bestIssueCode,
+                skill_group: skillGroup,
                 confidence: 'high',
             };
         }

@@ -277,7 +277,7 @@ function AuthContent() {
                             alt="Autopilot Logo"
                             width={260}
                             height={90}
-                            className="object-contain"
+                            className="object-contain dark:invert transition-smooth"
                         />
                     </div>
 
@@ -465,7 +465,7 @@ function AuthContent() {
                 </div>
 
                 {/* Right Side - Brand Showcase */}
-                <div className="hidden lg:block w-1/2 p-8 relative overflow-hidden bg-primary">
+                <div className="hidden lg:block w-1/2 p-8 relative overflow-hidden bg-primary/90 dark:bg-primary/20 transition-smooth">
                     <div className="absolute inset-0">
                         <div className="absolute top-0 right-0 w-[60%] h-[60%] bg-primary-light/30 rounded-full blur-3xl" />
                         <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-primary-dark/30 rounded-full blur-3xl" />
@@ -479,7 +479,7 @@ function AuthContent() {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -50 }}
                                     transition={{ duration: 0.4, ease: [0.4, 0.0, 0.2, 1] }}
-                                    className="bg-white/90 backdrop-blur-xl border border-white/30 rounded-[var(--radius-lg)] p-6 shadow-xl"
+                                    className="bg-surface/90 backdrop-blur-xl border border-border/30 rounded-[var(--radius-lg)] p-6 shadow-xl"
                                 >
                                     <div className="w-14 h-14 rounded-[var(--radius-md)] bg-secondary flex items-center justify-center mb-4 shadow-sm">
                                         <Ticket className="w-7 h-7 text-white" />

@@ -198,66 +198,12 @@ export async function POST(request: NextRequest) {
 
         console.log('[TICKET API] Final IDs:', { categoryId, skillGroupId });
 
-        // 3. FIND RESOLVER - Direct API assignment
-        let assignedTo: string | null = null;
-        let ticketStatus = 'open';
-        let assignedAt: string | null = null;
-        let slaDeadline: string | null = null;
-
-        if (skillGroupId) {
-            console.log('[TICKET API] Looking for resolver with skill_group_id:', skillGroupId, 'property_id:', propId);
-
-            // Step 1: Find resolver in resolver_stats matching skill + property + available
-            const { data: resolverStats, error: resolverError } = await supabase
-                .from('resolver_stats')
-                .select('user_id, is_available')
-                .eq('skill_group_id', skillGroupId)
-                .eq('property_id', propId)
-                .eq('is_available', true)
-                .limit(1)
-                .maybeSingle();
-
-            if (resolverError) {
-                console.error('[TICKET API] Error finding resolver:', resolverError);
-            }
-
-            if (resolverStats?.user_id) {
-                console.log('[TICKET API] Found resolver in resolver_stats:', resolverStats.user_id);
-
-                // Step 2: Verify user is active member of this property
-                const { data: membership } = await supabase
-                    .from('property_memberships')
-                    .select('user_id, role')
-                    .eq('user_id', resolverStats.user_id)
-                    .eq('property_id', propId)
-                    .eq('is_active', true)
-                    .maybeSingle();
-
-                if (membership) {
-                    assignedTo = resolverStats.user_id;
-                    ticketStatus = 'assigned';
-                    assignedAt = new Date().toISOString();
-                    const deadline = new Date();
-                    deadline.setHours(deadline.getHours() + slaHours);
-                    slaDeadline = deadline.toISOString();
-                    console.log('[TICKET API] ✅ Assigned to user_id:', assignedTo, '| Role:', membership.role);
-                } else {
-                    console.warn('[TICKET API] ⚠️ Resolver found but not active member. Ticket goes to WAITLIST.');
-                    ticketStatus = 'waitlist';
-                }
-            } else {
-                console.warn('[TICKET API] ⚠️ No resolver found in resolver_stats. Ticket goes to WAITLIST.');
-                ticketStatus = 'waitlist';
-            }
-        } else {
-            console.warn('[TICKET API] ⚠️ No skill_group_id. Ticket goes to WAITLIST.');
-            ticketStatus = 'waitlist';
-        }
-
-        // Simple ticket number generation
+        // 3. CREATE TICKET
+        // Note: Assignment is now handled by the PostgreSQL trigger 'trigger_auto_assign_ticket'
+        // which utilizes the 'find_best_resolver' function for load-balanced, shift-aware assignment.
+        
         const ticketNumber = `TKT-${Date.now()}`;
 
-        // Create the ticket WITH assignment
         const { data: ticket, error: insertError } = await supabase
             .from('tickets')
             .insert({
@@ -270,18 +216,18 @@ export async function POST(request: NextRequest) {
                 category_id: categoryId,
                 skill_group_id: skillGroupId,
                 priority: priority,
-                status: ticketStatus,
+                status: 'open', // Trigger will update to 'assigned' if resolver found
                 raised_by: user.id,
-                assigned_to: assignedTo,
-                assigned_at: assignedAt,
-                sla_deadline: slaDeadline,
-                sla_started: assignedTo ? true : false,
                 is_internal: internal,
                 is_vague: isVague,
                 sla_hours: slaHours,
                 work_paused: false,
                 floor_number: extractFloorNumber(title || description) ?? undefined,
                 location: extractLocation(title || description) ?? undefined,
+                // New tracking fields
+                issue_code: issue_code,
+                skill_group_code: skill_group,
+                confidence: confidence
             })
             .select('*')
             .single();

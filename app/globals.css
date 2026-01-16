@@ -101,33 +101,33 @@
 }
 
 .dark {
-  /* Surfaces & Backgrounds - Phase 3 Premium Dark */
-  --background: #0F141A;
-  --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(255, 255, 255, 0.04), transparent 40%), linear-gradient(180deg, #0F141A, #121820);
-  --sidebar-bg: #0C1117;
-  --surface: #161B22;
-  --surface-elevated: #21262D;
-  --border: #30363D;
-  --border-subtle: #21262D;
-  --muted: #0D1117;
-  --card: #161B22;
-  --foreground: #F8FAFC;
+  /* Surfaces & Backgrounds - Phase 3 Premium Dark - Ambient Teal Palette */
+  --background: #0B1214;
+  --canvas-bg: radial-gradient(1200px at 10% 10%, rgba(112, 143, 150, 0.15), transparent 40%), linear-gradient(180deg, #0B1214, #0F1618);
+  --sidebar-bg: #080E10;
+  --surface: #121A1D;
+  --surface-elevated: #1C2629;
+  --border: #242E31;
+  --border-subtle: #1C2629;
+  --muted: #0D1416;
+  --card: #121A1D;
+  --foreground: #E6EBEE;
 
   /* Phase 3 Card Surface (Dark) */
-  --card-surface: linear-gradient(135deg, rgba(28, 35, 45, 0.9) 0%, rgba(20, 26, 34, 0.85) 100%);
-  --card-border: rgba(255, 255, 255, 0.06);
-  --card-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+  --card-surface: linear-gradient(135deg, rgba(20, 30, 35, 0.95) 0%, rgba(15, 22, 26, 0.9) 100%);
+  --card-border: rgba(112, 143, 150, 0.1);
+  --card-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
 
   /* Phase 3 Large Panel (Dark) */
-  --panel-surface: linear-gradient(160deg, rgba(24, 32, 44, 0.95), rgba(15, 20, 28, 0.92));
-  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-surface: linear-gradient(160deg, rgba(18, 28, 32, 0.98), rgba(11, 18, 20, 0.95));
+  --panel-border: rgba(112, 143, 150, 0.12);
 
-  /* Text Hierarchy - Dark Mode (Softened Light) */
-  --text-primary: rgba(230, 235, 238, 0.92);
-  --text-secondary: rgba(230, 235, 238, 0.62);
-  --text-tertiary: rgba(230, 235, 238, 0.42);
-  --text-muted: rgba(230, 235, 238, 0.42);
-  --text-inverse: rgba(26, 35, 50, 0.92);
+  /* Text Hierarchy - Dark Mode (Clean & High Readability) */
+  --text-primary: rgba(230, 235, 238, 0.95);
+  --text-secondary: rgba(230, 235, 238, 0.75);
+  --text-tertiary: rgba(230, 235, 238, 0.55);
+  --text-muted: rgba(230, 235, 238, 0.45);
+  --text-inverse: rgba(26, 35, 50, 0.95);
 
   /* Sidebar/Navigation */
   --sidebar: #151B2B;
