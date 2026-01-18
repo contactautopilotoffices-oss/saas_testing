@@ -131,8 +131,13 @@ export default function SnagIntakeDashboard({ propertyId, organizationId }: Snag
 
             setTickets(importedTickets);
             setView('dashboard');
-            setSuccessMessage(`Successfully imported ${importedTickets.length} snags`);
-            setTimeout(() => setSuccessMessage(null), 5000);
+
+            if (data.assignmentSummary) {
+                setSuccessMessage(`Imported ${importedTickets.length} snags. Auto-assigned ${data.assignmentSummary.assigned} to matching technicians.`);
+            } else {
+                setSuccessMessage(`Successfully imported ${importedTickets.length} snags`);
+            }
+            setTimeout(() => setSuccessMessage(null), 7000);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Import failed');
         } finally {

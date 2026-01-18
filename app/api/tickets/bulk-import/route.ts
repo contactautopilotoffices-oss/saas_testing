@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { classifyTicket } from '@/lib/ticketing';
+import { processIntelligentAssignment } from '@/lib/ticketing/assignment';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
@@ -239,25 +240,55 @@ export async function POST(request: NextRequest) {
             // Continue without batch tracking
         }
 
-        // Resolve skill group IDs
-        const { data: skillGroups } = await supabase
+        // Resolve all categories and skill groups for lookup
+        const { data: allCategories } = await supabase
+            .from('issue_categories')
+            .select('id, code, skill_group_id, priority, sla_hours');
+
+        const { data: allSkillGroups } = await supabase
             .from('skill_groups')
-            .select('id, code')
-            .limit(10);
+            .select('id, code');
 
-        const skillGroupMap = new Map(skillGroups?.map(sg => [sg.code, sg.id]) || []);
+        const categoryMap = new Map(allCategories?.map(c => [c.code, c]) || []);
+        const skillGroupMap = new Map(allSkillGroups?.map(sg => [sg.code, sg.id]) || []);
 
-        // Prepare tickets for insert (using only base schema columns)
-        const ticketsToInsert = validRows.map((row) => {
+        // Prepare tickets for insert
+        const ticketsToInsert = validRows.map((row, index) => {
+            // 1. Rule-based Classification
+            const classification = classifyTicket(row.issue_description);
+            const { issue_code, skill_group, confidence } = classification;
+
+            // 2. Resolve IDs
+            const cat = issue_code ? categoryMap.get(issue_code) : null;
+            const skillGroupId = cat?.skill_group_id || skillGroupMap.get(skill_group);
+
+            // 3. Extract Floor and Location
+            const floorNumber = extractFloorNumber(row.issue_description);
+            const location = extractLocation(row.issue_description);
+
+            // 4. Generate unique ticket number
+            const ticketNumber = `TKT-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 7)}`.toUpperCase();
+
             return {
                 property_id: propertyId,
                 organization_id: organizationId,
+                ticket_number: ticketNumber,
                 title: row.issue_description.slice(0, 100),
                 description: row.issue_description,
-                category: row.skill_group || 'other', // Map skill_group to category
-                priority: 'medium',
-                status: 'open',
+                category: issue_code || 'general',
+                category_id: cat?.id || null,
+                skill_group_id: skillGroupId || null,
+                priority: cat?.priority || 'medium',
+                status: 'open', // Trigger will auto-assign if possible
                 raised_by: user.id,
+                import_batch_id: importBatchId,
+                issue_code: issue_code,
+                skill_group_code: skill_group,
+                confidence: confidence,
+                sla_hours: cat?.sla_hours || 24,
+                floor_number: floorNumber,
+                location: location,
+                is_internal: false
             };
         });
 
@@ -288,10 +319,25 @@ export async function POST(request: NextRequest) {
                 .eq('id', importBatchId);
         }
 
+        // 5. Automatic Assignment (Rule-base + Round Robin)
+        // Fetch the full ticket data including skill_group_code for the assignment engine
+        const { data: ticketsToAssign } = await supabase
+            .from('tickets')
+            .select('id, property_id, skill_group_code, status')
+            .in('id', insertedTickets.map(t => t.id))
+            .in('status', ['open', 'waitlist']); // Only assign those not already assigned by DB triggers
+
+        let assignmentSummary = null;
+        if (ticketsToAssign && ticketsToAssign.length > 0) {
+            const assignmentResult = await processIntelligentAssignment(supabase, ticketsToAssign, propertyId);
+            assignmentSummary = assignmentResult.summary;
+        }
+
         return NextResponse.json({
             success: true,
             importBatchId: importBatchId,
             ticketsCreated: insertedTickets?.length || 0,
+            assignmentSummary,
             tickets: insertedTickets,
         }, { status: 201 });
 

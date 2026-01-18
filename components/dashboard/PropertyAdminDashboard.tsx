@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Users, Ticket, Settings, UserCircle, UsersRound,
     Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Building2,
-    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload
+    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload, FileBarChart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -23,9 +23,10 @@ import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import SettingsView from './SettingsView';
 import AddMemberModal from './InviteMemberModal';
+import { ImportReportsView } from '@/components/snags';
 
 // Types
-type Tab = 'overview' | 'requests' | 'users' | 'visitors' | 'diesel' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
+type Tab = 'overview' | 'requests' | 'reports' | 'users' | 'visitors' | 'diesel' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
 
 interface Property {
     id: string;
@@ -176,6 +177,16 @@ const PropertyAdminDashboard = () => {
                             >
                                 <Ticket className="w-4 h-4" />
                                 Requests
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('reports')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'reports'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <FileBarChart className="w-4 h-4" />
+                                Reports
                             </button>
                         </div>
                     </div>
@@ -357,6 +368,12 @@ const PropertyAdminDashboard = () => {
                                 propertyId={property.id}
                                 canDelete={true}
                                 onNewRequest={() => setShowCreateTicketModal(true)}
+                            />
+                        )}
+                        {activeTab === 'reports' && property && (
+                            <ImportReportsView
+                                propertyId={property.id}
+                                organizationId={property.organization_id}
                             />
                         )}
                         {activeTab === 'visitors' && property && (
