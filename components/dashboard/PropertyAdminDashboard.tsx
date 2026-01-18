@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Users, Ticket, Settings, UserCircle, UsersRound,
     Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Building2,
-    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity
+    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -127,7 +127,7 @@ const PropertyAdminDashboard = () => {
                                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
                                 Quick Actions
                             </p>
-                            <div className="px-4 grid grid-cols-1 gap-2">
+                            <div className="px-4 grid grid-cols-2 gap-2">
                                 <button
                                     onClick={() => setShowCreateTicketModal(true)}
                                     className="flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
@@ -136,6 +136,15 @@ const PropertyAdminDashboard = () => {
                                         <Plus className="w-5 h-5 font-black" />
                                     </div>
                                     <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
+                                </button>
+                                <button
+                                    onClick={() => router.push(`/property/${propertyId}/snags/intake`)}
+                                    className="flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-amber-500/20 group shadow-sm"
+                                >
+                                    <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                                        <Upload className="w-5 h-5 font-black" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Bulk Snags</span>
                                 </button>
                             </div>
                         </div>

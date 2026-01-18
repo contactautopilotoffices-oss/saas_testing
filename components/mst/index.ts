@@ -4,3 +4,4 @@ export { default as ActiveTicketCard, NoActiveTicketCard } from './ActiveTicketC
 export { default as DepartmentTicketList } from './DepartmentTicketList';
 export { default as TicketPauseModal } from './TicketPauseModal';
 export { default as MstLoadBadge, MstLoadDot, MstLoadBar } from './MstLoadBadge';
+export { default as NavbarShiftStatus } from './NavbarShiftStatus';

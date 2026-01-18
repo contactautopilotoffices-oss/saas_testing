@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     LayoutDashboard, Building2, Users, UserPlus, Ticket, Settings, UserCircle,
     Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
-    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu
+    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -429,6 +429,18 @@ const OrgAdminDashboard = () => {
                                 <UserPlus className="w-5 h-5 font-black" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Add Member</span>
+                        </button>
+                        <button
+                            onClick={() => selectedPropertyId !== 'all' && router.push(`/property/${selectedPropertyId}/snags/intake`)}
+                            disabled={selectedPropertyId === 'all'}
+                            className={`w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl transition-all border-2 border-amber-500/20 group shadow-sm ${selectedPropertyId === 'all' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
+                                }`}
+                            title={selectedPropertyId === 'all' ? 'Select a property first' : 'Bulk Snag Import'}
+                        >
+                            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                                <Upload className="w-5 h-5 font-black" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Bulk Snags</span>
                         </button>
                     </div>
                 </div>

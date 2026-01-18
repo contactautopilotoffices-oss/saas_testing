@@ -115,3 +115,30 @@ export const PAUSE_REASON_PRESETS = [
 ] as const;
 
 export type PauseReasonPreset = typeof PAUSE_REASON_PRESETS[number];
+
+// Snag Import Types
+export interface SnagImportRow {
+    issue_description: string;
+    issue_date: string;
+    // Computed by classification
+    skill_group?: SkillGroup;
+    issue_code?: string;
+    confidence?: 'high' | 'low';
+    // Validation
+    isValid?: boolean;
+    validationErrors?: string[];
+}
+
+export interface SnagImportBatch {
+    id: string;
+    property_id: string;
+    organization_id: string;
+    imported_by: string;
+    filename: string;
+    total_rows: number;
+    valid_rows: number;
+    error_rows: number;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    created_at: string;
+    completed_at?: string;
+}

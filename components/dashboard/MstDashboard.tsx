@@ -19,7 +19,8 @@ import TenantTicketingDashboard from '@/components/tickets/TenantTicketingDashbo
 import { useTheme } from '@/context/ThemeContext';
 import SettingsView from './SettingsView';
 import VMSAdminDashboard from '@/components/vms/VMSAdminDashboard';
-import ShiftStatus, { ShiftToast } from '@/components/mst/ShiftStatus';
+import { ShiftToast } from '@/components/mst/ShiftStatus';
+import NavbarShiftStatus from '@/components/mst/NavbarShiftStatus';
 
 // Types
 type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
@@ -325,15 +326,6 @@ const MstDashboard = () => {
                     )}
                 </div>
 
-                {/* Shift Status Widget */}
-                <div className="px-3 mb-4">
-                    <ShiftStatus 
-                        isCheckedIn={isCheckedIn} 
-                        isLoading={isShiftLoading} 
-                        onToggle={handleShiftToggle} 
-                    />
-                </div>
-
                 {/* Navigation */}
                 <nav className="flex-1 px-3 overflow-y-auto">
                     {/* Daily Work */}
@@ -471,6 +463,13 @@ const MstDashboard = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* Shift Status in Navbar */}
+                        <NavbarShiftStatus
+                            isCheckedIn={isCheckedIn}
+                            isLoading={isShiftLoading}
+                            onToggle={handleShiftToggle}
+                        />
+
                         <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-text-tertiary hover:text-text-primary transition-colors">
                             <Bell className="w-4 h-4" />
                         </button>
@@ -623,10 +622,10 @@ const MstDashboard = () => {
                 onConfirm={signOut}
             />
 
-            <ShiftToast 
-                message={toast.message} 
-                type={toast.type} 
-                visible={toast.visible} 
+            <ShiftToast
+                message={toast.message}
+                type={toast.type}
+                visible={toast.visible}
             />
         </div >
     );
