@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     LayoutDashboard, Building2, Users, UserPlus, Ticket, Settings, UserCircle,
     Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
-    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload
+    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload, FileBarChart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -18,9 +18,10 @@ import SettingsView from './SettingsView';
 import DieselAnalyticsDashboard from '../diesel/DieselAnalyticsDashboard';
 import InviteMemberModal from './InviteMemberModal';
 import Image from 'next/image';
+import { ImportReportsView } from '@/components/snags';
 
 // Types
-type Tab = 'overview' | 'properties' | 'requests' | 'visitors' | 'settings' | 'profile' | 'revenue' | 'users' | 'diesel';
+type Tab = 'overview' | 'properties' | 'requests' | 'reports' | 'visitors' | 'settings' | 'profile' | 'revenue' | 'users' | 'diesel';
 
 interface Property {
     id: string;
@@ -409,47 +410,53 @@ const OrgAdminDashboard = () => {
                         <img src="/autopilot-logo-new.png" alt="Logo" className="h-12 w-auto object-contain" />
                         <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.2em]">Super Admin Console</p>
                     </div>
-
-                    {/* Quick Action Row */}
-                    <div className="mb-6 px-1 grid grid-cols-2 gap-2">
-                        <button
-                            onClick={() => handleTabChange('requests')}
-                            className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
-                        >
-                            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                <Plus className="w-5 h-5 font-black" />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
-                        </button>
-                        <button
-                            onClick={() => setShowAddMemberModal(true)}
-                            className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
-                        >
-                            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                                <UserPlus className="w-5 h-5 font-black" />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Add Member</span>
-                        </button>
-                        <button
-                            onClick={() => selectedPropertyId !== 'all' && router.push(`/property/${selectedPropertyId}/snags/intake`)}
-                            disabled={selectedPropertyId === 'all'}
-                            className={`w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl transition-all border-2 border-amber-500/20 group shadow-sm ${selectedPropertyId === 'all' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
-                                }`}
-                            title={selectedPropertyId === 'all' ? 'Select a property first' : 'Bulk Snag Import'}
-                        >
-                            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
-                                <Upload className="w-5 h-5 font-black" />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Bulk Snags</span>
-                        </button>
-                    </div>
                 </div>
 
                 <nav className="flex-1 px-4 overflow-y-auto">
+                    {/* Quick Action Row */}
+                    <div className="mb-8">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-6 mb-4 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+                            Quick Actions
+                        </p>
+                        <div className="px-4 grid grid-cols-3 gap-2">
+                            <button
+                                onClick={() => handleTabChange('requests')}
+                                className="w-full flex flex-col items-center justify-center gap-1.5 p-2 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
+                            >
+                                <div className="w-7 h-7 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <Plus className="w-4 h-4 font-black" />
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-tight text-center mt-1">New</span>
+                            </button>
+                            <button
+                                onClick={() => setShowAddMemberModal(true)}
+                                className="w-full flex flex-col items-center justify-center gap-1.5 p-2 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-emerald-500/20 group shadow-sm"
+                            >
+                                <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                                    <UserPlus className="w-4 h-4 font-black" />
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-tight text-center mt-1">Member</span>
+                            </button>
+                            <button
+                                onClick={() => selectedPropertyId !== 'all' && router.push(`/property/${selectedPropertyId}/snags/intake`)}
+                                disabled={selectedPropertyId === 'all'}
+                                className={`w-full flex flex-col items-center justify-center gap-1.5 p-2 bg-white text-text-primary rounded-xl transition-all border-2 border-amber-500/20 group shadow-sm ${selectedPropertyId === 'all' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
+                                    }`}
+                                title={selectedPropertyId === 'all' ? 'Select a property first' : 'Bulk Snag Import'}
+                            >
+                                <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                                    <Upload className="w-4 h-4 font-black" />
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-tight text-center mt-1">Snags</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Core Operations */}
-                    <div className="mb-5">
-                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
-                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             Core Operations
                         </p>
                         <div className="space-y-1">
@@ -473,13 +480,23 @@ const OrgAdminDashboard = () => {
                                 <Ticket className="w-4 h-4" />
                                 Requests
                             </button>
+                            <button
+                                onClick={() => handleTabChange('reports')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'reports'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <FileBarChart className="w-4 h-4" />
+                                Reports
+                            </button>
                         </div>
                     </div>
 
                     {/* Management Hub */}
-                    <div className="mb-5">
-                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
-                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             Management Hub
                         </p>
                         <div className="space-y-1">
@@ -537,9 +554,9 @@ const OrgAdminDashboard = () => {
                     </div>
 
                     {/* System & Personal */}
-                    <div className="mb-5">
-                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
-                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
+                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
@@ -585,7 +602,7 @@ const OrgAdminDashboard = () => {
 
                     <button
                         onClick={() => setShowSignOutModal(true)}
-                        className="flex items-center gap-3 px-4 py-3 text-text-tertiary hover:text-red-400 hover:bg-red-500/10 rounded-xl w-full transition-smooth text-sm font-body font-medium group"
+                        className="flex items-center gap-3 px-4 py-3 text-text-tertiary hover:text-red-400 hover:bg-red-500/10 rounded-xl w-full transition-smooth text-sm font-bold group"
                     >
                         <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         Sign Out
@@ -732,6 +749,13 @@ const OrgAdminDashboard = () => {
                         )}
 
                         {activeTab === 'visitors' && <VisitorsTab properties={properties} selectedPropertyId={selectedPropertyId} />}
+
+                        {activeTab === 'reports' && org && (
+                            <ImportReportsView
+                                organizationId={org.id}
+                                propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
+                            />
+                        )}
 
                         {activeTab === 'users' && (
                             <UserDirectory
@@ -1358,7 +1382,7 @@ const OverviewTab = ({
                                     <div key={prop.property_id || idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                                         <div>
                                             <div className="font-bold text-slate-900 text-sm">{prop.property_name}</div>
-                                            <div className="text-xs text-slate-500">{prop.open} open · {prop.resolved} resolved</div>
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">{prop.open + prop.in_progress} active · {prop.resolved} resolved</div>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-lg font-black text-slate-900">{prop.total}</div>

@@ -550,13 +550,18 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
             try {
                 // --- Tickets ---
                 const [openRes, inProgressRes, resolvedRes, totalRes] = await Promise.all([
-                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).eq('status', 'open'),
-                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).eq('status', 'in_progress'),
+                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).in('status', ['open', 'waitlist', 'blocked']),
+                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).in('status', ['assigned', 'in_progress', 'paused', 'work_started']),
                     supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).in('status', ['resolved', 'closed']),
                     supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId),
                 ]);
                 setTicketStats({
-                    total: totalRes.count || 0, open: openRes.count || 0, in_progress: inProgressRes.count || 0, resolved: resolvedRes.count || 0, sla_breached: 0, avg_resolution_hours: 0
+                    total: totalRes.count || 0,
+                    open: openRes.count || 0,
+                    in_progress: inProgressRes.count || 0,
+                    resolved: resolvedRes.count || 0,
+                    sla_breached: 0,
+                    avg_resolution_hours: 0
                 });
 
                 // --- Recent Tickets ---

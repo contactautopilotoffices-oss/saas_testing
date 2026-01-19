@@ -211,7 +211,20 @@ export default function TicketDetailPage() {
             .select('*, user:user_id(full_name)')
             .eq('property_id', propId)
             .eq('is_available', true);
-        setResolvers(data || []);
+
+        if (data) {
+            const unique = [];
+            const seen = new Set();
+            for (const r of data) {
+                if (!seen.has(r.user_id)) {
+                    seen.add(r.user_id);
+                    unique.push(r);
+                }
+            }
+            setResolvers(unique);
+        } else {
+            setResolvers([]);
+        }
     };
 
     // Actions
@@ -676,7 +689,11 @@ export default function TicketDetailPage() {
                                     <div className="flex items-center gap-4">
                                         <div className="flex flex-col">
                                             <span className={`text-[9px] font-black ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest`}>Floor</span>
-                                            <span className={`text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Level {ticket.floor_number || '-'}</span>
+                                            <span className={`text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                {ticket.floor_number === 0 ? 'Ground Floor' :
+                                                    ticket.floor_number === -1 ? 'Basement' :
+                                                        ticket.floor_number ? `Level ${ticket.floor_number}` : '-'}
+                                            </span>
                                         </div>
                                         <div className={`w-px h-6 ${isDark ? 'bg-[#30363d]' : 'bg-slate-100'}`} />
                                         <div className="flex flex-col">
@@ -950,7 +967,7 @@ export default function TicketDetailPage() {
                                 <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'} italic mb-2`}>Reassign Force</h2>
                                 <p className={`${isDark ? 'text-slate-500' : 'text-slate-400'} text-sm mb-8 italic`}>Redirect signal to another available technician.</p>
 
-                                <div className="space-y-3 mb-8">
+                                <div className="space-y-3 mb-8 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {resolvers.map((r) => (
                                         <button
                                             key={r.id}

@@ -63,9 +63,12 @@ export async function GET(
 
         // Calculate overall stats
         const totalTickets = tickets?.length || 0;
-        const openTickets = tickets?.filter(t => t.status === 'open' || t.status === 'waitlist').length || 0;
-        const inProgress = tickets?.filter(t => t.status === 'assigned' || t.status === 'in_progress').length || 0;
-        const resolved = tickets?.filter(t => t.status === 'resolved' || t.status === 'closed').length || 0;
+        const resolvedStatuses = ['resolved', 'closed'];
+
+        // Open/In Progress combined should equal all non-resolved
+        const openTickets = tickets?.filter(t => t.status === 'open' || t.status === 'waitlist' || t.status === 'blocked').length || 0;
+        const inProgress = tickets?.filter(t => t.status === 'assigned' || t.status === 'in_progress' || t.status === 'paused' || t.status === 'work_started').length || 0;
+        const resolved = tickets?.filter(t => resolvedStatuses.includes(t.status || '')).length || 0;
         const slaBreached = tickets?.filter(t => t.sla_breached).length || 0;
 
         // Calculate average resolution time
@@ -88,9 +91,9 @@ export async function GET(
                 property_name: prop.name,
                 property_code: prop.code,
                 total: propTickets.length,
-                open: propTickets.filter(t => t.status === 'open' || t.status === 'waitlist').length,
-                in_progress: propTickets.filter(t => t.status === 'assigned' || t.status === 'in_progress').length,
-                resolved: propTickets.filter(t => t.status === 'resolved' || t.status === 'closed').length,
+                open: propTickets.filter(t => t.status === 'open' || t.status === 'waitlist' || t.status === 'blocked').length,
+                in_progress: propTickets.filter(t => t.status === 'assigned' || t.status === 'in_progress' || t.status === 'paused' || t.status === 'work_started').length,
+                resolved: propTickets.filter(t => resolvedStatuses.includes(t.status || '')).length,
                 sla_breached: propTickets.filter(t => t.sla_breached).length,
             };
         }) || [];

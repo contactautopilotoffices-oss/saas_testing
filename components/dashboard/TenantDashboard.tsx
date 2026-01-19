@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import NextImage from 'next/image';
 import SignOutModal from '@/components/ui/SignOutModal';
 import DieselStaffDashboard from '@/components/diesel/DieselStaffDashboard';
@@ -58,6 +58,22 @@ const TenantDashboard = () => {
     const [activeTickets, setActiveTickets] = useState<Ticket[]>([]);
     const [completedTickets, setCompletedTickets] = useState<Ticket[]>([]);
     const [isFetchingTickets, setIsFetchingTickets] = useState(false);
+    const searchParams = useSearchParams();
+
+    // Sync activeTab with URL
+    useEffect(() => {
+        const tab = searchParams.get('tab') as Tab;
+        if (tab && tab !== activeTab) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
+
+    const handleTabChange = (tab: Tab) => {
+        setActiveTab(tab);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', tab);
+        router.push(`?${params.toString()}`);
+    };
 
     const supabase = createClient();
 
@@ -182,7 +198,7 @@ const TenantDashboard = () => {
                             {/* Quick Action: New Request - Bold & Clear */}
                             <div className="mb-6">
                                 <button
-                                    onClick={() => { setActiveTab('create_request'); setSidebarOpen(false); }}
+                                    onClick={() => { handleTabChange('create_request'); setSidebarOpen(false); }}
                                     className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
                                 >
                                     <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -202,7 +218,7 @@ const TenantDashboard = () => {
                                 </p>
                                 <div className="space-y-1">
                                     <button
-                                        onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }}
+                                        onClick={() => { handleTabChange('overview'); setSidebarOpen(false); }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'overview'
                                             ? 'bg-primary text-text-inverse shadow-sm'
                                             : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -212,7 +228,7 @@ const TenantDashboard = () => {
                                         Dashboard
                                     </button>
                                     <button
-                                        onClick={() => { setActiveTab('requests'); setSidebarOpen(false); }}
+                                        onClick={() => { handleTabChange('requests'); setSidebarOpen(false); }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'requests'
                                             ? 'bg-primary text-text-inverse shadow-sm'
                                             : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -232,7 +248,7 @@ const TenantDashboard = () => {
                                 </p>
                                 <div className="space-y-1">
                                     <button
-                                        onClick={() => { setActiveTab('visitors'); setSidebarOpen(false); }}
+                                        onClick={() => { handleTabChange('visitors'); setSidebarOpen(false); }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'visitors'
                                             ? 'bg-primary text-text-inverse shadow-sm'
                                             : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -242,7 +258,7 @@ const TenantDashboard = () => {
                                         Visitor Management
                                     </button>
                                     <button
-                                        onClick={() => { setActiveTab('diesel'); setSidebarOpen(false); }}
+                                        onClick={() => { handleTabChange('diesel'); setSidebarOpen(false); }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'diesel'
                                             ? 'bg-primary text-text-inverse shadow-sm'
                                             : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -262,7 +278,7 @@ const TenantDashboard = () => {
                                 </p>
                                 <div className="space-y-1">
                                     <button
-                                        onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }}
+                                        onClick={() => { handleTabChange('settings'); setSidebarOpen(false); }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'settings'
                                             ? 'bg-primary text-text-inverse shadow-sm'
                                             : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -272,7 +288,7 @@ const TenantDashboard = () => {
                                         Settings
                                     </button>
                                     <button
-                                        onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }}
+                                        onClick={() => { handleTabChange('profile'); setSidebarOpen(false); }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'profile'
                                             ? 'bg-primary text-text-inverse shadow-sm'
                                             : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -322,12 +338,12 @@ const TenantDashboard = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
-                            {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} property={property} />}
+                            {activeTab === 'overview' && <OverviewTab onNavigate={handleTabChange} property={property} />}
                             {activeTab === 'requests' && property && user && (
                                 <RequestsTab
                                     activeTickets={activeTickets}
                                     completedTickets={completedTickets}
-                                    onNavigate={setActiveTab}
+                                    onNavigate={handleTabChange}
                                     isLoading={isFetchingTickets}
                                 />
                             )}
@@ -413,7 +429,7 @@ const TenantDashboard = () => {
 
                                             <div className="pt-4 flex justify-center">
                                                 <button
-                                                    onClick={() => setActiveTab('settings')}
+                                                    onClick={() => handleTabChange('settings')}
                                                     className="px-8 py-2.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all w-full"
                                                 >
                                                     Edit Profile

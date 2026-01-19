@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         let ticketQuery = supabase
             .from('tickets')
             .select('assigned_to')
-            .in('status', ['assigned', 'in_progress']);
+            .in('status', ['assigned', 'in_progress', 'paused']); // Included paused
 
         if (propertyId) {
             ticketQuery = ticketQuery.eq('property_id', propertyId);
@@ -77,8 +77,16 @@ export async function GET(request: NextRequest) {
             }
         });
 
+        // Deduplicate resolvers by user_id (aggregator)
+        const uniqueResolvers = new Map();
+        resolvers?.forEach(r => {
+            if (!uniqueResolvers.has(r.user_id)) {
+                uniqueResolvers.set(r.user_id, r);
+            }
+        });
+
         // Calculate scores
-        const resolversWithScores = resolvers?.map((r) => {
+        const resolversWithScores = Array.from(uniqueResolvers.values()).map((r) => {
             const activeCount = ticketCounts[r.user_id] || 0;
             const score = (activeCount * 0.6) +
                 ((r.current_floor || 1) * 0.2) +
@@ -92,8 +100,8 @@ export async function GET(request: NextRequest) {
         }).sort((a, b) => a.score - b.score);
 
         return NextResponse.json({
-            resolvers: resolversWithScores || [],
-            total_available: resolversWithScores?.length || 0,
+            resolvers: resolversWithScores,
+            total_available: resolversWithScores.length,
         });
     } catch (error) {
         console.error('Resolver workload error:', error);

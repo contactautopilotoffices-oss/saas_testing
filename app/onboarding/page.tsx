@@ -25,7 +25,7 @@ const AVAILABLE_ROLES = [
     { id: 'staff', label: 'Soft Services Staff', desc: 'Cleaning, hygiene, pantry & support', icon: '👷' },
     { id: 'mst', label: 'Maintenance Staff', desc: 'Technical repairs & maintenance', icon: '🔧' },
     { id: 'security', label: 'Security', desc: 'Property security & access control', icon: '🛡️' },
-    { id: 'tenant', label: 'Tenant / Resident', desc: 'Raise requests & view updates', icon: '🏠' },
+    { id: 'tenant', label: 'Tenant', desc: 'Raise requests & view updates', icon: '🏠' },
     { id: 'vendor', label: 'Vendor', desc: 'Manage shop revenue & orders', icon: '🍔' },
 ];
 

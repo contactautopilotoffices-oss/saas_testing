@@ -25,10 +25,14 @@ interface SnagImport {
         full_name: string;
         email: string;
     };
+    property?: {
+        name: string;
+        code: string;
+    };
 }
 
 interface ImportReportsViewProps {
-    propertyId: string;
+    propertyId?: string;
     organizationId: string;
 }
 
@@ -52,19 +56,25 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
 
     useEffect(() => {
         fetchImports();
-    }, [propertyId, filterStatus]);
+    }, [propertyId, organizationId, filterStatus]);
 
     const fetchImports = async () => {
         setIsLoading(true);
         setError(null);
 
         try {
-            // First fetch the snag_imports without the user join
+            // First fetch the snag_imports
             let query = supabase
                 .from('snag_imports')
                 .select('*')
-                .eq('property_id', propertyId)
                 .order('created_at', { ascending: false });
+
+            // Apply filters based on scope
+            if (propertyId && propertyId !== 'all') {
+                query = query.eq('property_id', propertyId);
+            } else if (organizationId) {
+                query = query.eq('organization_id', organizationId);
+            }
 
             if (filterStatus !== 'all') {
                 query = query.eq('status', filterStatus);
@@ -100,10 +110,28 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                 }
             }
 
-            // Combine imports with user data
+            // Fetch property names separately for context
+            const propertyIds = [...new Set(data.map(imp => imp.property_id).filter(Boolean))];
+            let propsMap: Record<string, { name: string; code: string }> = {};
+
+            if (propertyIds.length > 0) {
+                const { data: props } = await supabase
+                    .from('properties')
+                    .select('id, name, code')
+                    .in('id', propertyIds);
+
+                if (props) {
+                    props.forEach(p => {
+                        propsMap[p.id] = { name: p.name, code: p.code };
+                    });
+                }
+            }
+
+            // Combine imports with user data and property data
             const importsWithUsers = data.map(imp => ({
                 ...imp,
-                importer: usersMap[imp.imported_by] || { full_name: 'Unknown', email: '' }
+                importer: usersMap[imp.imported_by] || { full_name: 'Unknown', email: '' },
+                property: propsMap[imp.property_id] || { name: 'Unknown', code: '' }
             }));
 
             setImports(importsWithUsers);
@@ -446,11 +474,20 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <FileText className="w-4 h-4 text-text-tertiary" />
-                                                    <span className="text-sm font-medium text-text-primary truncate max-w-[200px]">
-                                                        {imp.filename}
-                                                    </span>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <FileText className="w-4 h-4 text-text-tertiary" />
+                                                        <span className="text-sm font-medium text-text-primary truncate max-w-[200px]">
+                                                            {imp.filename}
+                                                        </span>
+                                                    </div>
+                                                    {(!propertyId || propertyId === 'all') && imp.property && (
+                                                        <div className="flex items-center gap-1 mt-1">
+                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">
+                                                                {imp.property.name}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -492,7 +529,7 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
-                                                        onClick={() => router.push(`/property/${propertyId}/reports/${imp.id}`)}
+                                                        onClick={() => router.push(`/property/${imp.property_id}/reports/${imp.id}`)}
                                                         disabled={imp.status !== 'completed'}
                                                         className="inline-flex items-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >

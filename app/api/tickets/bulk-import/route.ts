@@ -43,18 +43,32 @@ function parseDateDDMMYYYY(dateStr: string): string | null {
  * Extract floor number from description (reusing existing logic)
  */
 function extractFloorNumber(description: string): number | null {
+    const lowerDesc = description.toLowerCase();
+
+    // Check for ground floor first (including common misspellings)
+    if (lowerDesc.includes('ground floor') ||
+        lowerDesc.includes('grourd floor') ||
+        lowerDesc.includes('groud floor') ||
+        lowerDesc.includes('floor 0') ||
+        lowerDesc.includes('level 0')) {
+        return 0;
+    }
+
+    // Check for basement
+    if (lowerDesc.includes('basement') || lowerDesc.includes('b1')) return -1;
+    if (lowerDesc.includes('b2')) return -2;
+
     const floorPatterns = [
         /(\d+)(?:st|nd|rd|th)\s*floor/i,
         /floor\s*(\d+)/i,
         /(\d+)\s*floor/i,
+        /level\s*(\d+)/i,
     ];
 
     for (const pattern of floorPatterns) {
         const match = description.match(pattern);
         if (match) return parseInt(match[1], 10);
     }
-    if (description.toLowerCase().includes('ground floor')) return 0;
-    if (description.toLowerCase().includes('basement')) return -1;
     return null;
 }
 
@@ -76,7 +90,11 @@ function extractLocation(description: string): string | null {
 
     const lowerDesc = description.toLowerCase();
     for (const [loc, keywords] of Object.entries(locations)) {
-        if (keywords.some(k => lowerDesc.includes(k))) return loc;
+        for (const keyword of keywords) {
+            // Use word boundaries to avoid matching keywords inside other words (e.g., 'loo' in 'floor')
+            const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+            if (regex.test(lowerDesc)) return loc;
+        }
     }
     return null;
 }

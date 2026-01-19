@@ -322,7 +322,7 @@ export default function AdminSPOCDashboard({
 
                             {resolvers.slice(0, 6).map((r, i) => (
                                 <div
-                                    key={r.user_id}
+                                    key={`${r.user_id}-${i}`}
                                     className="absolute flex flex-col items-center"
                                     style={{
                                         left: `${15 + (i % 3) * 30}%`,
@@ -413,8 +413,8 @@ export default function AdminSPOCDashboard({
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-100"
                                 >
                                     <option value="">Select resolver...</option>
-                                    {resolvers.map(r => (
-                                        <option key={r.user_id} value={r.user_id}>
+                                    {resolvers.map((r, i) => (
+                                        <option key={`${r.user_id}-${i}`} value={r.user_id}>
                                             {r.user?.full_name} ({r.active_tickets} tasks)
                                         </option>
                                     ))}

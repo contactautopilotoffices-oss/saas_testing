@@ -1,36 +1,27 @@
-# Implementation Plan - Enhancing Property Management & Assignment Flow
+# Grant Super Admin access to bulk import snags
 
-The goal is to improve the Property Admin experience by making requests more accessible, allowing assignment to MSTs, and enabling full CRUD on requests.
+The objective is to allow Organization Super Admins to perform bulk imports of snags (tickets) for any property within their organization. Currently, RLS policies for the `tickets` table are too restrictive and only allow users who are direct members of a property to create tickets there.
 
 ## Proposed Changes
 
-### [Dashboard] Property Admin Dashboard
-#### [MODIFY] [PropertyAdminDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one_v4/saas_one/components/dashboard/PropertyAdminDashboard.tsx)
-- Update `ActivityItem` to accept an `onClick` prop.
-- Wrap `ActivityItem` calls in `OverviewTab` to navigate to `/tickets/[id]`.
-- Replace `TenantTicketingDashboard` with `TicketsView` in the `Requests` tab for Property Admins.
-- Ensure `propertyId` is passed correctly to `TicketsView`.
+### Database Migrations
 
-### [Dashboard] Tickets View
-#### [MODIFY] [TicketsView.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one_v4/saas_one/components/dashboard/TicketsView.tsx)
-- Add `propertyId` to `TicketsViewProps`.
-- Update `fetchTickets` to use the `propertyId` prop if provided.
-- Add a "Delete" button for each ticket (only if user has admin permissions).
-- Implement `handleDeleteTicket` function.
+#### [NEW] [fix_super_admin_snag_access.sql](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/migrations/fix_super_admin_snag_access.sql)
 
-### [API] Tickets
-#### [MODIFY] [route.ts](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one_v4/saas_one/app/api/tickets/%5Bid%5D/route.ts)
-- Implement `DELETE` method to allow admins to remove tickets.
+This migration expands the `tickets` table's RLS policies to include Org Super Admins. It also ensures the `snag_imports` table allows these roles if they weren't already covered correctly.
 
-### [User Management] MST Assignment
-#### [MODIFY] [page.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one_v4/saas_one/app/tickets/%5BticketId%5D/page.tsx)
-- Ensure the assignment modal filters and displays MST/Staff correctly.
-- (Optional) Add a "Mark as Resolver" action in User Management or a login trigger.
+### Dashboard Enhancements
+
+#### [MODIFY] [OrgAdminDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/components/dashboard/OrgAdminDashboard.tsx)
+
+Already contains the "Bulk Snags" button, but I will double-check the logic to ensure it's fully functional for the Super Admin role.
 
 ## Verification Plan
+
 ### Manual Verification
-- Log in as Property Admin.
-- Click a request in "Recent Intelligence" and verify it opens the detail page.
-- Go to "Requests" tab and verify it shows all property tickets.
-- Delete a test ticket and verify it's removed from the list.
-- Open a ticket and verify the "Reassign" button shows available MSTs.
+1. Log in as an Org Super Admin.
+2. Navigate to the "Core Operations" or "Quick Actions" in the sidebar.
+3. Select a specific property from the property selector.
+4. Click on the "Snags" (Bulk Snags) button.
+5. Upload a CSV file and confirm the import.
+6. Verify that the tickets are created and correctly assigned.
