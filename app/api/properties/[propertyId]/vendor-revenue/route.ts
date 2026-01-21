@@ -22,7 +22,7 @@ export async function GET(
             vendor:vendors(shop_name, owner_name, commission_rate)
         `)
         .eq('property_id', propertyId)
-        .order('entry_date', { ascending: false });
+        .order('revenue_date', { ascending: false });
 
     // Apply vendor filter
     if (vendorId) {
@@ -32,18 +32,18 @@ export async function GET(
     // Apply date filters
     if (period === 'today') {
         const today = new Date().toISOString().split('T')[0];
-        query = query.eq('entry_date', today);
+        query = query.eq('revenue_date', today);
     } else if (period === 'month') {
         const monthStart = new Date();
         monthStart.setDate(1);
-        query = query.gte('entry_date', monthStart.toISOString().split('T')[0]);
+        query = query.gte('revenue_date', monthStart.toISOString().split('T')[0]);
     } else if (period === 'year') {
         const yearStart = new Date();
         yearStart.setMonth(0, 1);
-        query = query.gte('entry_date', yearStart.toISOString().split('T')[0]);
+        query = query.gte('revenue_date', yearStart.toISOString().split('T')[0]);
     } else {
-        if (startDate) query = query.gte('entry_date', startDate);
-        if (endDate) query = query.lte('entry_date', endDate);
+        if (startDate) query = query.gte('revenue_date', startDate);
+        if (endDate) query = query.lte('revenue_date', endDate);
     }
 
     const { data, error } = await query;
@@ -65,14 +65,14 @@ export async function POST(
     const body = await request.json();
 
     const today = new Date().toISOString().split('T')[0];
-    const entryDate = body.entry_date || today;
+    const revenueDate = body.revenue_date || today;
 
     // Check for existing entry
     const { data: existing } = await supabase
         .from('vendor_daily_revenue')
         .select('id')
         .eq('vendor_id', body.vendor_id)
-        .eq('entry_date', entryDate)
+        .eq('revenue_date', revenueDate)
         .maybeSingle();
 
     if (existing) {
@@ -89,7 +89,7 @@ export async function POST(
             vendor_id: body.vendor_id,
             property_id: propertyId,
             revenue_amount: body.revenue_amount,
-            entry_date: entryDate,
+            revenue_date: revenueDate,
         })
         .select()
         .single();

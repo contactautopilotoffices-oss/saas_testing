@@ -292,6 +292,9 @@ const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ pro
                         <span className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
                             Diesel Analytics
                         </span>
+                        {property?.name && (
+                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">/ {property.name}</span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2 text-primary font-medium">
                         <Calendar className="w-4 h-4" />

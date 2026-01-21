@@ -1,27 +1,27 @@
-# Grant Super Admin access to bulk import snags
+# Implementation Plan - Populate Vendor Dashboard Data from DB
 
-The objective is to allow Organization Super Admins to perform bulk imports of snags (tickets) for any property within their organization. Currently, RLS policies for the `tickets` table are too restrictive and only allow users who are direct members of a property to create tickets there.
+The goal is to ensure all data points in the Vendor Dashboard are correctly populated from the database, specifically focusing on revenue and commission metrics, and providing more detailed vendor profile information.
 
 ## Proposed Changes
 
-### Database Migrations
+### [Component Name] components/dashboard/FoodVendorDashboard.tsx
 
-#### [NEW] [fix_super_admin_snag_access.sql](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/migrations/fix_super_admin_snag_access.sql)
+#### [MODIFY] [FoodVendorDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/components/dashboard/FoodVendorDashboard.tsx)
 
-This migration expands the `tickets` table's RLS policies to include Org Super Admins. It also ensures the `snag_imports` table allows these roles if they weren't already covered correctly.
-
-### Dashboard Enhancements
-
-#### [MODIFY] [OrgAdminDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/components/dashboard/OrgAdminDashboard.tsx)
-
-Already contains the "Bulk Snags" button, but I will double-check the logic to ensure it's fully functional for the Super Admin role.
+- Update `VendorProfile` interface to include `owner_name`.
+- Enhance `initializeDashboard` to:
+    - Fetch `owner_name` from the `vendors` table.
+    - If no `currentCycle` is found with `status: 'in_progress'`, calculate `total_revenue` and `commission_due` by summing entries from `vendor_daily_revenue` for the current month.
+    - Improve cycle day calculation to handle missing cycle data gracefully.
+- Update the **Profile** tab to:
+    - Use `vendor.owner_name` for the "Vendor Name" field.
+    - Add a "Store ID" or other relevant DB field if available.
+- Ensure the **Portal** tab cards use the calculated/fetched values correctly.
 
 ## Verification Plan
 
 ### Manual Verification
-1. Log in as an Org Super Admin.
-2. Navigate to the "Core Operations" or "Quick Actions" in the sidebar.
-3. Select a specific property from the property selector.
-4. Click on the "Snags" (Bulk Snags) button.
-5. Upload a CSV file and confirm the import.
-6. Verify that the tickets are created and correctly assigned.
+- Log in as a vendor.
+- Verify that "Revenue so far" and "Commission Accrued" reflect the data in the `vendor_daily_revenue` table.
+- Verify that the "Profile" tab shows the correct "Vendor Name" from the `vendors` table.
+- Test that the dashboard still functions correctly when no revenue entries or commission cycles exist (shows 0).

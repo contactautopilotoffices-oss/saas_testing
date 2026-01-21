@@ -3,33 +3,37 @@ import { createAdminClient } from '@/utils/supabase/admin';
 
 // Default Skill Groups
 const DEFAULT_SKILL_GROUPS = [
-    { code: 'mst_technical', name: 'MST (Technical)', description: 'Technical maintenance staff', is_manual_assign: false },
-    { code: 'mst_plumbing', name: 'MST (Plumbing)', description: 'Plumbing maintenance staff', is_manual_assign: false },
+    { code: 'technical', name: 'MST (Technical)', description: 'Technical maintenance staff', is_manual_assign: false },
+    { code: 'plumbing', name: 'MST (Plumbing)', description: 'Plumbing maintenance staff', is_manual_assign: false },
+    { code: 'soft_services', name: 'Soft Services', description: 'Soft services staff', is_manual_assign: false },
     { code: 'vendor', name: 'Vendor', description: 'External vendor (manual escalation)', is_manual_assign: true },
 ];
 
 // Issue Categories mapped to Skill Groups
 const DEFAULT_ISSUE_CATEGORIES = [
     // MST Technical
-    { code: 'ac_breakdown', name: 'AC Breakdown', skill_group: 'mst_technical', sla_hours: 4, priority: 'high', icon: 'Snowflake' },
-    { code: 'power_outage', name: 'Power Outage', skill_group: 'mst_technical', sla_hours: 2, priority: 'urgent', icon: 'Zap' },
-    { code: 'wifi_down', name: 'Wi-Fi Down', skill_group: 'mst_technical', sla_hours: 4, priority: 'high', icon: 'Wifi' },
-    { code: 'lighting_issue', name: 'Lighting Issue', skill_group: 'mst_technical', sla_hours: 8, priority: 'medium', icon: 'Lightbulb' },
-    { code: 'dg_issue', name: 'DG Issue', skill_group: 'mst_technical', sla_hours: 2, priority: 'urgent', icon: 'Fuel' },
-    { code: 'chair_broken', name: 'Chair Broken', skill_group: 'mst_technical', sla_hours: 24, priority: 'low', icon: 'Armchair' },
-    { code: 'desk_alignment', name: 'Desk Alignment', skill_group: 'mst_technical', sla_hours: 24, priority: 'low', icon: 'Table' },
+    { code: 'ac_breakdown', name: 'AC Breakdown', skill_group: 'technical', sla_hours: 4, priority: 'high', icon: 'Snowflake' },
+    { code: 'power_outage', name: 'Power Outage', skill_group: 'technical', sla_hours: 2, priority: 'urgent', icon: 'Zap' },
+    { code: 'wifi_down', name: 'Wi-Fi Down', skill_group: 'technical', sla_hours: 4, priority: 'high', icon: 'Wifi' },
+    { code: 'lighting_issue', name: 'Lighting Issue', skill_group: 'technical', sla_hours: 8, priority: 'medium', icon: 'Lightbulb' },
+    { code: 'dg_issue', name: 'DG Issue', skill_group: 'technical', sla_hours: 2, priority: 'urgent', icon: 'Fuel' },
 
     // MST Plumbing
-    { code: 'water_leakage', name: 'Water Leakage', skill_group: 'mst_plumbing', sla_hours: 2, priority: 'urgent', icon: 'Droplets' },
-    { code: 'no_water_supply', name: 'No Water Supply', skill_group: 'mst_plumbing', sla_hours: 2, priority: 'urgent', icon: 'Droplet' },
-    { code: 'washroom_issue', name: 'Washroom Issue', skill_group: 'mst_plumbing', sla_hours: 4, priority: 'high', icon: 'Bath' },
+    { code: 'water_leakage', name: 'Water Leakage', skill_group: 'plumbing', sla_hours: 2, priority: 'urgent', icon: 'Droplets' },
+    { code: 'no_water_supply', name: 'No Water Supply', skill_group: 'plumbing', sla_hours: 2, priority: 'urgent', icon: 'Droplet' },
+    { code: 'washroom_hygiene', name: 'Washroom Hygiene', skill_group: 'plumbing', sla_hours: 4, priority: 'high', icon: 'Bath' },
+
+    // Soft Services
+    { code: 'chair_broken', name: 'Chair Broken', skill_group: 'soft_services', sla_hours: 24, priority: 'low', icon: 'Armchair' },
+    { code: 'desk_alignment', name: 'Desk Alignment', skill_group: 'soft_services', sla_hours: 24, priority: 'low', icon: 'Table' },
+    { code: 'deep_cleaning', name: 'Deep Cleaning', skill_group: 'soft_services', sla_hours: 48, priority: 'low', icon: 'SprayCan' },
+    { code: 'cleaning_required', name: 'Cleaning Required', skill_group: 'soft_services', sla_hours: 24, priority: 'low', icon: 'Brush' },
 
     // Vendor (Manual Assignment)
     { code: 'lift_breakdown', name: 'Lift Breakdown', skill_group: 'vendor', sla_hours: 4, priority: 'urgent', icon: 'Building2' },
     { code: 'stuck_lift', name: 'Stuck Lift', skill_group: 'vendor', sla_hours: 1, priority: 'urgent', icon: 'AlertTriangle' },
-    { code: 'fire_alarm_l2', name: 'Fire Alarm (L2)', skill_group: 'vendor', sla_hours: 1, priority: 'urgent', icon: 'Flame' },
-    { code: 'deep_cleaning', name: 'Deep Cleaning', skill_group: 'vendor', sla_hours: 48, priority: 'low', icon: 'SprayCan' },
-    { code: 'painting', name: 'Painting', skill_group: 'vendor', sla_hours: 72, priority: 'low', icon: 'Paintbrush' },
+    { code: 'fire_alarm', name: 'Fire Alarm', skill_group: 'vendor', sla_hours: 1, priority: 'urgent', icon: 'Flame' },
+    { code: 'wall_painting', name: 'Wall Painting', skill_group: 'vendor', sla_hours: 72, priority: 'low', icon: 'Paintbrush' },
 ];
 
 // POST: Seed default skill groups and issue categories for a property

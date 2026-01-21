@@ -51,11 +51,20 @@ export async function GET(
         return NextResponse.json({ error: readingsError.message }, { status: 500 });
     }
 
+    // Get generators for tank capacity
+    const { data: generators } = await supabase
+        .from('generators')
+        .select('property_id, tank_capacity_litres')
+        .in('property_id', propertyIds);
+
     // Aggregate by property
     const aggregated = properties.map(property => {
         const propReadings = (readings || []).filter(r => r.property_id === property.id);
         const totalConsumed = propReadings.reduce((sum, r) => sum + (r.computed_consumed_litres || 0), 0);
         const todayReading = propReadings.find(r => r.reading_date === today);
+
+        const propGenerators = (generators || []).filter(g => g.property_id === property.id);
+        const totalCapacity = propGenerators.reduce((sum, g) => sum + (g.tank_capacity_litres || 1000), 0);
 
         return {
             property_id: property.id,
@@ -64,6 +73,7 @@ export async function GET(
             period_total_litres: Math.round(totalConsumed),
             today_litres: todayReading?.computed_consumed_litres || 0,
             readings_count: propReadings.length,
+            tank_capacity_litres: totalCapacity,
         };
     });
 
@@ -81,6 +91,7 @@ export async function GET(
         total_litres: ranked.reduce((sum, p) => sum + p.period_total_litres, 0),
         today_total: ranked.reduce((sum, p) => sum + p.today_litres, 0),
         properties_count: ranked.length,
+        total_capacity_litres: ranked.reduce((sum, p) => sum + p.tank_capacity_litres, 0),
     };
 
     return NextResponse.json({

@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, Mail, Phone, Camera, Save, Loader2,
-    Shield, Building, CheckCircle2, AlertCircle, Home
+    Shield, Building, CheckCircle2, AlertCircle, Home, Store
 } from 'lucide-react';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
@@ -17,7 +17,11 @@ interface RoleInfo {
     type: 'organization' | 'property';
 }
 
-export default function SettingsView() {
+interface SettingsViewProps {
+    onUpdate?: () => void;
+}
+
+export default function SettingsView({ onUpdate }: SettingsViewProps) {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -26,6 +30,7 @@ export default function SettingsView() {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [userRoles, setUserRoles] = useState<RoleInfo[]>([]);
+    const [vendorInfo, setVendorInfo] = useState<{ id: string; shop_name: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
@@ -92,6 +97,17 @@ export default function SettingsView() {
             }
 
             setUserRoles(roles);
+
+            // 4. Check if vendor
+            const { data: vendorData } = await supabase
+                .from('vendors')
+                .select('id, shop_name')
+                .eq('user_id', user?.id)
+                .maybeSingle();
+
+            if (vendorData) {
+                setVendorInfo(vendorData);
+            }
 
         } catch (err) {
             console.error('Error fetching profile:', err);
@@ -181,6 +197,16 @@ export default function SettingsView() {
 
             if (dbError) throw dbError;
 
+            // Update vendor shop name if applicable
+            if (vendorInfo) {
+                const { error: vendorError } = await supabase
+                    .from('vendors')
+                    .update({ shop_name: vendorInfo.shop_name })
+                    .eq('id', vendorInfo.id);
+
+                if (vendorError) throw vendorError;
+            }
+
             // Update Auth Metadata
             const { error: authError } = await supabase.auth.updateUser({
                 data: {
@@ -194,6 +220,7 @@ export default function SettingsView() {
             if (authError) throw authError;
 
             showToast('Profile updated successfully');
+            if (onUpdate) onUpdate();
             fetchProfile();
         } catch (err: any) {
             console.error('Error saving profile:', err);
@@ -284,6 +311,22 @@ export default function SettingsView() {
                                         />
                                     </div>
                                 </div>
+
+                                {vendorInfo && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700">Shop Name</label>
+                                        <div className="relative">
+                                            <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                value={vendorInfo.shop_name}
+                                                onChange={(e) => setVendorInfo({ ...vendorInfo, shop_name: e.target.value })}
+                                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-slate-900"
+                                                placeholder="My Awesome Shop"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-slate-700">Phone</label>

@@ -494,18 +494,18 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                     initial={{ height: 0 }}
                     animate={{ height: `${percentage}%` }}
                     transition={{ duration: 2, ease: "circOut" }}
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary-dark via-primary to-primary-light"
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400"
                 >
                     <motion.div
                         animate={{ x: [0, -100] }}
                         transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                        className="absolute top-0 left-0 w-[400%] h-8 bg-primary-light/50 -translate-y-1/2 opacity-60"
+                        className="absolute top-0 left-0 w-[400%] h-8 bg-amber-400/50 -translate-y-1/2 opacity-60"
                         style={{ borderRadius: '38% 42% 35% 45%' }}
                     />
                     <motion.div
                         animate={{ x: [-100, 0] }}
                         transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                        className="absolute top-1 left-0 w-[400%] h-8 bg-primary-light/30 -translate-y-1/2 opacity-40"
+                        className="absolute top-1 left-0 w-[400%] h-8 bg-amber-400/30 -translate-y-1/2 opacity-40"
                         style={{ borderRadius: '45% 35% 42% 38%' }}
                     />
                     {[...Array(5)].map((_, i) => (
@@ -520,15 +520,15 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                 </motion.div>
                 <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-white/20 z-30 pointer-events-none" />
                 <div className="absolute top-[10%] left-[15%] w-[25%] h-[15%] bg-white/20 rounded-full blur-[4px] rotate-[-25deg] z-30 pointer-events-none" />
-                <div className="absolute bottom-[15%] right-[15%] w-[10%] h-[10%] bg-primary/20 rounded-full blur-[2px] z-30 pointer-events-none" />
+                <div className="absolute bottom-[15%] right-[15%] w-[10%] h-[10%] bg-amber-500/20 rounded-full blur-[2px] z-30 pointer-events-none" />
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
                 <motion.span initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="text-4xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                     {Math.round(percentage)}<span className="text-sm ml-0.5 opacity-80">%</span>
                 </motion.span>
-                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest drop-shadow-md">Diesel Level</span>
+                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest drop-shadow-md">Consumption</span>
             </div>
-            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-[60%] h-4 bg-primary/20 blur-xl rounded-full transition-opacity duration-300 ${percentage > 0 ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-[60%] h-4 bg-amber-500/20 blur-xl rounded-full transition-opacity duration-300 ${percentage > 0 ? 'opacity-100' : 'opacity-0'}`} />
         </div>
     );
 };
@@ -539,7 +539,7 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
 
     // Stats State
     const [ticketStats, setTicketStats] = useState({ total: 0, open: 0, in_progress: 0, resolved: 0, sla_breached: 0, avg_resolution_hours: 0 });
-    const [dieselStats, setDieselStats] = useState({ total_consumption: 0, change_percentage: 0 });
+    const [dieselStats, setDieselStats] = useState({ total_consumption: 0, change_percentage: 0, tank_capacity: 1000 });
     const [vmsStats, setVmsStats] = useState({ total_visitors_today: 0, checked_in: 0, checked_out: 0 });
     const [vendorStats, setVendorStats] = useState({ total_revenue: 0, total_commission: 0, total_vendors: 0 });
     const [recentTickets, setRecentTickets] = useState<any[]>([]);
@@ -569,9 +569,14 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
                 setRecentTickets(recents || []);
 
                 // --- Diesel ---
-                const { data: dieselData } = await supabase.from('diesel_readings').select('consumed_litres').eq('property_id', propertyId).gte('reading_date', new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-                const totalDiesel = dieselData?.reduce((acc, r) => acc + (r.consumed_litres || 0), 0) || 0;
-                setDieselStats({ total_consumption: totalDiesel, change_percentage: 0 });
+                const { data: dieselData } = await supabase.from('diesel_readings').select('computed_consumed_litres').eq('property_id', propertyId).gte('reading_date', new Date(new Date().setDate(1)).toISOString().split('T')[0]);
+                const totalDiesel = dieselData?.reduce((acc, r) => acc + (r.computed_consumed_litres || 0), 0) || 0;
+
+                // Fetch generator capacity for percentage calculation
+                const { data: genData } = await supabase.from('generators').select('tank_capacity_litres').eq('property_id', propertyId);
+                const totalCapacity = genData?.reduce((acc, g) => acc + (g.tank_capacity_litres || 1000), 0) || 1000;
+
+                setDieselStats({ total_consumption: totalDiesel, change_percentage: 0, tank_capacity: totalCapacity });
 
                 // --- VMS ---
                 const today = new Date().toISOString().split('T')[0];
@@ -581,10 +586,10 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
                 setVmsStats({ total_visitors_today: vmsData?.length || 0, checked_in: checkedIn, checked_out: checkedOut });
 
                 // --- Vendors ---
-                const { data: vendorData } = await supabase.from('vendors').select('id, commission_rate, vendor_daily_revenue(revenue_amount, entry_date)').eq('property_id', propertyId);
+                const { data: vendorData } = await supabase.from('vendors').select('id, commission_rate, vendor_daily_revenue(revenue_amount, revenue_date)').eq('property_id', propertyId);
                 let totalRev = 0, totalComm = 0;
                 vendorData?.forEach(v => {
-                    const todayEntry = v.vendor_daily_revenue?.find((r: any) => r.entry_date === today);
+                    const todayEntry = v.vendor_daily_revenue?.find((r: any) => r.revenue_date === today);
                     if (todayEntry) {
                         totalRev += todayEntry.revenue_amount || 0;
                         totalComm += (todayEntry.revenue_amount || 0) * ((v.commission_rate || 0) / 100);
@@ -623,7 +628,9 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
                         <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Open Tickets</div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black text-slate-900">{ticketStats.open + ticketStats.in_progress}</span>
-                            <span className="text-[10px] text-rose-500 font-bold uppercase">{ticketStats.sla_breached} SLA breached</span>
+                            {ticketStats.sla_breached > 0 && (
+                                <span className="text-[10px] text-rose-500 font-bold uppercase">{ticketStats.sla_breached} SLA breached</span>
+                            )}
                         </div>
                     </div>
                     <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
@@ -651,7 +658,7 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
                         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
                             <h3 className="text-sm font-black text-slate-900 mb-2">Diesel Consumption</h3>
                             <div className="text-primary text-xs font-bold mb-4 flex items-center gap-2"><span className="w-2 h-2 bg-primary rounded-full animate-pulse" />Real-time Tank Status</div>
-                            <div className="flex justify-center my-6"><DieselSphere percentage={Math.min(100, (dieselStats.total_consumption / 5000) * 100)} /></div>
+                            <div className="flex justify-center my-6"><DieselSphere percentage={Math.min(100, (dieselStats.total_consumption / (dieselStats as any).tank_capacity) * 100)} /></div>
                             <div className="space-y-1">
                                 <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total consumption</div>
                                 <div className="text-3xl font-black text-slate-900 flex items-baseline gap-1">{dieselStats.total_consumption.toLocaleString()}<span className="text-sm text-slate-400 font-bold">L</span></div>
@@ -793,7 +800,7 @@ const VendorRevenueTab = ({ propertyId }: { propertyId: string }) => {
                     *,
                     vendor_daily_revenue (
                         revenue_amount,
-                        entry_date
+                        revenue_date
                     )
                 `)
                 .eq('property_id', propertyId);
@@ -857,15 +864,15 @@ const VendorRevenueTab = ({ propertyId }: { propertyId: string }) => {
     // Calculate pending payments (vendors who haven't submitted today)
     const today = new Date().toISOString().split('T')[0];
     const pendingCount = vendors.filter(v =>
-        !v.vendor_daily_revenue?.some((r: any) => r.entry_date === today)
+        !v.vendor_daily_revenue?.some((r: any) => r.revenue_date === today)
     ).length;
 
     const totalRevenue = vendors.reduce((acc, v) =>
-        acc + (v.vendor_daily_revenue?.find((r: any) => r.entry_date === today)?.revenue_amount || 0), 0
+        acc + (v.vendor_daily_revenue?.find((r: any) => r.revenue_date === today)?.revenue_amount || 0), 0
     );
 
     const totalCommission = vendors.reduce((acc, v) => {
-        const rev = v.vendor_daily_revenue?.find((r: any) => r.entry_date === today)?.revenue_amount || 0;
+        const rev = v.vendor_daily_revenue?.find((r: any) => r.revenue_date === today)?.revenue_amount || 0;
         return acc + (rev * (v.commission_rate / 100));
     }, 0);
 
@@ -936,7 +943,7 @@ const VendorRevenueTab = ({ propertyId }: { propertyId: string }) => {
                                 </tr>
                             ) : (
                                 vendors.map((vendor) => {
-                                    const todayRevenue = vendor.vendor_daily_revenue?.find((r: any) => r.entry_date === today)?.revenue_amount || 0;
+                                    const todayRevenue = vendor.vendor_daily_revenue?.find((r: any) => r.revenue_date === today)?.revenue_amount || 0;
                                     const commission = (todayRevenue * (vendor.commission_rate / 100)).toFixed(2);
 
                                     return (

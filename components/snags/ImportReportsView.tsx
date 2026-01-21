@@ -159,6 +159,8 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                     category,
                     status,
                     priority,
+                    floor_number,
+                    location,
                     created_at,
                     assigned_to,
                     assignee:assigned_to(full_name, email)
@@ -174,12 +176,14 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
             }
 
             // Generate CSV content
-            const headers = ['Ticket ID', 'Title', 'Description', 'Category', 'Status', 'Priority', 'Assigned To', 'Created At'];
+            const headers = ['ticket id', 'title', 'description', 'category', 'floor', 'location', 'status', 'priority', 'assigned to', 'created at'];
             const rows = tickets.map(t => [
                 t.id,
                 t.title,
                 t.description?.replace(/,/g, ';') || '',
                 t.category,
+                t.floor_number !== null ? `Floor ${t.floor_number}` : 'Unspecified',
+                t.location || '-',
                 t.status,
                 t.priority,
                 (t.assignee as any)?.full_name || 'Unassigned',
@@ -226,6 +230,8 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                     category,
                     status,
                     priority,
+                    floor_number,
+                    location,
                     created_at,
                     import_batch_id,
                     assigned_to,
@@ -238,7 +244,7 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
             }
 
             // Generate comprehensive CSV
-            const headers = ['Import Date', 'Filename', 'Ticket ID', 'Title', 'Description', 'Category', 'Status', 'Priority', 'Assigned To', 'Created At'];
+            const headers = ['import date', 'filename', 'ticket id', 'title', 'description', 'category', 'floor', 'location', 'status', 'priority', 'assigned to', 'created at'];
             const rows: string[][] = [];
 
             imports.forEach(imp => {
@@ -251,6 +257,8 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                         t.title,
                         t.description?.replace(/,/g, ';') || '',
                         t.category,
+                        t.floor_number !== null ? `Floor ${t.floor_number}` : 'Unspecified',
+                        t.location || '-',
                         t.status,
                         t.priority,
                         (t.assignee as any)?.full_name || 'Unassigned',
@@ -320,9 +328,9 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-text-primary">Import Reports</h2>
+                    <h2 className="text-2xl font-black text-text-primary lowercase">import reports</h2>
                     <p className="text-text-tertiary text-sm font-medium mt-1">
-                        View and export reports for all bulk imports
+                        view and export reports for all bulk imports
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -382,7 +390,7 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                         ) : (
                             <Download className="w-4 h-4" />
                         )}
-                        Export All
+                        export all
                     </button>
                 </div>
             </div>
@@ -534,7 +542,7 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                                                         className="inline-flex items-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <Eye className="w-4 h-4" />
-                                                        View Report
+                                                        view report
                                                     </button>
                                                     <button
                                                         onClick={() => handleExportReport(imp.id)}
@@ -546,7 +554,7 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                                                         ) : (
                                                             <Download className="w-4 h-4" />
                                                         )}
-                                                        Export
+                                                        export
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteImport(imp.id)}
@@ -564,43 +572,46 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                         </table>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Summary Cards */}
-            {!isLoading && imports.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white rounded-xl p-5 border border-border">
-                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
-                            Total Imports
+            {
+                !isLoading && imports.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white rounded-xl p-5 border border-border">
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                                Total Imports
+                            </div>
+                            <div className="text-3xl font-black text-text-primary">{imports.length}</div>
                         </div>
-                        <div className="text-3xl font-black text-text-primary">{imports.length}</div>
+                        <div className="bg-white rounded-xl p-5 border border-border">
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                                Total Snags Imported
+                            </div>
+                            <div className="text-3xl font-black text-text-primary">
+                                {imports.reduce((acc, i) => acc + i.valid_rows, 0)}
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-xl p-5 border border-border">
+                            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">
+                                Successful
+                            </div>
+                            <div className="text-3xl font-black text-emerald-600">
+                                {imports.filter(i => i.status === 'completed').length}
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-xl p-5 border border-border">
+                            <div className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">
+                                Failed
+                            </div>
+                            <div className="text-3xl font-black text-red-500">
+                                {imports.filter(i => i.status === 'failed').length}
+                            </div>
+                        </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 border border-border">
-                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
-                            Total Snags Imported
-                        </div>
-                        <div className="text-3xl font-black text-text-primary">
-                            {imports.reduce((acc, i) => acc + i.valid_rows, 0)}
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-5 border border-border">
-                        <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">
-                            Successful
-                        </div>
-                        <div className="text-3xl font-black text-emerald-600">
-                            {imports.filter(i => i.status === 'completed').length}
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-5 border border-border">
-                        <div className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">
-                            Failed
-                        </div>
-                        <div className="text-3xl font-black text-red-500">
-                            {imports.filter(i => i.status === 'failed').length}
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

@@ -147,36 +147,49 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
         }
     };
 
-    // HOME SCREEN
     if (step === 'home') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-8">
-                <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md">
-                    <div className="text-center mb-10">
-                        <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <User className="w-8 h-8 text-white" />
+            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+                {/* Brand Mesh Gradient Background */}
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[100px]" />
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[100px]" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#0F172A]/80 backdrop-blur-3xl" />
+                </div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-12 w-full max-w-md relative z-10 border border-white/10"
+                >
+                    <div className="text-center mb-12">
+                        <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary/20 rotate-3">
+                            <User className="w-10 h-10 text-white -rotate-3" />
                         </div>
-                        <h1 className="text-xl font-black text-slate-900 uppercase tracking-wider">Visitor Management</h1>
-                        <p className="text-slate-500 font-medium mt-1">{propertyName}</p>
+                        <h1 className="text-2xl font-black text-slate-900 uppercase tracking-widest">Visitor Management</h1>
+                        <p className="text-slate-400 font-bold mt-2 flex items-center justify-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-secondary rounded-full animate-pulse" />
+                            {propertyName}
+                        </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-6">
                         <button
                             onClick={() => setStep('category')}
-                            className="flex flex-col items-center justify-center p-8 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all shadow-lg shadow-emerald-200 active:scale-95"
+                            className="flex flex-col items-center justify-center p-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[1.5rem] transition-all shadow-lg shadow-emerald-500/20 active:scale-95 group"
                         >
-                            <LogIn className="w-10 h-10 mb-2" />
-                            <span className="text-2xl font-black">IN</span>
+                            <LogIn className="w-12 h-12 mb-3 group-hover:scale-110 transition-transform" />
+                            <span className="text-2xl font-black tracking-tight">IN</span>
                         </button>
                         <button
                             onClick={() => setStep('checkout')}
-                            className="flex flex-col items-center justify-center p-8 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl transition-all shadow-lg shadow-rose-200 active:scale-95"
+                            className="flex flex-col items-center justify-center p-10 bg-rose-500 hover:bg-rose-600 text-white rounded-[1.5rem] transition-all shadow-lg shadow-rose-500/20 active:scale-95 group"
                         >
-                            <LogOut className="w-10 h-10 mb-2" />
-                            <span className="text-2xl font-black">OUT</span>
+                            <LogOut className="w-12 h-12 mb-3 group-hover:scale-110 transition-transform" />
+                            <span className="text-2xl font-black tracking-tight">OUT</span>
                         </button>
                     </div>
-                </div>
+                </motion.div>
             </div>
         );
     }
@@ -184,8 +197,13 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // CATEGORY SELECTION
     if (step === 'category') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-8">
-                <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md">
+            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[100px]" />
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[100px]" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#0F172A]/80 backdrop-blur-3xl" />
+                </div>
+                <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md relative z-10">
                     <button
                         onClick={() => setStep('home')}
                         className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-6"
@@ -197,8 +215,8 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
 
                     <div className="space-y-3 mb-8">
                         {[
-                            { id: 'visitor', label: 'Visitor', icon: User, color: 'bg-blue-500', desc: 'General visitor' },
-                            { id: 'vendor', label: 'Vendor', icon: Truck, color: 'bg-orange-500', desc: 'Delivery or service' },
+                            { id: 'visitor', label: 'Visitor', icon: User, color: 'bg-primary', desc: 'General visitor' },
+                            { id: 'vendor', label: 'Vendor', icon: Truck, color: 'bg-secondary', desc: 'Delivery or service' },
                             { id: 'other', label: 'Other', icon: Building2, color: 'bg-slate-500', desc: 'Interview, meeting, etc.' },
                         ].map((cat) => (
                             <button
@@ -225,7 +243,7 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
 
                     <button
                         onClick={() => setStep('form')}
-                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 transition-all"
+                        className="w-full py-4 bg-primary hover:bg-primary-dark text-white rounded-2xl font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
                     >
                         Continue <ArrowRight className="w-5 h-5" />
                     </button>
@@ -237,8 +255,11 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // VISITOR FORM
     if (step === 'form') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-8">
-                <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[100px]" />
+                </div>
+                <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10">
                     <button
                         onClick={() => setStep('category')}
                         className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-4"
@@ -333,7 +354,7 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
                     <button
                         onClick={handleCheckin}
                         disabled={isSubmitting || !formData.name || !formData.whom_to_meet}
-                        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black mt-6 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-primary hover:bg-primary-dark text-white rounded-2xl font-black mt-6 flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-primary/20"
                     >
                         {isSubmitting ? (
                             <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -351,11 +372,15 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // CHECK-IN SUCCESS
     if (step === 'success') {
         return (
-            <div className="min-h-screen bg-emerald-600 flex flex-col items-center justify-center p-8 text-white">
+            <div className="min-h-[700px] bg-emerald-600 relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem] text-white">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-white/20 rounded-full blur-[100px]" />
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-white/10 rounded-full blur-[100px]" />
+                </div>
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center"
+                    className="text-center relative z-10"
                 >
                     <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Check className="w-12 h-12" />
@@ -384,8 +409,11 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // CHECKOUT SCREEN
     if (step === 'checkout') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-8">
-                <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md">
+            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[100px]" />
+                </div>
+                <div className="bg-white rounded-[2rem] shadow-2xl p-10 w-full max-w-md relative z-10">
                     <button
                         onClick={() => setStep('home')}
                         className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-6"
@@ -435,11 +463,15 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // CHECKOUT SUCCESS
     if (step === 'checkout_success') {
         return (
-            <div className="min-h-screen bg-rose-500 flex flex-col items-center justify-center p-8 text-white">
+            <div className="min-h-[700px] bg-rose-500 relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem] text-white">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-white/20 rounded-full blur-[100px]" />
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-white/10 rounded-full blur-[100px]" />
+                </div>
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center"
+                    className="text-center relative z-10"
                 >
                     <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <LogOut className="w-12 h-12" />

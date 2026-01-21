@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { GripVertical, Plus, Check, AlertTriangle, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { GripVertical, Plus, Check, AlertTriangle, Loader2, ArrowLeft } from 'lucide-react';
 import SnagUploader from './SnagUploader';
 import SnagPreviewTable from './SnagPreviewTable';
 
@@ -16,7 +17,7 @@ interface Ticket {
     // Department column values (only one populated)
     technical: string;
     plumbing: string;
-    soft_service: string;
+    soft_services: string;
     vendor: string;
 }
 
@@ -47,7 +48,7 @@ interface SnagIntakeDashboardProps {
 const serviceColumns = [
     { key: 'technical', title: 'Technical', bgClass: 'bg-blue-50' },
     { key: 'plumbing', title: 'Plumbing', bgClass: 'bg-cyan-50' },
-    { key: 'soft_service', title: 'Soft Service', bgClass: 'bg-purple-50' },
+    { key: 'soft_services', title: 'Soft Services', bgClass: 'bg-purple-50' },
     { key: 'vendor', title: 'Vendor', bgClass: 'bg-amber-50' },
 ] as const;
 
@@ -58,6 +59,7 @@ const priorityStyles: Record<string, { bg: string; text: string; border: string 
 };
 
 export default function SnagIntakeDashboard({ propertyId, organizationId }: SnagIntakeDashboardProps) {
+    const router = useRouter();
     const [view, setView] = useState<'upload' | 'preview' | 'dashboard'>('upload');
     const [previewData, setPreviewData] = useState<PreviewData | null>(null);
     const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -122,7 +124,7 @@ export default function SnagIntakeDashboard({ propertyId, organizationId }: Snag
                         status: ticketFromDB?.status || 'open',
                         technical: row.skill_group === 'technical' ? row.issue_description : '',
                         plumbing: row.skill_group === 'plumbing' ? row.issue_description : '',
-                        soft_service: row.skill_group === 'soft_service' ? row.issue_description : '',
+                        soft_services: row.skill_group === 'soft_services' ? row.issue_description : '',
                         vendor: row.skill_group === 'vendor' ? row.issue_description : '',
                     };
                 });
@@ -245,9 +247,18 @@ export default function SnagIntakeDashboard({ propertyId, organizationId }: Snag
             <div className="max-w-full mx-auto">
                 {/* Header */}
                 <header className="mb-6">
-                    <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        Snag Intake Dashboard
-                    </h1>
+                    <div className="flex items-center gap-4 mb-2">
+                        <button
+                            onClick={() => router.back()}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            style={{ color: 'var(--text-secondary)' }}
+                        >
+                            <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            Snag Intake Dashboard
+                        </h1>
+                    </div>
                     <p style={{ color: 'var(--text-secondary)' }}>
                         {view === 'upload' && 'Upload CSV/Excel to import snags'}
                         {view === 'preview' && 'Review classification before importing'}

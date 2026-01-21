@@ -35,28 +35,12 @@ const LiquidDieselGauge: React.FC<LiquidDieselGaugeProps> = ({
 
     // Primary color palette (Muted Sky Blue)
     const getColors = (val: number) => {
-        if (val < 30) {
-            // Normal
-            return {
-                fill: '#708F96',     // Primary
-                wave: '#8AA5AC',     // Primary Light
-                text: '#5A737A',     // Primary Dark
-            };
-        } else if (val < 70) {
-            // Medium
-            return {
-                fill: '#5A737A',     // Primary Dark
-                wave: '#708F96',     // Primary
-                text: '#1A2332',     // Text Primary
-            };
-        } else {
-            // High usage
-            return {
-                fill: '#475569',     // Slate-600
-                wave: '#5A737A',     // Primary Dark
-                text: '#0F172A',     // Slate-900
-            };
-        }
+        // Diesel is typically amber/gold
+        return {
+            fill: '#F59E0B',     // Amber-500
+            wave: '#FBBF24',     // Amber-400
+            text: '#B45309',     // Amber-700
+        };
     };
 
     const colors = getColors(clampedValue);

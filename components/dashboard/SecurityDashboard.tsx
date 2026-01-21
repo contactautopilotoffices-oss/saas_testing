@@ -44,6 +44,12 @@ const SecurityDashboard = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [userRole, setUserRole] = useState('Security Officer');
+    const [kpiStats, setKpiStats] = useState({
+        activeVisitors: 0,
+        pendingClearances: 0, // Placeholder for now
+        incidentsToday: 0,
+        securityAlerts: 0
+    });
 
     const supabase = createClient();
 
@@ -51,8 +57,48 @@ const SecurityDashboard = () => {
         if (propertyId) {
             fetchPropertyDetails();
             fetchUserRole();
+            fetchKPIStats();
         }
     }, [propertyId, user?.id]);
+
+    const fetchKPIStats = async () => {
+        try {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // 1. Fetch Active Visitors (today + checked_in)
+            const { count: activeCount } = await supabase
+                .from('visitor_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('property_id', propertyId)
+                .eq('status', 'checked_in')
+                .gte('checkin_time', today.toISOString());
+
+            // 2. Fetch Incidents Today (vms_tickets or tickets categorised as security)
+            const { count: incidentCount } = await supabase
+                .from('vms_tickets')
+                .select('*', { count: 'exact', head: true })
+                .eq('property_id', propertyId)
+                .gte('created_at', today.toISOString());
+
+            // 3. Fetch Security Alerts/Tickets from tickets table
+            const { count: securityAlertsCount } = await supabase
+                .from('tickets')
+                .select('*', { count: 'exact', head: true })
+                .eq('property_id', propertyId)
+                .eq('category', 'security_incident') // Using specific category from issueDictionary
+                .gte('created_at', today.toISOString());
+
+            setKpiStats({
+                activeVisitors: activeCount || 0,
+                pendingClearances: 0, // Keep as 0 until clearance logic is implemented
+                incidentsToday: incidentCount || 0,
+                securityAlerts: securityAlertsCount || 0
+            });
+        } catch (err) {
+            console.error('Error fetching KPI stats:', err);
+        }
+    };
 
     const fetchPropertyDetails = async () => {
         setIsLoading(true);
@@ -305,7 +351,7 @@ const SecurityDashboard = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                     >
-                        {activeTab === 'overview' && <OverviewTab />}
+                        {activeTab === 'overview' && <OverviewTab stats={kpiStats} />}
                         {activeTab === 'requests' && property && user && (
                             <TenantTicketingDashboard
                                 propertyId={property.id}
@@ -315,7 +361,7 @@ const SecurityDashboard = () => {
                             />
                         )}
                         {activeTab === 'checkinout' && property && (
-                            <div className="bg-slate-50 border border-slate-200 rounded-3xl overflow-hidden">
+                            <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
                                 <VMSKiosk propertyId={propertyId} propertyName={property.name} />
                             </div>
                         )}
@@ -414,21 +460,21 @@ const SecurityDashboard = () => {
     );
 };
 
-const OverviewTab = () => (
+const OverviewTab = ({ stats }: { stats: any }) => (
     <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-                { label: 'Active Visitors', value: '0', icon: UsersRound, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'Pending Clearances', value: '0', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-                { label: 'Incidents Today', value: '0', icon: AlertCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { label: 'Security Alerts', value: '0', icon: Bell, color: 'text-rose-600', bg: 'bg-rose-50' },
+                { label: 'Active Visitors', value: stats.activeVisitors.toString(), icon: UsersRound, color: 'text-primary', bg: 'bg-primary/10' },
+                { label: 'Pending Clearances', value: stats.pendingClearances.toString(), icon: Clock, color: 'text-secondary', bg: 'bg-secondary/10' },
+                { label: 'Incidents Today', value: stats.incidentsToday.toString(), icon: AlertCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'Security Alerts', value: stats.securityAlerts.toString(), icon: Bell, color: 'text-rose-600', bg: 'bg-rose-50' },
             ].map((stat, i) => (
                 <div key={i} className="bg-card p-6 rounded-3xl border border-border shadow-sm">
-                    <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
+                    <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4 transition-transform hover:scale-110`}>
                         <stat.icon className="w-6 h-6" />
                     </div>
-                    <p className="text-text-secondary text-sm font-medium">{stat.label}</p>
-                    <h3 className="text-2xl font-black text-text-primary mt-1">{stat.value}</h3>
+                    <p className="text-text-secondary text-sm font-bold uppercase tracking-widest text-[10px] opacity-60 mb-1">{stat.label}</p>
+                    <h3 className="text-3xl font-black text-text-primary">{stat.value}</h3>
                 </div>
             ))}
         </div>

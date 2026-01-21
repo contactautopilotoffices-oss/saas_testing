@@ -16,7 +16,7 @@ export async function GET(
             vendor_daily_revenue (
                 id,
                 revenue_amount,
-                entry_date
+                revenue_date
             )
         `)
         .eq('property_id', propertyId)

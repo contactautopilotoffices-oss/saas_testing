@@ -377,13 +377,19 @@ export default function AdminSPOCDashboard({
                         <p className="text-3xl font-black text-indigo-900 mb-2 relative z-10">{waitlistTickets.length}</p>
                         <p className="text-[10px] font-bold text-indigo-400 mb-4 uppercase tracking-widest relative z-10">Needs Classification</p>
 
-                        {waitlistTickets.slice(0, 2).map(t => (
-                            <div key={t.id} className="flex items-center gap-2 text-xs mb-2 bg-white/40 p-2 rounded-lg relative z-10">
-                                <span className={`w-2 h-2 rounded-full ${t.confidence_score >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                <span className="text-indigo-900 font-bold truncate flex-1">{t.title}</span>
-                                <span className="text-indigo-400 font-bold">{t.confidence_score || '<40'}%</span>
-                            </div>
-                        ))}
+                        <div className="max-h-[160px] overflow-y-auto pr-1 space-y-2 relative z-10 custom-scrollbar">
+                            {waitlistTickets.map(t => (
+                                <div
+                                    key={t.id}
+                                    onClick={() => router.push(`/tickets/${t.id}`)}
+                                    className="flex items-center gap-2 text-xs bg-white/40 p-2 rounded-lg hover:bg-white/60 transition-colors cursor-pointer group"
+                                >
+                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.confidence_score >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                    <span className="text-indigo-900 font-bold truncate flex-1 group-hover:text-indigo-600">{t.title}</span>
+                                    <span className="text-indigo-400 font-bold">{t.confidence_score || '<40'}%</span>
+                                </div>
+                            ))}
+                        </div>
 
                         <button
                             onClick={() => {

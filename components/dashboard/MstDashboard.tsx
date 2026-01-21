@@ -69,6 +69,7 @@ const MstDashboard = () => {
     const [isFetching, setIsFetching] = useState(false);
     const [userRole, setUserRole] = useState('MST Professional');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Shift Tracking State
     const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -286,15 +287,75 @@ const MstDashboard = () => {
                 </div>
 
                 {/* Search */}
-                <div className="px-3 py-3">
+                <div className="px-3 py-3 relative">
                     <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />
                         <input
                             type="text"
-                            placeholder="Search features... (Ctr"
+                            placeholder="Search features..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && searchQuery.length > 2) {
+                                    const match = [
+                                        { label: 'Overview', tab: 'dashboard' },
+                                        { label: 'Requests', tab: 'requests' },
+                                        { label: 'Tickets', tab: 'requests' },
+                                        { label: 'Projects', tab: 'projects' },
+                                        { label: 'Tasks', tab: 'tasks' },
+                                        { label: 'Visitors', tab: 'visitors' },
+                                        { label: 'Diesel Logger', tab: 'diesel' },
+                                        { label: 'Settings', tab: 'settings' },
+                                        { label: 'Profile', tab: 'profile' },
+                                        { label: 'New Request', tab: 'create_request' }
+                                    ].find(m => m.label.toLowerCase().includes(searchQuery.toLowerCase()));
+                                    if (match) {
+                                        handleTabChange(match.tab as Tab);
+                                        setSearchQuery('');
+                                    }
+                                }
+                            }}
                             className="w-full pl-8 pr-3 py-2 bg-surface-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary"
                         />
                     </div>
+
+                    {/* Search Suggestions Dropdown */}
+                    <AnimatePresence>
+                        {searchQuery.length > 1 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="absolute left-3 right-3 mt-1 bg-card border border-border rounded-xl shadow-xl z-[70] overflow-hidden"
+                            >
+                                {[
+                                    { label: 'Overview', tab: 'dashboard', icon: LayoutDashboard },
+                                    { label: 'Requests', tab: 'requests', icon: Ticket },
+                                    { label: 'Projects', tab: 'projects', icon: FolderKanban },
+                                    { label: 'Visitors', tab: 'visitors', icon: UsersRound },
+                                    { label: 'Diesel Logger', tab: 'diesel', icon: Fuel },
+                                    { label: 'Settings', tab: 'settings', icon: Settings },
+                                    { label: 'Profile', tab: 'profile', icon: UserCircle },
+                                    { label: 'New Request', tab: 'create_request', icon: Plus },
+                                ].filter(i => i.label.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => (
+                                    <button
+                                        key={item.tab}
+                                        onClick={() => {
+                                            handleTabChange(item.tab as Tab);
+                                            setSearchQuery('');
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted text-left transition-colors border-b last:border-0 border-border"
+                                    >
+                                        <item.icon className="w-4 h-4 text-primary" />
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-text-primary">{item.label}</span>
+                                            <span className="text-[9px] text-text-tertiary uppercase tracking-tighter">Navigate to Section</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Quick Actions */}
@@ -306,21 +367,15 @@ const MstDashboard = () => {
                         </button>
                     </div>
                     {showQuickActions && (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-2">
                             <button
                                 onClick={() => handleTabChange('create_request')}
-                                className="col-span-1 flex flex-col items-center justify-center gap-1 p-2 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
+                                className="w-full flex flex-col items-center justify-center gap-2 p-3 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group"
                             >
-                                <div className="w-7 h-7 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                    <Plus className="w-4 h-4 font-black" />
+                                <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <Plus className="w-5 h-5 font-black" />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-tight text-center">New Request</span>
-                            </button>
-                            <button className="col-span-1 flex flex-col items-center justify-center gap-1 p-2 bg-surface-elevated text-text-primary rounded-xl hover:bg-muted transition-all border border-border group cursor-not-allowed opacity-60">
-                                <div className="w-7 h-7 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
-                                    <Cog className="w-4 h-4" />
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-tight text-center">Manage Prop</span>
+                                <span className="text-[11px] font-black uppercase tracking-tight text-center">New Request</span>
                             </button>
                         </div>
                     )}
@@ -457,7 +512,9 @@ const MstDashboard = () => {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                             <input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder="Search tickets..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-64 pl-10 pr-4 py-2 bg-slate-50 border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary"
                             />
                         </div>
@@ -494,8 +551,16 @@ const MstDashboard = () => {
                         >
                             {activeTab === 'dashboard' && property && user && (
                                 <DashboardTab
-                                    tickets={incomingTickets}
-                                    completedCount={completedTickets.length}
+                                    tickets={incomingTickets.filter(t =>
+                                        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                                    )}
+                                    completedCount={completedTickets.filter(t =>
+                                        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                                    ).length}
                                     onTicketClick={(id) => router.push(`/tickets/${id}`)}
                                     userId={user.id}
                                     isLoading={isFetching}
@@ -509,8 +574,16 @@ const MstDashboard = () => {
                             {activeTab === 'projects' && <ProjectsTab />}
                             {activeTab === 'requests' && user && (
                                 <RequestsTab
-                                    activeTickets={incomingTickets}
-                                    completedTickets={completedTickets}
+                                    activeTickets={incomingTickets.filter(t =>
+                                        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                                    )}
+                                    completedTickets={completedTickets.filter(t =>
+                                        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                                    )}
                                     onTicketClick={(id) => router.push(`/tickets/${id}`)}
                                     userId={user.id}
                                     isLoading={isFetching}

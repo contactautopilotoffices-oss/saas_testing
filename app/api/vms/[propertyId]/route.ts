@@ -129,19 +129,36 @@ export async function GET(
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Calculate stats
+    // Calculate accurate stats for today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayVisitors = data?.filter(v => new Date(v.checkin_time) >= today) || [];
-    const checkedIn = todayVisitors.filter(v => v.status === 'checked_in').length;
-    const checkedOut = todayVisitors.filter(v => v.status === 'checked_out').length;
+
+    const [{ count: totalToday }, { count: checkedIn }, { count: checkedOut }] = await Promise.all([
+        supabaseAdmin
+            .from('visitor_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('property_id', propertyId)
+            .gte('checkin_time', today.toISOString()),
+        supabaseAdmin
+            .from('visitor_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('property_id', propertyId)
+            .eq('status', 'checked_in')
+            .gte('checkin_time', today.toISOString()),
+        supabaseAdmin
+            .from('visitor_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('property_id', propertyId)
+            .eq('status', 'checked_out')
+            .gte('checkin_time', today.toISOString())
+    ]);
 
     return NextResponse.json({
         visitors: data,
         stats: {
-            total_today: todayVisitors.length,
-            checked_in: checkedIn,
-            checked_out: checkedOut,
+            total_today: totalToday || 0,
+            checked_in: checkedIn || 0,
+            checked_out: checkedOut || 0,
         },
     });
 }

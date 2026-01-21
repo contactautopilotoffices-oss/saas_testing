@@ -33,42 +33,34 @@ export async function GET(
         let query = supabaseAdmin
             .from('property_memberships')
             .select(`
-        user_id,
-        role,
-        user:users(id, full_name, email)
-      `)
+                user_id,
+                role,
+                user:users!inner(id, full_name, email)
+            `)
             .eq('property_id', propertyId)
-            .eq('is_active', true)
-            .limit(limit);
+            .eq('is_active', true);
 
-        const { data: memberships, error } = await query;
+        // Apply search filter in DB
+        if (search) {
+            query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`, { foreignTable: 'users' });
+        }
+
+        const { data: memberships, error } = await query
+            .limit(limit)
+            .order('full_name', { foreignTable: 'users' });
 
         if (error) {
             console.error('Hosts fetch error:', error);
             return NextResponse.json({ error: 'Failed to fetch hosts' }, { status: 500 });
         }
 
-        // Format and filter results
-        let hosts = (memberships || [])
-            .filter((m: any) => m.user?.full_name)
-            .map((m: any) => ({
-                id: m.user_id,
-                name: m.user.full_name,
-                email: m.user.email,
-                role: m.role,
-            }));
-
-        // Apply search filter
-        if (search) {
-            const lowerSearch = search.toLowerCase();
-            hosts = hosts.filter((h: any) =>
-                h.name.toLowerCase().includes(lowerSearch) ||
-                h.email?.toLowerCase().includes(lowerSearch)
-            );
-        }
-
-        // Sort by name
-        hosts.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        // Format results
+        const hosts = (memberships || []).map((m: any) => ({
+            id: m.user_id,
+            name: m.user.full_name,
+            email: m.user.email,
+            role: m.role,
+        }));
 
         return NextResponse.json({
             hosts,

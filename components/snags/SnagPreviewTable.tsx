@@ -26,7 +26,7 @@ interface SnagPreviewTableProps {
 const skillGroupColors: Record<string, { bg: string; text: string }> = {
     technical: { bg: 'rgba(59, 130, 246, 0.1)', text: 'rgb(59, 130, 246)' },
     plumbing: { bg: 'rgba(6, 182, 212, 0.1)', text: 'rgb(6, 182, 212)' },
-    soft_service: { bg: 'rgba(168, 85, 247, 0.1)', text: 'rgb(168, 85, 247)' },
+    soft_services: { bg: 'rgba(168, 85, 247, 0.1)', text: 'rgb(168, 85, 247)' },
     vendor: { bg: 'rgba(245, 158, 11, 0.1)', text: 'rgb(245, 158, 11)' },
 };
 

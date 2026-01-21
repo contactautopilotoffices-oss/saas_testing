@@ -29,7 +29,7 @@ export async function GET(
         .from('vendors')
         .select(`
             id, shop_name, owner_name, commission_rate, property_id,
-            vendor_daily_revenue(revenue_amount, entry_date)
+            vendor_daily_revenue(revenue_amount, revenue_date)
         `)
         .in('property_id', propertyIds);
 
@@ -52,9 +52,9 @@ export async function GET(
 
         for (const vendor of propVendors) {
             const entries = vendor.vendor_daily_revenue?.filter((e: any) => {
-                if (period === 'today') return e.entry_date === today;
-                if (period === 'month') return new Date(e.entry_date) >= monthStart;
-                if (period === 'year') return new Date(e.entry_date) >= yearStart;
+                if (period === 'today') return e.revenue_date === today;
+                if (period === 'month') return new Date(e.revenue_date) >= monthStart;
+                if (period === 'year') return new Date(e.revenue_date) >= yearStart;
                 return true;
             }) || [];
 

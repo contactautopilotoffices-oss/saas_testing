@@ -13,7 +13,7 @@ import { getSkillGroupColor, getSkillGroupDisplayName, type SkillGroup } from '@
 const mapDepartmentToSkillGroup = (dept: TicketDepartment): SkillGroup => {
     const mapping: Record<TicketDepartment, SkillGroup> = {
         technical: 'technical',
-        soft_services: 'soft_service',
+        soft_services: 'soft_services',
         vendor: 'vendor'
     };
     return mapping[dept] || 'technical';

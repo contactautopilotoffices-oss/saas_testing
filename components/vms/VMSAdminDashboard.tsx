@@ -149,8 +149,8 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
 
     const getCategoryColor = (category: string) => {
         switch (category) {
-            case 'visitor': return 'bg-blue-100 text-blue-600';
-            case 'vendor': return 'bg-orange-100 text-orange-600';
+            case 'visitor': return 'bg-primary/10 text-primary';
+            case 'vendor': return 'bg-secondary/10 text-secondary';
             default: return 'bg-slate-100 text-slate-600';
         }
     };
@@ -171,7 +171,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                     className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-                            <Users className="w-6 h-6 text-indigo-600" />
+                            <Users className="w-6 h-6 text-primary" />
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Visitors</p>
@@ -183,7 +183,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                     className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
                             <LogIn className="w-6 h-6 text-emerald-600" />
                         </div>
                         <div>
@@ -319,7 +319,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <p className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition-colors">
+                                                    <p className="font-bold text-slate-900 text-sm hover:text-primary transition-colors">
                                                         {visitor.name}
                                                     </p>
                                                     <p className="text-xs text-slate-500 font-medium">{visitor.mobile || 'No mobile'}</p>
@@ -396,7 +396,7 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Header with Photo */}
-                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white relative">
+                            <div className="bg-gradient-to-br from-primary to-primary-dark p-6 text-white relative">
                                 <button
                                     onClick={() => setSelectedVisitor(null)}
                                     className="absolute top-4 right-4 p-1 rounded-full bg-white/20 hover:bg-white/30"

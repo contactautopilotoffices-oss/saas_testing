@@ -20,16 +20,16 @@ export async function GET(
     let query = supabase
         .from('vendor_daily_revenue')
         .select(`
-            entry_date,
+            revenue_date,
             revenue_amount,
             vendor:vendors(shop_name, owner_name, commission_rate)
         `)
         .eq('property_id', propertyId)
-        .order('entry_date', { ascending: true });
+        .order('revenue_date', { ascending: true });
 
     if (vendorId) query = query.eq('vendor_id', vendorId);
-    if (startDate) query = query.gte('entry_date', startDate);
-    if (endDate) query = query.lte('entry_date', endDate);
+    if (startDate) query = query.gte('revenue_date', startDate);
+    if (endDate) query = query.lte('revenue_date', endDate);
 
     const { data, error } = await query;
 
@@ -62,7 +62,7 @@ export async function GET(
     const excelData = (data || []).map((row: any) => {
         const commissionAmount = (row.revenue_amount * (row.vendor?.commission_rate || 10) / 100).toFixed(2);
         return {
-            'Date': new Date(row.entry_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+            'Date': new Date(row.revenue_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
             'Vendor': row.vendor?.owner_name || '-',
             'Shop Name': row.vendor?.shop_name || 'Unknown',
             'Property': property?.name || '-',

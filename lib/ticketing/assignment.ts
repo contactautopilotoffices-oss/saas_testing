@@ -60,7 +60,7 @@ export async function processIntelligentAssignment(
     const mstPools: Record<string, ResolverStat[]> = {
         technical: [],
         plumbing: [],
-        soft_service: [],
+        soft_services: [],
         vendor: [],
         general: []
     };

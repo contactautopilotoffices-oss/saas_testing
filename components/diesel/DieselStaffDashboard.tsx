@@ -318,10 +318,10 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
                 {totalConsumption > 0 && (
                     <div className="mb-8 flex justify-center">
                         <LiquidDieselGauge
-                            value={Math.min(100, (totalConsumption / 500) * 100)}
+                            value={Math.min(100, (totalConsumption / (generators.reduce((sum, g) => sum + (g.tank_capacity_litres || 1000), 0) || 1000)) * 100)}
                             size={200}
                             consumedLitres={totalConsumption}
-                            tankCapacity={500}
+                            tankCapacity={generators.reduce((sum, g) => sum + (g.tank_capacity_litres || 1000), 0)}
                             label="Today's Total"
                             isDark={isDark}
                         />

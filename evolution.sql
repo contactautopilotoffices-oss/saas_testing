@@ -274,9 +274,9 @@ CREATE TABLE IF NOT EXISTS vendor_daily_revenue (
   vendor_id uuid NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   property_id uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
   revenue_amount numeric NOT NULL DEFAULT 0,
-  entry_date date NOT NULL DEFAULT CURRENT_DATE,
+  revenue_date date NOT NULL DEFAULT CURRENT_DATE,
   created_at timestamptz DEFAULT now(),
-  UNIQUE(vendor_id, entry_date)                 -- One entry per vendor per day
+  UNIQUE(vendor_id, revenue_date)                 -- One entry per vendor per day
 );
 
 -- Commission Cycles (15-day periods)
@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS export_logs (
 CREATE INDEX IF NOT EXISTS idx_vendors_property ON vendors(property_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_user ON vendors(user_id);
 CREATE INDEX IF NOT EXISTS idx_vendor_revenue_vendor ON vendor_daily_revenue(vendor_id);
-CREATE INDEX IF NOT EXISTS idx_vendor_revenue_date ON vendor_daily_revenue(entry_date);
+CREATE INDEX IF NOT EXISTS idx_vendor_revenue_date ON vendor_daily_revenue(revenue_date);
 CREATE INDEX IF NOT EXISTS idx_commission_cycles_vendor ON commission_cycles(vendor_id);
 CREATE INDEX IF NOT EXISTS idx_commission_cycles_status ON commission_cycles(status);
 CREATE INDEX IF NOT EXISTS idx_vendor_payments_cycle ON vendor_payments(cycle_id);

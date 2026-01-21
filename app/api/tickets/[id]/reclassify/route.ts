@@ -1,40 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-// Classification keywords (same as main tickets route)
-const CLASSIFICATION_KEYWORDS: Record<string, string[]> = {
-    ac_breakdown: ['ac', 'air conditioning', 'cooling', 'hvac', 'cold', 'hot', 'temperature'],
-    power_outage: ['power', 'electricity', 'outage', 'blackout', 'no power', 'electrical'],
-    wifi_down: ['wifi', 'wi-fi', 'internet', 'network', 'connection', 'lan'],
-    lighting_issue: ['light', 'lighting', 'bulb', 'lamp', 'dark', 'tube light', 'led'],
-    water_leakage: ['leak', 'leakage', 'water leak', 'drip', 'seepage'],
-    washroom_issue: ['washroom', 'toilet', 'bathroom', 'restroom', 'flush'],
-    lift_breakdown: ['lift', 'elevator', 'not working'],
-};
-
-function classifyTicket(description: string) {
-    const lowerDesc = description.toLowerCase();
-    let bestMatch: { code: string; score: number } | null = null;
-
-    for (const [code, keywords] of Object.entries(CLASSIFICATION_KEYWORDS)) {
-        let score = 0;
-        for (const keyword of keywords) {
-            if (lowerDesc.includes(keyword)) {
-                score += keyword.split(' ').length * 10;
-            }
-        }
-        if (score > 0 && (!bestMatch || score > bestMatch.score)) {
-            bestMatch = { code, score };
-        }
-    }
-
-    if (!bestMatch) {
-        return { categoryCode: null, confidence: 0, isVague: true };
-    }
-
-    const confidence = Math.min(100, bestMatch.score + (description.length > 20 ? 20 : 0));
-    return { categoryCode: bestMatch.code, confidence, isVague: confidence < 40 };
-}
+import { classifyTicket } from '@/lib/ticketing';
 
 /**
  * POST /api/tickets/[id]/reclassify
@@ -70,12 +37,12 @@ export async function POST(
         let categoryId = null;
         let skillGroupId = null;
 
-        if (classification.categoryCode) {
+        if (classification.issue_code) {
             const { data: category } = await supabase
                 .from('issue_categories')
                 .select('id, skill_group_id')
                 .eq('property_id', ticket.property_id)
-                .eq('code', classification.categoryCode)
+                .eq('code', classification.issue_code)
                 .single();
 
             if (category) {
@@ -84,16 +51,18 @@ export async function POST(
             }
         }
 
+        const isVague = classification.confidence === 'low';
+
         // Update ticket
         const { data: updated, error } = await supabase
             .from('tickets')
             .update({
                 category_id: categoryId,
                 skill_group_id: skillGroupId,
-                confidence_score: classification.confidence,
+                confidence: classification.confidence,
                 classification_source: 'rules_reeval',
-                is_vague: classification.isVague,
-                status: classification.isVague ? 'waitlist' : 'open',
+                is_vague: isVague,
+                status: isVague ? 'waitlist' : 'open',
                 updated_at: new Date().toISOString(),
             })
             .eq('id', ticketId)
@@ -120,9 +89,9 @@ export async function POST(
             success: true,
             ticket: updated,
             classification: {
-                category: classification.categoryCode,
+                category: classification.issue_code,
                 confidence: classification.confidence,
-                isVague: classification.isVague,
+                isVague: isVague,
             },
         });
     } catch (error) {

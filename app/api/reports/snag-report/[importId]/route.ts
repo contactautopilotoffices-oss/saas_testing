@@ -78,9 +78,9 @@ export async function GET(
 
         allTickets.forEach(ticket => {
             let floor = 'Unspecified';
-            if (ticket.floor_number === 0) floor = 'Ground Floor';
-            else if (ticket.floor_number === -1) floor = 'Basement';
-            else if (ticket.floor_number !== null) floor = `Floor ${ticket.floor_number}`;
+            if (ticket.floor_number === 0) floor = 'ground floor';
+            else if (ticket.floor_number === -1) floor = 'basement';
+            else if (ticket.floor_number !== null) floor = `floor ${ticket.floor_number}`;
 
             if (!floorGroups[floor]) {
                 floorGroups[floor] = [];
@@ -125,9 +125,9 @@ export async function GET(
             status: ticket.status,
             priority: ticket.priority,
             floor: ticket.floor_number !== null ? `${ticket.floor_number}` : null,
-            floorLabel: ticket.floor_number === 0 ? 'Ground Floor' :
-                ticket.floor_number === -1 ? 'Basement' :
-                    ticket.floor_number !== null ? `Floor ${ticket.floor_number}` : 'Unspecified',
+            floorLabel: ticket.floor_number === 0 ? 'ground floor' :
+                ticket.floor_number === -1 ? 'basement' :
+                    ticket.floor_number !== null ? `floor ${ticket.floor_number}` : 'unspecified',
             location: ticket.location,
             reportedDate: ticket.created_at,
             closedDate: ticket.resolved_at,

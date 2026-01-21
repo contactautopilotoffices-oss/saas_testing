@@ -1,21 +1,12 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CheckCircle2, ShoppingCart, BarChart3 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function BuildingStory() {
-    const sectionRef = useRef<HTMLDivElement>(null);
-    const { scrollYProgress } = useScroll({
-        target: sectionRef,
-        offset: ["start end", "end start"]
-    });
-
-    const scale = useTransform(scrollYProgress, [0, 0.5], [1, 1.2]);
-    const opacity = useTransform(scrollYProgress, [0, 0.2], [0, 1]);
-
     const features = [
         {
             icon: CheckCircle2,
@@ -41,24 +32,25 @@ export default function BuildingStory() {
     ];
 
     return (
-        <section ref={sectionRef} className="relative min-h-[150vh] bg-slate-950 overflow-hidden">
-            {/* Background Image that zooms */}
-            <div className="sticky top-0 h-screen w-full overflow-hidden">
-                <motion.div style={{ scale }} className="relative h-full w-full">
-                    <Image
-                        src="/landing-hero.jpg"
-                        alt="Building Detail"
-                        fill
-                        className="object-cover object-center opacity-40 blur-sm"
-                    />
-                    <div className="absolute inset-0 bg-slate-950/70" />
-                </motion.div>
+        <section className="relative bg-slate-950 overflow-hidden py-32">
+            {/* Background Image - Simplified */}
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/landing-hero.jpg"
+                    alt="Building Detail"
+                    fill
+                    className="object-cover object-center opacity-20 blur-[2px]"
+                />
+                <div className="absolute inset-0 bg-slate-950/80" />
             </div>
 
-            {/* Scrolling Content */}
-            <div className="relative z-10 max-w-7xl mx-auto px-6 -mt-[100vh] pt-32 pb-32">
+            {/* Content */}
+            <div className="relative z-10 max-w-7xl mx-auto px-6">
                 <motion.div
-                    style={{ opacity }}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    viewport={{ once: true }}
                     className="text-center mb-24"
                 >
                     <h2 className="text-3xl md:text-5xl font-light text-white mb-6">Transform Your Facility Management</h2>

@@ -118,7 +118,7 @@ export default function SnagReportPage() {
                 data: {
                     labels: reportData.charts.floor.labels,
                     datasets: [{
-                        label: 'Total Snags',
+                        label: 'total snags',
                         data: reportData.charts.floor.data,
                         backgroundColor: '#708F96',
                         borderRadius: 4,
@@ -140,7 +140,7 @@ export default function SnagReportPage() {
                     },
                     plugins: {
                         legend: { display: false },
-                        title: { display: true, text: 'Snags by Floor (Click to Navigate)' }
+                        title: { display: true, text: 'snags by floor (click to navigate)' }
                     }
                 }
             });
@@ -155,12 +155,12 @@ export default function SnagReportPage() {
                     labels: reportData.charts.department.labels,
                     datasets: [
                         {
-                            label: 'Open',
+                            label: 'open',
                             data: reportData.charts.department.open,
                             backgroundColor: '#E74C3C',
                         },
                         {
-                            label: 'Closed',
+                            label: 'closed',
                             data: reportData.charts.department.closed,
                             backgroundColor: '#27AE60',
                         }
@@ -174,7 +174,7 @@ export default function SnagReportPage() {
                         y: { stacked: true }
                     },
                     plugins: {
-                        title: { display: true, text: 'Snags by Department' }
+                        title: { display: true, text: 'snags by department' }
                     }
                 }
             });
@@ -192,6 +192,40 @@ export default function SnagReportPage() {
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleExportCSV = () => {
+        if (!reportData) return;
+
+        const headers = ['ticket id', 'title', 'description', 'category', 'floor', 'location', 'status', 'priority', 'spoc', 'reported date', 'closure date'];
+        const rows = reportData.tickets.map(t => [
+            t.ticketNumberDisplay,
+            t.title,
+            t.description?.replace(/,/g, ';') || '',
+            t.category,
+            t.floorLabel,
+            t.location || '-',
+            t.status,
+            t.priority,
+            t.spocName,
+            formatDate(t.reportedDate),
+            formatDate(t.closedDate)
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `snag_report_${reportData.import.filename.replace(/\.[^/.]+$/, "")}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     if (isLoading) {
@@ -239,7 +273,12 @@ export default function SnagReportPage() {
                 @media print {
                     .no-print { display: none !important; }
                     .print-break { page-break-inside: avoid; }
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+                    .charts-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+                    .chart-container-print { height: 250px !important; margin-bottom: 20px !important; page-break-inside: avoid; }
+                    .dashboard-section { page-break-after: always; padding: 0 !important; margin: 0 !important; }
+                    .kpi-grid { gap: 10px !important; margin-bottom: 20px !important; }
+                    .kpi-card { padding: 10px !important; }
                 }
             `}</style>
 
@@ -257,55 +296,62 @@ export default function SnagReportPage() {
                         </button>
                         <div className="flex items-center gap-3">
                             <button
+                                onClick={handleExportCSV}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-[#708F96] text-white rounded-lg font-medium hover:bg-[#5a747a] transition-colors"
+                            >
+                                <Download className="w-4 h-4" />
+                                export csv
+                            </button>
+                            <button
                                 onClick={handlePrint}
                                 className="flex items-center gap-2 px-4 py-2.5 bg-[#AA895F] text-white rounded-lg font-medium hover:bg-[#8a7050] transition-colors"
                             >
                                 <Printer className="w-4 h-4" />
-                                Print / Save PDF
+                                print / save pdf
                             </button>
                         </div>
                     </div>
 
                     {/* Dashboard Section */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm mb-8">
-                        <h1 className="text-[#708F96] font-light text-2xl border-l-4 border-[#AA895F] pl-4 mb-6">
-                            {property.name} - Snag Report
+                    <div className="bg-white p-5 rounded-xl shadow-sm mb-8 dashboard-section">
+                        <h1 className="text-[#708F96] font-light text-2xl border-l-4 border-[#AA895F] pl-4 mb-4">
+                            {property.name} - snag report
                         </h1>
-                        <p className="text-gray-500 text-sm mb-6">
+                        <p className="text-gray-500 text-sm mb-4">
                             Import: {reportData.import.filename} | Generated: {formatDate(new Date().toISOString())}
                         </p>
 
                         {/* KPI Cards */}
-                        <div className="grid grid-cols-4 gap-4 mb-8">
-                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#708F96]">
+                        <div className="grid grid-cols-4 gap-4 mb-6 kpi-grid">
+                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#708F96] kpi-card">
                                 <div className="text-3xl font-bold text-gray-800">{kpis.totalSnags}</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide">Total Snags</div>
+                                <div className="text-xs text-gray-500 tracking-wide uppercase">Total Snags</div>
                             </div>
-                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#27AE60]">
+                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#27AE60] kpi-card">
                                 <div className="text-3xl font-bold text-[#27AE60]">{kpis.closedSnags}</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide">Closed</div>
+                                <div className="text-xs text-gray-500 tracking-wide uppercase">Closed</div>
                             </div>
-                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#AA895F]">
+                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#AA895F] kpi-card">
                                 <div className="text-3xl font-bold text-[#AA895F]">{kpis.openSnags}</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide">Open / WIP</div>
+                                <div className="text-xs text-gray-500 tracking-wide uppercase">Open / WIP</div>
                             </div>
-                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#708F96]">
+                            <div className="bg-gray-50 p-4 rounded-lg text-center border-t-4 border-[#708F96] kpi-card">
                                 <div className="text-3xl font-bold text-gray-800">{kpis.closureRate}%</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide">Closure Rate</div>
+                                <div className="text-xs text-gray-500 tracking-wide uppercase">Closure Rate</div>
                             </div>
                         </div>
 
                         {/* Charts */}
-                        <div className="grid grid-cols-2 gap-5 h-[300px]">
-                            <div className="relative h-full">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 h-auto min-h-[250px] charts-grid">
+                            <div className="relative h-[260px] chart-container-print">
                                 <canvas id="floorChart"></canvas>
                             </div>
-                            <div className="relative h-full">
+                            <div className="relative h-[260px] chart-container-print">
                                 <canvas id="deptChart"></canvas>
                             </div>
                         </div>
                         <p className="text-center text-xs text-[#AA895F] mt-3">
-                            *Click on any "Floor" bar above to jump to that floor's report.
+                            *click on any "floor" bar above to jump to that floor's report.
                         </p>
                     </div>
 
@@ -313,7 +359,7 @@ export default function SnagReportPage() {
                     {Object.entries(ticketsByFloor).map(([floor, floorTickets]) => (
                         <div key={floor} id={`floor-${floor.replace(/\s+/g, '-').toLowerCase()}`}>
                             <div className="bg-gray-800 text-white px-5 py-3 rounded-lg mt-10 mb-5 text-lg tracking-wide">
-                                {floor} Snags ({floorTickets.length})
+                                {floor} snags ({floorTickets.length})
                             </div>
 
                             {floorTickets.map(ticket => (
@@ -335,7 +381,7 @@ export default function SnagReportPage() {
                                             <span className="text-white/90">{ticket.category}</span>
                                         </div>
                                         <span
-                                            className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'waitlist'
+                                            className={`text-xs font-bold px-3 py-1 rounded-full ${ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'waitlist'
                                                 ? 'bg-[#AA895F] text-white border border-white'
                                                 : 'bg-white text-[#708F96]'
                                                 }`}
@@ -351,27 +397,35 @@ export default function SnagReportPage() {
                                         {/* Meta Grid */}
                                         <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg mb-5">
                                             <div>
-                                                <span className="block text-[#AA895F] font-medium text-xs uppercase mb-1">
+                                                <span className="block text-[#AA895F] font-bold text-[10px] uppercase tracking-wider mb-1">
                                                     SPOC (Admin)
                                                 </span>
                                                 <span className="text-gray-800 text-sm">{ticket.spocName}</span>
                                             </div>
                                             <div>
-                                                <span className="block text-[#AA895F] font-medium text-xs uppercase mb-1">
-                                                    Location
+                                                <span className="block text-[#AA895F] font-bold text-[10px] uppercase tracking-wider mb-1">
+                                                    Floor
                                                 </span>
                                                 <span className="text-gray-800 text-sm">
-                                                    {ticket.floorLabel}{ticket.location ? `, ${ticket.location}` : ''}
+                                                    {ticket.floorLabel}
                                                 </span>
                                             </div>
                                             <div>
-                                                <span className="block text-[#AA895F] font-medium text-xs uppercase mb-1">
+                                                <span className="block text-[#AA895F] font-bold text-[10px] uppercase tracking-wider mb-1">
+                                                    Location
+                                                </span>
+                                                <span className="text-gray-800 text-sm">
+                                                    {ticket.location || '-'}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-[#AA895F] font-bold text-[10px] uppercase tracking-wider mb-1">
                                                     Reported Date
                                                 </span>
                                                 <span className="text-gray-800 text-sm">{formatDate(ticket.reportedDate)}</span>
                                             </div>
                                             <div>
-                                                <span className="block text-[#AA895F] font-medium text-xs uppercase mb-1">
+                                                <span className="block text-[#AA895F] font-bold text-[10px] uppercase tracking-wider mb-1">
                                                     Closure Date
                                                 </span>
                                                 <span className="text-gray-800 text-sm">{formatDate(ticket.closedDate)}</span>
@@ -382,7 +436,7 @@ export default function SnagReportPage() {
                                         <div className="flex gap-4">
                                             <div className="flex-1 relative">
                                                 <div className="absolute top-2 left-2 bg-black/70 text-white px-3 py-1 text-xs rounded z-10">
-                                                    BEFORE
+                                                    before
                                                 </div>
                                                 {ticket.beforePhoto ? (
                                                     <img
@@ -398,7 +452,7 @@ export default function SnagReportPage() {
                                             </div>
                                             <div className="flex-1 relative">
                                                 <div className="absolute top-2 left-2 bg-[#27AE60] text-white px-3 py-1 text-xs rounded z-10">
-                                                    AFTER
+                                                    after
                                                 </div>
                                                 {ticket.afterPhoto ? (
                                                     <img

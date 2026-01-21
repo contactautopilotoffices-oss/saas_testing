@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     IndianRupee, LogOut, CheckCircle2, LayoutDashboard,
-    FileDown, Clock, Store, Percent, Wallet, ChevronRight, X, History
+    FileDown, Clock, Store, Percent, Wallet, ChevronRight, X, History,
+    UserCircle, Settings, Mail, Phone, Building, Save, Loader2, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -11,6 +12,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import SignOutModal from '@/components/ui/SignOutModal';
 import VendorExportModal from '@/components/vendor/VendorExportModal';
+import VendorPaymentModal from '@/components/vendor/VendorPaymentModal';
+import SettingsView from './SettingsView';
+import Image from 'next/image';
 
 // Types
 type ViewState = 'entry' | 'already_submitted' | 'dashboard';
@@ -18,9 +22,11 @@ type ViewState = 'entry' | 'already_submitted' | 'dashboard';
 interface VendorProfile {
     id: string;
     shop_name: string;
+    owner_name: string | null;
     commission_rate: number;
     property_id: string;
     property_name?: string;
+    email?: string;
 }
 
 interface CommissionCycle {
@@ -50,9 +56,17 @@ const FoodVendorDashboard = () => {
     const [currentCycle, setCurrentCycle] = useState<CommissionCycle | null>(null);
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const [activeTab, setActiveTab] = useState<'portal' | 'history'>('portal');
+    const [activeTab, setActiveTab] = useState<'portal' | 'history' | 'profile' | 'settings'>('portal');
+    const [history, setHistory] = useState<any[]>([]);
     const [todayDate] = useState(new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }));
+
+    // Date Filtering State
+    const [isFiltered, setIsFiltered] = useState(false);
+    const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
         if (user && propertyId) {
@@ -78,9 +92,11 @@ const FoodVendorDashboard = () => {
             setVendor({
                 id: vendorData.id,
                 shop_name: vendorData.shop_name,
+                owner_name: vendorData.owner_name,
                 commission_rate: vendorData.commission_rate,
                 property_id: vendorData.property_id,
-                property_name: vendorData.properties?.name
+                property_name: vendorData.properties?.name,
+                email: vendorData.email // assuming email might be here or in user
             });
 
             // 2. Fetch current commission cycle
@@ -101,7 +117,7 @@ const FoodVendorDashboard = () => {
                 .from('vendor_daily_revenue')
                 .select('id')
                 .eq('vendor_id', vendorData.id)
-                .eq('entry_date', todayStr)
+                .eq('revenue_date', todayStr)
                 .maybeSingle();
 
             if (entryData) {
@@ -109,12 +125,55 @@ const FoodVendorDashboard = () => {
             } else {
                 setViewState('entry');
             }
+
+            // 4. Fetch revenue history and calculate totals if cycle is missing
+            const { data: historyData } = await supabase
+                .from('vendor_daily_revenue')
+                .select('*')
+                .eq('vendor_id', vendorData.id)
+                .order('revenue_date', { ascending: false })
+                .limit(30);
+
+            if (historyData) {
+                setHistory(historyData);
+
+                // Calculate metrics based on current view (filtered or active cycle)
+                if (isFiltered || !cycleData) {
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+
+                    const filteredRevenue = historyData
+                        .filter(entry => {
+                            const d = new Date(entry.revenue_date);
+                            return d >= start && d <= end;
+                        })
+                        .reduce((sum, entry) => sum + entry.revenue_amount, 0);
+
+                    setCurrentCycle({
+                        id: isFiltered ? 'filtered' : 'temp',
+                        cycle_number: 1,
+                        cycle_start: startDate,
+                        cycle_end: endDate,
+                        total_revenue: filteredRevenue,
+                        commission_rate: vendorData.commission_rate,
+                        commission_due: filteredRevenue * (vendorData.commission_rate / 100),
+                        status: isFiltered ? 'filtered' : 'in_progress'
+                    });
+                }
+            }
         } catch (err) {
             console.error('Initialization error:', err);
         } finally {
             setIsLoading(false);
         }
     };
+
+    // Re-initialize when filters change
+    useEffect(() => {
+        if (user && propertyId) {
+            initializeDashboard();
+        }
+    }, [startDate, endDate, isFiltered]);
 
     const handleSubmitRevenue = async () => {
         if (!revenue || isNaN(Number(revenue)) || Number(revenue) <= 0) return;
@@ -127,6 +186,7 @@ const FoodVendorDashboard = () => {
                 body: JSON.stringify({
                     vendor_id: vendor?.id,
                     revenue_amount: Number(revenue),
+                    revenue_date: entryDate,
                 }),
             });
 
@@ -201,14 +261,49 @@ const FoodVendorDashboard = () => {
         }
     };
 
+    const handlePaymentComplete = async (paymentData: any) => {
+        if (!vendor || !currentCycle) return;
+
+        try {
+            const response = await fetch(`/api/properties/${propertyId}/payments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vendor_id: vendor.id,
+                    cycle_id: currentCycle.id,
+                    amount: paymentData.amount,
+                    gateway_name: paymentData.method,
+                }),
+            });
+
+            if (!response.ok) throw new Error('Payment recording failed');
+
+            // Refresh cycle data to show updated stats
+            initializeDashboard();
+        } catch (err) {
+            console.error('Payment completion error:', err);
+        }
+    };
+
     // Calculate cycle progress
     const getCycleDay = () => {
         if (!currentCycle) return { day: 1, total: 15 };
         const start = new Date(currentCycle.cycle_start);
+        const end = new Date(currentCycle.cycle_end);
         const today = new Date();
-        const diffTime = today.getTime() - start.getTime();
+
+        // Calculate dynamic total days based on the cycle period
+        const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Use either today or the cycle end date for day calculation
+        const effectiveEnd = today < end ? today : end;
+        const diffTime = effectiveEnd.getTime() - start.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        return { day: Math.min(diffDays, 15), total: 15 };
+
+        return {
+            day: Math.max(1, diffDays),
+            total: Math.max(1, totalDays)
+        };
     };
 
     const getDaysRemaining = () => {
@@ -216,7 +311,8 @@ const FoodVendorDashboard = () => {
         const end = new Date(currentCycle.cycle_end);
         const today = new Date();
         const diffTime = end.getTime() - today.getTime();
-        return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return Math.max(0, days);
     };
 
     if (isLoading) return (
@@ -244,16 +340,27 @@ const FoodVendorDashboard = () => {
                         </h1>
                         <p className="text-slate-500 font-medium mb-12">Total daily collection from all sales.</p>
 
-                        <div className="relative mb-8">
-                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400">₹</span>
-                            <input
-                                type="number"
-                                value={revenue}
-                                onChange={(e) => setRevenue(e.target.value)}
-                                placeholder="Enter total revenue"
-                                className="w-full bg-slate-50 border-2 border-slate-100 focus:border-indigo-600 focus:ring-0 rounded-3xl py-8 pl-12 pr-8 text-3xl font-black text-slate-900 transition-all placeholder:text-slate-200"
-                                autoFocus
-                            />
+                        <div className="relative mb-8 space-y-4">
+                            <div className="flex items-center justify-center gap-4 mb-4">
+                                <span className="text-sm font-bold text-slate-400">Entry for Date:</span>
+                                <input
+                                    type="date"
+                                    value={entryDate}
+                                    onChange={(e) => setEntryDate(e.target.value)}
+                                    className="bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2 font-bold text-slate-600 focus:border-indigo-600 focus:ring-0 transition-all"
+                                />
+                            </div>
+                            <div className="relative">
+                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400">₹</span>
+                                <input
+                                    type="number"
+                                    value={revenue}
+                                    onChange={(e) => setRevenue(e.target.value)}
+                                    placeholder="Enter total revenue"
+                                    className="w-full bg-slate-50 border-2 border-slate-100 focus:border-indigo-600 focus:ring-0 rounded-3xl py-8 pl-12 pr-8 text-3xl font-black text-slate-900 transition-all placeholder:text-slate-200"
+                                    autoFocus
+                                />
+                            </div>
                         </div>
 
                         <button
@@ -269,7 +376,13 @@ const FoodVendorDashboard = () => {
                         </button>
                     </motion.div>
                 </main>
-                <footer className="p-8 flex justify-center border-t border-slate-50">
+                <footer className="p-8 flex justify-center gap-8 border-t border-slate-50">
+                    <button
+                        onClick={() => setViewState('dashboard')}
+                        className="text-slate-400 font-bold text-sm flex items-center gap-2 hover:text-indigo-600 transition-colors"
+                    >
+                        <LayoutDashboard className="w-4 h-4" /> View Dashboard
+                    </button>
                     <button
                         onClick={() => setShowSignOutModal(true)}
                         className="text-slate-400 font-bold text-sm flex items-center gap-2 hover:text-rose-600 transition-colors"
@@ -301,19 +414,31 @@ const FoodVendorDashboard = () => {
                             <CheckCircle2 className="w-12 h-12 text-white" />
                         </div>
                         <h1 className="text-3xl font-black mb-4">
-                            Revenue for {todayDate.split(' ')[0]} {todayDate.split(' ')[1]} <br /> recorded successfully!
+                            Revenue for {new Date(entryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })} <br /> recorded successfully!
                         </h1>
                         <p className="text-indigo-100 font-medium mb-12 text-lg">You're all set for today.</p>
 
                         <div className="space-y-4">
                             <button
-                                onClick={() => setViewState('dashboard')}
+                                onClick={() => {
+                                    setViewState('dashboard');
+                                    setActiveTab('history');
+                                }}
+                                className="w-full bg-white text-indigo-600 py-5 rounded-2xl font-black text-lg hover:bg-indigo-50 transition-all shadow-lg"
+                            >
+                                View History
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setViewState('dashboard');
+                                    setActiveTab('portal');
+                                }}
                                 className="w-full bg-white text-indigo-600 py-5 rounded-2xl font-black text-lg hover:bg-indigo-50 transition-all shadow-lg"
                             >
                                 View Dashboard
                             </button>
                             <button
-                                onClick={signOut}
+                                onClick={() => setShowSignOutModal(true)}
                                 className="w-full bg-indigo-700/50 text-white py-5 rounded-2xl font-black text-lg hover:bg-indigo-700 transition-all border border-indigo-500/30"
                             >
                                 Logout
@@ -321,6 +446,12 @@ const FoodVendorDashboard = () => {
                         </div>
                     </motion.div>
                 </main>
+
+                <SignOutModal
+                    isOpen={showSignOutModal}
+                    onClose={() => setShowSignOutModal(false)}
+                    onConfirm={signOut}
+                />
             </div>
         );
     }
@@ -364,6 +495,26 @@ const FoodVendorDashboard = () => {
                         <History className="w-4 h-4" />
                         History
                     </button>
+                    <button
+                        onClick={() => setActiveTab('profile')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'profile'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                            }`}
+                    >
+                        <UserCircle className="w-4 h-4" />
+                        Profile
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('settings')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'settings'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                            }`}
+                    >
+                        <Settings className="w-4 h-4" />
+                        Settings
+                    </button>
                 </nav>
 
                 <div className="pt-8 border-t border-slate-50">
@@ -377,65 +528,275 @@ const FoodVendorDashboard = () => {
             </aside>
 
             <main className="flex-1 ml-72 p-12">
-                <header className="mb-12">
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900">Vendor Portal</h1>
-                    <p className="text-slate-500 font-medium">Monitoring your revenue and commissions.</p>
+                <header className="mb-12 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                            {activeTab === 'portal' && 'Vendor Portal'}
+                            {activeTab === 'history' && 'Revenue History'}
+                            {activeTab === 'profile' && 'Vendor Profile'}
+                            {activeTab === 'settings' && 'Account Settings'}
+                        </h1>
+                        <p className="text-slate-500 font-medium">
+                            {activeTab === 'portal' && 'Monitoring your revenue and commissions.'}
+                            {activeTab === 'history' && 'Track your past submissions and earnings.'}
+                            {activeTab === 'profile' && 'View your store and contact information.'}
+                            {activeTab === 'settings' && 'Update your personal account details.'}
+                        </p>
+                    </div>
+                    {activeTab === 'history' && (
+                        <button
+                            onClick={() => setShowExportModal(true)}
+                            className="px-6 py-3 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-50 transition-all text-sm"
+                        >
+                            <FileDown className="w-4 h-4" />
+                            Export History
+                        </button>
+                    )}
+                    {activeTab === 'portal' && (
+                        <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+                            <div className="flex items-center gap-2 px-3">
+                                <Clock className="w-4 h-4 text-slate-400" />
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Period:</span>
+                            </div>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => {
+                                    setStartDate(e.target.value);
+                                    setIsFiltered(true);
+                                }}
+                                className="text-xs font-bold text-slate-900 border-none bg-slate-50 rounded-lg py-1.5 focus:ring-0"
+                            />
+                            <span className="text-slate-300">to</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => {
+                                    setEndDate(e.target.value);
+                                    setIsFiltered(true);
+                                }}
+                                className="text-xs font-bold text-slate-900 border-none bg-slate-50 rounded-lg py-1.5 focus:ring-0"
+                            />
+                            {isFiltered && (
+                                <button
+                                    onClick={() => {
+                                        setIsFiltered(false);
+                                        setStartDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+                                        setEndDate(new Date().toISOString().split('T')[0]);
+                                    }}
+                                    className="p-1.5 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors"
+                                    title="Reset Filter"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
-                            <Store className="w-6 h-6" />
-                        </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Store Details</p>
-                        <h3 className="text-xl font-black text-slate-900">{vendor?.shop_name}</h3>
-                        <div className="mt-4 flex items-center gap-2 text-sm font-bold text-indigo-600">
-                            <Percent className="w-4 h-4" />
-                            {vendor?.commission_rate}% Commission
-                        </div>
-                    </div>
+                <AnimatePresence mode="wait">
+                    {activeTab === 'portal' ? (
+                        <motion.div
+                            key="portal"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="space-y-12"
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+                                        <Store className="w-6 h-6" />
+                                    </div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Store Details</p>
+                                    <h3 className="text-xl font-black text-slate-900">{vendor?.shop_name}</h3>
+                                    <div className="mt-4 flex items-center gap-2 text-sm font-bold text-indigo-600">
+                                        <Percent className="w-4 h-4" />
+                                        {vendor?.commission_rate}% Commission
+                                    </div>
+                                </div>
 
-                    <div className="md:col-span-2 bg-card text-text-primary p-8 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">Current Commission Cycle</p>
-                                <h3 className="text-2xl font-black text-text-primary">Day {cycleProgress.day} <span className="text-text-tertiary">/ {cycleProgress.total}</span></h3>
-                            </div>
-                            <div className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold border border-primary/20">
-                                Due in {daysRemaining} Days
-                            </div>
-                        </div>
+                                <div className="md:col-span-2 bg-card text-text-primary p-8 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">
+                                                {currentCycle?.status === 'filtered' ? 'Custom Period Summary' : 'Current Commission Cycle'}
+                                            </p>
+                                            <h3 className="text-2xl font-black text-text-primary">
+                                                {currentCycle?.status === 'filtered' ? (
+                                                    <span>Summary View</span>
+                                                ) : (
+                                                    <>Day {cycleProgress.day} <span className="text-text-tertiary">/ {cycleProgress.total}</span></>
+                                                )}
+                                            </h3>
+                                        </div>
+                                        <div className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold border border-primary/20">
+                                            {currentCycle?.status === 'filtered' ? 'Filtered View' : `Due in ${daysRemaining} Days`}
+                                        </div>
+                                    </div>
 
-                        <div className="grid grid-cols-2 gap-8 mt-8">
-                            <div>
-                                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">Revenue so far</p>
-                                <p className="text-2xl font-black text-text-primary">
-                                    ₹{(currentCycle?.total_revenue || 0).toLocaleString('en-IN')}
-                                </p>
+                                    <div className="grid grid-cols-2 gap-8 mt-8">
+                                        <div>
+                                            <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">Revenue so far</p>
+                                            <p className="text-2xl font-black text-text-primary">
+                                                ₹{(currentCycle?.total_revenue || 0).toLocaleString('en-IN')}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">Commission Accrued</p>
+                                            <p className="text-2xl font-black text-emerald-600">
+                                                ₹{(currentCycle?.commission_due || 0).toLocaleString('en-IN')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">Commission Accrued</p>
-                                <p className="text-2xl font-black text-emerald-600">
-                                    ₹{(currentCycle?.commission_due || 0).toLocaleString('en-IN')}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="flex items-center gap-4">
-                    <button className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-                        <Wallet className="w-5 h-5" />
-                        Pay Commission
-                    </button>
-                    <button
-                        onClick={() => setShowExportModal(true)}
-                        className="px-8 py-4 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-50 transition-all"
-                    >
-                        <FileDown className="w-5 h-5" />
-                        Export Data
-                    </button>
-                </div>
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => setShowPaymentModal(true)}
+                                    className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                                >
+                                    <Wallet className="w-5 h-5" />
+                                    Pay Commission
+                                </button>
+                                <button
+                                    onClick={() => setShowExportModal(true)}
+                                    className="px-8 py-4 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-50 transition-all"
+                                >
+                                    <FileDown className="w-5 h-5" />
+                                    Export Data
+                                </button>
+                            </div>
+                        </motion.div>
+                    ) : activeTab === 'history' ? (
+                        <motion.div
+                            key="history"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden"
+                        >
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-50 border-b border-slate-100">
+                                        <tr>
+                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue Date</th>
+                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount Reported</th>
+                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Commission ({vendor?.commission_rate}%)</th>
+                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Submission Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {history.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="px-8 py-12 text-center text-slate-400 italic font-medium">
+                                                    No history entries found.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            history.map((entry) => (
+                                                <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-8 py-5 font-bold text-slate-900">
+                                                        {new Date(entry.revenue_date).toLocaleDateString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </td>
+                                                    <td className="px-8 py-5 font-black text-slate-900">
+                                                        ₹{entry.revenue_amount.toLocaleString('en-IN')}
+                                                    </td>
+                                                    <td className="px-8 py-5 font-black text-emerald-600">
+                                                        ₹{(entry.revenue_amount * (vendor?.commission_rate || 10) / 100).toLocaleString('en-IN')}
+                                                    </td>
+                                                    <td className="px-8 py-5 text-slate-400 text-sm font-medium">
+                                                        {new Date(entry.created_at).toLocaleString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </motion.div>
+                    ) : activeTab === 'settings' ? (
+                        <motion.div
+                            key="settings"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                        >
+                            <SettingsView onUpdate={initializeDashboard} />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="profile"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="flex justify-center"
+                        >
+                            <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
+                                <div className="bg-primary/5 p-12 flex flex-col items-center border-b border-slate-100">
+                                    <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center border-4 border-white mb-6 overflow-hidden shadow-xl">
+                                        {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
+                                            <Image
+                                                src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
+                                                alt="Profile"
+                                                width={96}
+                                                height={96}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-4xl font-black text-white">
+                                                {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'V'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h2 className="text-2xl font-black text-slate-900 mb-1">{vendor?.shop_name}</h2>
+                                    <p className="text-primary font-bold">{vendor?.property_name}</p>
+                                    <div className="mt-4 px-4 py-1.5 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest">
+                                        Food Vendor
+                                    </div>
+                                </div>
+                                <div className="p-8 space-y-6">
+                                    <div className="grid grid-cols-1 gap-6">
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor Name</span>
+                                            <span className="text-sm font-bold text-slate-900">{vendor?.owner_name || user?.user_metadata?.full_name || 'Not Set'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</span>
+                                            <span className="text-sm font-medium text-slate-600">{user?.email}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Commission Rate</span>
+                                            <span className="text-sm font-black text-indigo-600">{vendor?.commission_rate}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Shop Status</span>
+                                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold border border-emerald-100 capitalize">
+                                                Active
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setActiveTab('settings')}
+                                        className="w-full py-4 bg-slate-50 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-100 transition-all border border-slate-100 flex items-center justify-center gap-2"
+                                    >
+                                        <Settings className="w-4 h-4" /> Edit Profile Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </main>
 
             <SignOutModal
@@ -449,6 +810,14 @@ const FoodVendorDashboard = () => {
                 onClose={() => setShowExportModal(false)}
                 onExport={handleExport}
                 isExporting={isExporting}
+            />
+
+            <VendorPaymentModal
+                isOpen={showPaymentModal}
+                onClose={() => setShowPaymentModal(false)}
+                amountDue={currentCycle?.commission_due || 0}
+                vendorName={vendor?.shop_name || 'Vendor'}
+                onPaymentComplete={handlePaymentComplete}
             />
         </div>
     );

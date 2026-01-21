@@ -35,11 +35,11 @@ export async function GET(
     if (activeCycle) {
         const { data: revenues } = await supabase
             .from('vendor_daily_revenue')
-            .select('entry_date, revenue_amount')
+            .select('revenue_date, revenue_amount')
             .eq('vendor_id', vendorId)
-            .gte('entry_date', activeCycle.cycle_start)
-            .lte('entry_date', activeCycle.cycle_end)
-            .order('entry_date', { ascending: true });
+            .gte('revenue_date', activeCycle.cycle_start)
+            .lte('revenue_date', activeCycle.cycle_end)
+            .order('revenue_date', { ascending: true });
 
         dailyBreakdown = revenues || [];
     }

@@ -12,7 +12,7 @@
 
 import dictionary from './issueDictionary.json';
 
-export type SkillGroup = 'technical' | 'plumbing' | 'vendor' | 'soft_service';
+export type SkillGroup = 'technical' | 'plumbing' | 'vendor' | 'soft_services';
 export type Confidence = 'high' | 'low';
 
 export interface ClassificationResult {
@@ -41,7 +41,7 @@ export function classifyTicket(text: string): ClassificationResult {
     const matches: Match[] = [];
 
     // Iterate through skill groups in precedence order
-    const skillGroups: SkillGroup[] = ['vendor', 'technical', 'plumbing', 'soft_service'];
+    const skillGroups: SkillGroup[] = ['vendor', 'technical', 'plumbing', 'soft_services'];
 
     for (const skillGroup of skillGroups) {
         const issues = dictionary[skillGroup as keyof typeof dictionary];
@@ -129,7 +129,7 @@ export function getSkillGroupDisplayName(skillGroup: SkillGroup): string {
         technical: 'Technical',
         plumbing: 'Plumbing',
         vendor: 'Vendor',
-        soft_service: 'Soft Services',
+        soft_services: 'Soft Services',
     };
     return names[skillGroup];
 }
@@ -142,7 +142,7 @@ export function getSkillGroupIcon(skillGroup: SkillGroup): string {
         technical: 'Wrench',
         plumbing: 'Droplet',
         vendor: 'Building2',
-        soft_service: 'Sparkles',
+        soft_services: 'Sparkles',
     };
     return icons[skillGroup];
 }
@@ -171,7 +171,7 @@ export function getSkillGroupColor(skillGroup: SkillGroup): {
             text: 'text-amber-500',
             border: 'border-amber-500/20',
         },
-        soft_service: {
+        soft_services: {
             bg: 'bg-purple-500/10',
             text: 'text-purple-500',
             border: 'border-purple-500/20',

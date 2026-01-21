@@ -54,7 +54,7 @@ interface Activity {
 
 interface Comment {
     id: string;
-    content: string;
+    comment: string;
     created_at: string;
     user_id: string;
     is_internal: boolean;
@@ -475,7 +475,7 @@ export default function TicketDetailPage() {
                 .insert({
                     ticket_id: ticketId,
                     user_id: userId,
-                    content: commentText,
+                    comment: commentText,
                     is_internal: isInternalComment
                 });
 
@@ -598,8 +598,8 @@ export default function TicketDetailPage() {
                                 <User className="w-4 h-4" /> Claim Request
                             </button>
                         )}
-                        {/* Start Work button: Show if assigned to me and not yet in_progress/closed */}
-                        {isAssignedToMe && !['in_progress', 'resolved', 'closed'].includes(ticket.status) && (
+                        {/* Start Work button: Show if assigned to me and awaiting start */}
+                        {isAssignedToMe && ['assigned', 'open', 'waitlist'].includes(ticket.status) && (
                             <button
                                 onClick={() => handleStatusChange('in_progress')}
                                 className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200"
@@ -607,8 +607,8 @@ export default function TicketDetailPage() {
                                 <PlayCircle className="w-4 h-4" /> Start Work
                             </button>
                         )}
-                        {/* Complete Task button: Show if assigned to me and work is in progress or assigned */}
-                        {isAssignedToMe && ['in_progress', 'assigned', 'waitlist'].includes(ticket.status) && (
+                        {/* Complete Task button: ONLY show if work is IN PROGRESS */}
+                        {isAssignedToMe && ticket.status === 'in_progress' && (
                             <button
                                 onClick={() => handleStatusChange('closed')}
                                 className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg"
@@ -891,21 +891,28 @@ export default function TicketDetailPage() {
                                     if (comment.is_internal && userRole === 'tenant') return null;
                                     const isMe = comment.user_id === userId;
                                     return (
-                                        <div key={comment.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                            <div className={`max-w-[90%] rounded-2xl p-3 text-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-sm' :
-                                                comment.is_internal ? (isDark ? 'bg-amber-500/10 text-amber-200 border border-amber-500/20 rounded-tl-sm' : 'bg-amber-50 text-amber-700 border border-amber-100 rounded-tl-sm') :
-                                                    (isDark ? 'bg-[#21262d] text-slate-200 rounded-tl-sm' : 'bg-slate-100 text-slate-700 rounded-tl-sm')
+                                        <div key={comment.id} className={`w-full flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                            <div className={`max-w-[85%] rounded-[20px] px-4 py-3 text-sm shadow-sm transition-all ${isMe ?
+                                                'bg-indigo-600 text-white rounded-tr-none' :
+                                                comment.is_internal ?
+                                                    (isDark ? 'bg-amber-500/10 text-amber-200 border border-amber-500/20 rounded-tl-none' : 'bg-amber-50 text-amber-700 border border-amber-100 rounded-tl-none') :
+                                                    (isDark ? 'bg-[#21262d] text-slate-200 border border-[#30363d] rounded-tl-none' : 'bg-slate-100 text-slate-700 border border-slate-200 rounded-tl-none')
                                                 }`}>
                                                 {comment.is_internal && (
-                                                    <div className={`text-[8px] font-black uppercase tracking-widest ${isDark ? 'text-amber-400' : 'text-amber-600'} mb-1 flex items-center gap-1`}>
+                                                    <div className={`text-[8px] font-black uppercase tracking-widest ${isMe ? 'text-indigo-200' : (isDark ? 'text-amber-400' : 'text-amber-600')} mb-1 flex items-center gap-1`}>
                                                         <ShieldAlert className="w-2.5 h-2.5" /> INTERNAL NOTE
                                                     </div>
                                                 )}
-                                                <p className="leading-relaxed">{comment.content}</p>
+                                                <p className="leading-relaxed font-medium">{comment.comment}</p>
                                             </div>
-                                            <span className={`text-[9px] ${isDark ? 'text-slate-600' : 'text-slate-400'} mt-1 font-bold italic mx-1`}>
-                                                {comment.user?.full_name} • {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
+                                            <div className={`flex items-center gap-2 mt-1.5 px-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                                <span className={`text-[9px] font-bold tracking-tight ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                    {isMe ? 'You' : comment.user?.full_name}
+                                                </span>
+                                                <span className={`text-[9px] font-medium ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>
+                                                    {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
                                         </div>
                                     )
                                 })}

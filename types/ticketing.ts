@@ -4,7 +4,7 @@ export type UserRole = 'tenant' | 'mst' | 'admin' | 'master_admin';
 export type TicketDepartment = 'technical' | 'soft_services' | 'vendor';
 
 // Skill group classification (new deterministic system)
-export type SkillGroup = 'technical' | 'plumbing' | 'vendor' | 'soft_service';
+export type SkillGroup = 'technical' | 'plumbing' | 'vendor' | 'soft_services';
 
 // Updated ticket status flow for MST-driven workflow
 // REQUESTED (open) -> WAITLIST -> ASSIGNED -> WORK_STARTED (in_progress) -> [PAUSED] -> COMPLETED (closed)

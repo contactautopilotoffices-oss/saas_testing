@@ -906,7 +906,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                     initial={{ height: 0 }}
                     animate={{ height: `${percentage}%` }}
                     transition={{ duration: 2, ease: "circOut" }}
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary-dark via-primary to-primary-light"
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400"
                 >
                     {/* Primary Wave */}
                     <motion.div
@@ -918,7 +918,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                             repeat: Infinity,
                             ease: "linear",
                         }}
-                        className="absolute top-0 left-0 w-[400%] h-8 bg-primary-light/50 -translate-y-1/2 opacity-60"
+                        className="absolute top-0 left-0 w-[400%] h-8 bg-amber-400/50 -translate-y-1/2 opacity-60"
                         style={{
                             borderRadius: '38% 42% 35% 45%',
                         }}
@@ -934,7 +934,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                             repeat: Infinity,
                             ease: "linear",
                         }}
-                        className="absolute top-1 left-0 w-[400%] h-8 bg-primary-light/30 -translate-y-1/2 opacity-40"
+                        className="absolute top-1 left-0 w-[400%] h-8 bg-amber-400/30 -translate-y-1/2 opacity-40"
                         style={{
                             borderRadius: '45% 35% 42% 38%',
                         }}
@@ -967,7 +967,7 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                 {/* Reflection/Lighting Highlights */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-white/20 z-30 pointer-events-none" />
                 <div className="absolute top-[10%] left-[15%] w-[25%] h-[15%] bg-white/20 rounded-full blur-[4px] rotate-[-25deg] z-30 pointer-events-none" />
-                <div className="absolute bottom-[15%] right-[15%] w-[10%] h-[10%] bg-primary/20 rounded-full blur-[2px] z-30 pointer-events-none" />
+                <div className="absolute bottom-[15%] right-[15%] w-[10%] h-[10%] bg-amber-500/20 rounded-full blur-[2px] z-30 pointer-events-none" />
             </div>
 
             {/* Percentage Display */}
@@ -980,11 +980,11 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
                     {Math.round(percentage)}
                     <span className="text-sm ml-0.5 opacity-80">%</span>
                 </motion.span>
-                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest drop-shadow-md">Diesel Level</span>
+                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest drop-shadow-md">Consumption</span>
             </div>
 
             {/* Bottom Glow */}
-            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-[60%] h-4 bg-primary/20 blur-xl rounded-full transition-opacity duration-300 ${percentage > 0 ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-[60%] h-4 bg-amber-500/20 blur-xl rounded-full transition-opacity duration-300 ${percentage > 0 ? 'opacity-100' : 'opacity-0'}`} />
         </div>
     );
 };
@@ -1019,6 +1019,7 @@ const OverviewTab = ({
         total_consumption: 0,
         change_percentage: 0,
         properties: [] as any[],
+        tank_capacity: 5000,
     });
 
     const [vmsSummary, setVmsSummary] = useState({
@@ -1058,6 +1059,7 @@ const OverviewTab = ({
                         total_consumption: data.org_summary?.total_litres || 0,
                         change_percentage: 0, // Not currently implemented in API
                         properties: data.properties || [],
+                        tank_capacity: data.org_summary?.total_capacity_litres || 5000,
                     });
                 }
 
@@ -1130,7 +1132,8 @@ const OverviewTab = ({
         return {
             total_consumption: propStats?.period_total_litres || 0,
             change_percentage: 0,
-            properties: dieselSummary.properties
+            properties: dieselSummary.properties,
+            tank_capacity: propStats?.tank_capacity_litres || 1000
         };
     }, [selectedPropertyId, dieselSummary]);
 
@@ -1256,7 +1259,9 @@ const OverviewTab = ({
                         <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Open Tickets</div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black text-slate-900">{displayTicketStats.open_tickets + displayTicketStats.in_progress}</span>
-                            <span className="text-[10px] text-rose-500 font-bold uppercase">{displayTicketStats.sla_breached} SLA breached</span>
+                            {displayTicketStats.sla_breached > 0 && (
+                                <span className="text-[10px] text-rose-500 font-bold uppercase">{displayTicketStats.sla_breached} SLA breached</span>
+                            )}
                         </div>
                     </div>
 
@@ -1297,7 +1302,7 @@ const OverviewTab = ({
 
                             {/* 3D Sphere Visualization */}
                             <div className="flex justify-center my-6">
-                                <DieselSphere percentage={Math.min(100, (displayDieselStats.total_consumption / 5000) * 100)} />
+                                <DieselSphere percentage={Math.min(100, (displayDieselStats.total_consumption / (displayDieselStats as any).tank_capacity) * 100)} />
                             </div>
 
                             <div className="space-y-1">
