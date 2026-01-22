@@ -232,28 +232,6 @@ const MstDashboard = () => {
 
     return (
         <div className="min-h-screen bg-background flex font-inter text-text-primary">
-            {/* Mobile Side Toggle Button */}
-            <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className={`
-                    fixed top-1/2 -translate-y-1/2 z-[60] lg:hidden
-                    flex items-center justify-center
-                    w-8 h-16 rounded-r-xl
-                    bg-primary text-white shadow-lg
-                    transition-all duration-300 ease-out
-                    hover:w-10
-                    ${sidebarOpen ? 'left-64' : 'left-0'}
-                `}
-                aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-            >
-                <motion.div
-                    animate={{ rotate: sidebarOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    <ChevronRight className="w-5 h-5" />
-                </motion.div>
-            </button>
-
             {/* Mobile Overlay */}
             <AnimatePresence>
                 {sidebarOpen && (
@@ -273,6 +251,14 @@ const MstDashboard = () => {
                 fixed lg:sticky top-0
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
+                {/* Mobile Close Button */}
+                <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="absolute top-4 right-4 lg:hidden p-2 rounded-lg hover:bg-surface-elevated transition-colors"
+                >
+                    <X className="w-5 h-5 text-text-secondary" />
+                </button>
+
                 {/* Logo */}
                 <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
@@ -499,27 +485,35 @@ const MstDashboard = () => {
             {/* Main Content */}
             <div className="flex-1 lg:ml-0 flex flex-col min-h-screen bg-background">
                 {/* Top Header */}
-                <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
+                <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
                     <div className="flex items-center gap-4">
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="p-2 -ml-2 lg:hidden text-text-tertiary hover:text-text-primary transition-colors"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+
                         <button
                             onClick={fetchTickets}
-                            className="text-xs text-text-secondary hover:text-text-primary border border-border px-3 py-1.5 rounded-md bg-white hover:bg-slate-50"
+                            className="hidden sm:flex text-xs text-text-secondary hover:text-text-primary border border-border px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 items-center"
                         >
-                            <RefreshCw className="w-3 h-3 inline mr-1.5" />
-                            Refresh page
+                            <RefreshCw className="w-3 h-3 mr-1.5" />
+                            Refresh
                         </button>
-                        <div className="relative">
+                        <div className="relative hidden md:block">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                             <input
                                 type="text"
                                 placeholder="Search tickets..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-64 pl-10 pr-4 py-2 bg-slate-50 border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary"
+                                className="w-48 lg:w-64 pl-10 pr-4 py-2 bg-slate-50 border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3">
                         {/* Shift Status in Navbar */}
                         <NavbarShiftStatus
                             isCheckedIn={isCheckedIn}

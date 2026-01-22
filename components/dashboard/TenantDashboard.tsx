@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import {
     LayoutDashboard, Ticket as TicketIcon, Bell, Settings, LogOut, Plus,
     CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle, Fuel,
@@ -75,10 +75,15 @@ const TenantDashboard = () => {
         router.push(`?${params.toString()}`);
     };
 
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
+
+    // Refs to prevent duplicate fetches
+    const hasFetchedProperty = useRef(false);
+    const hasFetchedTickets = useRef(false);
 
     useEffect(() => {
-        if (propertyId) {
+        if (propertyId && !hasFetchedProperty.current) {
+            hasFetchedProperty.current = true;
             fetchPropertyDetails();
         }
     }, [propertyId]);
@@ -122,7 +127,8 @@ const TenantDashboard = () => {
     };
 
     useEffect(() => {
-        if (propertyId && user) {
+        if (propertyId && user && !hasFetchedTickets.current) {
+            hasFetchedTickets.current = true;
             fetchTickets();
         }
     }, [propertyId, user?.id]);
@@ -145,13 +151,7 @@ const TenantDashboard = () => {
 
     return (
         <div className="min-h-screen bg-white font-inter text-text-primary">
-            {/* Mobile Menu Button - Fixed top left */}
-            <button
-                onClick={() => setSidebarOpen(true)}
-                className="fixed top-6 left-6 z-50 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl hover:bg-slate-800 transition-all hover:scale-110 active:scale-95 border border-white/20"
-            >
-                <Menu className="w-5 h-5" />
-            </button>
+
 
             {/* Overlay when sidebar is open */}
             <AnimatePresence>
@@ -167,178 +167,183 @@ const TenantDashboard = () => {
             </AnimatePresence>
 
             {/* Sidebar - Slides in from left */}
-            <AnimatePresence>
-                {sidebarOpen && (
-                    <motion.aside
-                        initial={{ x: '-100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '-100%' }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-50 shadow-2xl"
-                    >
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setSidebarOpen(false)}
-                            className="absolute top-4 right-4 p-2 text-text-tertiary hover:text-text-primary hover:bg-muted rounded-lg transition-colors"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
+            <aside className={`
+                w-72 bg-white border-r border-border flex flex-col h-screen transition-all duration-300
+                fixed lg:sticky top-0 z-50
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                {/* Close Button */}
+                <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="absolute top-4 right-4 p-2 text-text-tertiary hover:text-text-primary hover:bg-muted rounded-lg transition-colors"
+                >
+                    <X className="w-5 h-5" />
+                </button>
 
-                        <div className="p-8 pb-4">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 bg-primary rounded-[var(--radius-md)] flex items-center justify-center text-text-inverse font-display font-semibold text-lg shadow-sm">
-                                    {property?.name?.substring(0, 1) || 'T'}
-                                </div>
-                                <div>
-                                    <h2 className="font-display font-semibold text-sm leading-tight text-text-primary truncate max-w-[160px]">{property?.name}</h2>
-                                    <p className="text-[10px] text-text-tertiary font-body font-medium mt-1">Tenant Portal</p>
-                                </div>
-                            </div>
-
-                            {/* Quick Action: New Request - Bold & Clear */}
-                            <div className="mb-6">
-                                <button
-                                    onClick={() => { handleTabChange('create_request'); setSidebarOpen(false); }}
-                                    className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
-                                >
-                                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                        <Plus className="w-5 h-5 font-black" />
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
-                                </button>
-                            </div>
+                <div className="p-8 pb-4">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="w-10 h-10 bg-primary rounded-[var(--radius-md)] flex items-center justify-center text-text-inverse font-display font-semibold text-lg shadow-sm">
+                            {property?.name?.substring(0, 1) || 'T'}
                         </div>
+                        <div>
+                            <h2 className="font-display font-semibold text-sm leading-tight text-text-primary truncate max-w-[160px]">{property?.name}</h2>
+                            <p className="text-[10px] text-text-tertiary font-body font-medium mt-1">Tenant Portal</p>
+                        </div>
+                    </div>
 
-                        <nav className="flex-1 px-4 overflow-y-auto">
-                            {/* Core Operations */}
-                            <div className="mb-6">
-                                <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
-                                    <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
-                                    Core Operations
-                                </p>
-                                <div className="space-y-1">
-                                    <button
-                                        onClick={() => { handleTabChange('overview'); setSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'overview'
-                                            ? 'bg-primary text-text-inverse shadow-sm'
-                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                            }`}
-                                    >
-                                        <LayoutDashboard className="w-4 h-4" />
-                                        Dashboard
-                                    </button>
-                                    <button
-                                        onClick={() => { handleTabChange('requests'); setSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'requests'
-                                            ? 'bg-primary text-text-inverse shadow-sm'
-                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                            }`}
-                                    >
-                                        <TicketIcon className="w-4 h-4" />
-                                        My Requests
-                                    </button>
-                                </div>
+                    {/* Quick Action: New Request - Bold & Clear */}
+                    <div className="mb-6">
+                        <button
+                            onClick={() => { handleTabChange('create_request'); setSidebarOpen(false); }}
+                            className="w-full flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
+                        >
+                            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                <Plus className="w-5 h-5 font-black" />
                             </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
+                        </button>
+                    </div>
+                </div>
 
-                            {/* Management Hub */}
-                            <div className="mb-6">
-                                <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
-                                    <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
-                                    Management Hub
-                                </p>
-                                <div className="space-y-1">
-                                    <button
-                                        onClick={() => { handleTabChange('visitors'); setSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'visitors'
-                                            ? 'bg-primary text-text-inverse shadow-sm'
-                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                            }`}
-                                    >
-                                        <UsersRound className="w-4 h-4" />
-                                        Visitor Management
-                                    </button>
-                                    <button
-                                        onClick={() => { handleTabChange('diesel'); setSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'diesel'
-                                            ? 'bg-primary text-text-inverse shadow-sm'
-                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                            }`}
-                                    >
-                                        <Fuel className="w-4 h-4" />
-                                        Diesel Logger
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* System & Personal */}
-                            <div className="mb-6">
-                                <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
-                                    <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
-                                    System & Personal
-                                </p>
-                                <div className="space-y-1">
-                                    <button
-                                        onClick={() => { handleTabChange('settings'); setSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'settings'
-                                            ? 'bg-primary text-text-inverse shadow-sm'
-                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                            }`}
-                                    >
-                                        <Settings className="w-4 h-4" />
-                                        Settings
-                                    </button>
-                                    <button
-                                        onClick={() => { handleTabChange('profile'); setSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'profile'
-                                            ? 'bg-primary text-text-inverse shadow-sm'
-                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                            }`}
-                                    >
-                                        <UserCircle className="w-4 h-4" />
-                                        Profile
-                                    </button>
-                                </div>
-                            </div>
-                        </nav>
-
-                        <div className="pt-6 border-t border-border p-6">
-                            {/* User Profile Section */}
-                            <div className="flex items-center gap-3 px-2 mb-6">
-                                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-sm">
-                                    {user?.email?.[0].toUpperCase() || 'T'}
-                                </div>
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="font-bold text-sm text-foreground truncate">
-                                        {user?.user_metadata?.full_name || 'Tenant'}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground truncate font-medium">
-                                        {user?.email}
-                                    </span>
-                                </div>
-                            </div>
-
+                <nav className="flex-1 px-4 overflow-y-auto">
+                    {/* Core Operations */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
+                            Core Operations
+                        </p>
+                        <div className="space-y-1">
                             <button
-                                onClick={() => setShowSignOutModal(true)}
-                                className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
+                                onClick={() => { handleTabChange('overview'); setSidebarOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'overview'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
                             >
-                                <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                Sign Out
+                                <LayoutDashboard className="w-4 h-4" />
+                                Dashboard
+                            </button>
+                            <button
+                                onClick={() => { handleTabChange('requests'); setSidebarOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'requests'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <TicketIcon className="w-4 h-4" />
+                                My Requests
                             </button>
                         </div>
-                    </motion.aside>
-                )}
-            </AnimatePresence>
+                    </div>
 
-            {/* Main Content - Full width since sidebar is hidden by default */}
-            <main className="min-h-screen px-6 md:px-12 lg:px-20 pt-28 pb-12 overflow-y-auto bg-[#fafafa]">
-                <div className="max-w-5xl mx-auto">
+                    {/* Management Hub */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
+                            Management Hub
+                        </p>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => { handleTabChange('visitors'); setSidebarOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'visitors'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <UsersRound className="w-4 h-4" />
+                                Visitor Management
+                            </button>
+                            <button
+                                onClick={() => { handleTabChange('diesel'); setSidebarOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'diesel'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Fuel className="w-4 h-4" />
+                                Diesel Logger
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* System & Personal */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-medium text-text-tertiary tracking-widest px-4 mb-3 flex items-center gap-2 font-body">
+                            <span className="w-0.5 h-3 bg-secondary rounded-full"></span>
+                            System & Personal
+                        </p>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => { handleTabChange('settings'); setSidebarOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'settings'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Settings className="w-4 h-4" />
+                                Settings
+                            </button>
+                            <button
+                                onClick={() => { handleTabChange('profile'); setSidebarOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'profile'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <UserCircle className="w-4 h-4" />
+                                Profile
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+
+                <div className="pt-6 border-t border-border p-6">
+                    {/* User Profile Section */}
+                    <div className="flex items-center gap-3 px-2 mb-6">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-sm">
+                            {user?.email?.[0].toUpperCase() || 'T'}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="font-bold text-sm text-foreground truncate">
+                                {user?.user_metadata?.full_name || 'Tenant'}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground truncate font-medium">
+                                {user?.email}
+                            </span>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => setShowSignOutModal(true)}
+                        className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded-xl w-full transition-all duration-200 text-sm font-bold group"
+                    >
+                        <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        Sign Out
+                    </button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 lg:ml-0 flex flex-col min-h-screen bg-[#fafafa]">
+                {/* Header Toggle for Mobile */}
+                <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-border/50 flex items-center px-6 z-30 lg:hidden">
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="p-2 -ml-2 text-text-tertiary hover:text-text-primary transition-colors"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+                    <span className="ml-4 font-display font-bold text-sm text-text-primary tracking-tight">AUTOPILOT</span>
+                </header>
+
+                <div className="max-w-5xl mx-auto w-full px-6 md:px-12 lg:px-20 pt-24 lg:pt-12 pb-12">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
-                            {activeTab === 'overview' && <OverviewTab onNavigate={handleTabChange} property={property} />}
+                            {activeTab === 'overview' && <OverviewTab onNavigate={handleTabChange} property={property} onMenuToggle={() => setSidebarOpen(true)} />}
                             {activeTab === 'requests' && property && user && (
                                 <RequestsTab
                                     activeTickets={activeTickets}
@@ -449,12 +454,12 @@ const TenantDashboard = () => {
                 onClose={() => setShowSignOutModal(false)}
                 onConfirm={signOut}
             />
-        </div>
+        </div >
     );
 };
 
 // Overview Tab for Tenant - Dark Card-Based Interface
-const OverviewTab = ({ onNavigate, property }: { onNavigate: (tab: Tab) => void, property: Property | null }) => {
+const OverviewTab = ({ onNavigate, property, onMenuToggle }: { onNavigate: (tab: Tab) => void, property: Property | null, onMenuToggle?: () => void }) => {
     const { user } = useAuth();
     const params = useParams();
     const [ticketCount, setTicketCount] = useState({ active: 0, completed: 0 });
@@ -501,13 +506,16 @@ const OverviewTab = ({ onNavigate, property }: { onNavigate: (tab: Tab) => void,
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-100/50">
-                <div className="space-y-1">
-                    <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-800 tracking-tight">
-                        Welcome to AUTOPILOT, <span className="text-secondary opacity-80">{user?.user_metadata?.full_name?.split(' ')[0] || 'Member'}</span>
-                    </h1>
-                    <p className="text-slate-500 font-medium text-sm">
-                        {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
+                <div className="flex items-center gap-4">
+                    {/* Desktop Menu Toggle (Optional but fits the pattern) */}
+                    <div className="space-y-1">
+                        <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-800 tracking-tight">
+                            Welcome to AUTOPILOT, <span className="text-secondary opacity-80">{user?.user_metadata?.full_name?.split(' ')[0] || 'Member'}</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium text-sm">
+                            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </p>
+                    </div>
                 </div>
 
                 {/* Minimalist Top Profile Card - Floating Capsule Style */}

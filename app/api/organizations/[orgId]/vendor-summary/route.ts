@@ -35,10 +35,10 @@ export async function GET(
 
     // Calculate date filter
     const today = new Date().toISOString().split('T')[0];
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    const yearStart = new Date();
-    yearStart.setMonth(0, 1);
+
+    // Use string comparison for dates to avoid timezone issues
+    const monthStartStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const yearStartStr = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 
     // Process data
     let totalRevenue = 0;
@@ -53,8 +53,8 @@ export async function GET(
         for (const vendor of propVendors) {
             const entries = vendor.vendor_daily_revenue?.filter((e: any) => {
                 if (period === 'today') return e.revenue_date === today;
-                if (period === 'month') return new Date(e.revenue_date) >= monthStart;
-                if (period === 'year') return new Date(e.revenue_date) >= yearStart;
+                if (period === 'month') return e.revenue_date >= monthStartStr;
+                if (period === 'year') return e.revenue_date >= yearStartStr;
                 return true;
             }) || [];
 

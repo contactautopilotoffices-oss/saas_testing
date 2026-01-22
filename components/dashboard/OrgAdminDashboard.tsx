@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import {
     LayoutDashboard, Building2, Users, UserPlus, Ticket, Settings, UserCircle,
     Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
@@ -84,20 +84,27 @@ const OrgAdminDashboard = () => {
         ? null
         : properties.find(p => p.id === selectedPropertyId);
 
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
+
+    // Refs to prevent duplicate fetches
+    const hasFetchedOrg = useRef(false);
+    const hasFetchedProperties = useRef(false);
 
     useEffect(() => {
-        if (orgSlugOrId) {
+        if (orgSlugOrId && !hasFetchedOrg.current) {
+            hasFetchedOrg.current = true;
             fetchOrgDetails();
         }
     }, [orgSlugOrId]);
 
+    // Fetch properties ONCE when org is loaded (not on every tab change)
     useEffect(() => {
-        if (org) {
-            fetchProperties(); // ALWAYS fetch properties for the dropdown
-            fetchUserRole(); // Fetch user role for profile
+        if (org && !hasFetchedProperties.current) {
+            hasFetchedProperties.current = true;
+            fetchProperties();
+            fetchUserRole();
         }
-    }, [activeTab, org]);
+    }, [org]);
 
     const fetchUserRole = async () => {
         if (!org || !user) return;
@@ -356,28 +363,6 @@ const OrgAdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-background flex font-inter text-foreground">
-            {/* Mobile Side Toggle Button - Positioned on the left edge */}
-            <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className={`
-                    fixed top-1/2 -translate-y-1/2 z-[60] lg:hidden
-                    flex items-center justify-center
-                    w-8 h-16 rounded-r-xl
-                    bg-primary text-white shadow-lg
-                    transition-all duration-300 ease-out
-                    hover:w-10
-                    ${sidebarOpen ? 'left-72' : 'left-0'}
-                `}
-                aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-            >
-                <motion.div
-                    animate={{ rotate: sidebarOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    <ChevronRight className="w-5 h-5" />
-                </motion.div>
-            </button>
-
             {/* Mobile Overlay */}
             <AnimatePresence>
                 {sidebarOpen && (
@@ -617,13 +602,22 @@ const OrgAdminDashboard = () => {
             />
 
             {/* Main Content */}
-            <main className={`flex-1 lg:ml-0 overflow-y-auto min-h-screen bg-white pt-16 lg:pt-0 ${activeTab === 'overview' ? '' : 'p-4 md:p-8 lg:p-12'}`}>
+            <main className={`flex-1 lg:ml-0 overflow-y-auto min-h-screen bg-white transition-all duration-300 ${activeTab === 'overview' ? '' : 'pt-16 lg:pt-0 p-4 md:p-8 lg:p-12'}`}>
                 {/* Only show header for non-overview tabs */}
                 {activeTab !== 'overview' && (
-                    <header className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-3xl font-display font-semibold text-text-primary tracking-tight capitalize">{activeTab}</h1>
-                            <p className="text-text-tertiary text-sm font-body font-medium mt-1">Manage your organization's resources.</p>
+                    <header className="fixed top-0 left-0 right-0 lg:static h-16 bg-white border-b border-border/10 flex justify-between items-center px-4 md:px-8 lg:px-0 mb-10 z-30">
+                        <div className="flex items-center gap-4">
+                            {/* Mobile Menu Toggle */}
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="p-2 -ml-2 lg:hidden text-text-tertiary hover:text-text-primary transition-colors"
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-display font-semibold text-text-primary tracking-tight capitalize">{activeTab}</h1>
+                                <p className="hidden md:block text-text-tertiary text-xs font-body font-medium mt-1">Manage your organization's resources.</p>
+                            </div>
                         </div>
                         <div className="flex items-center gap-4">
                             {/* Property Selector for Requests/Other tabs */}
@@ -723,6 +717,7 @@ const OrgAdminDashboard = () => {
                                 orgId={org?.id || ''}
                                 selectedPropertyId={selectedPropertyId}
                                 setSelectedPropertyId={setSelectedPropertyId}
+                                onMenuToggle={() => setSidebarOpen(true)}
                             />
                         )}
                         {activeTab === 'revenue' && <RevenueTab properties={properties} selectedPropertyId={selectedPropertyId} />}
@@ -990,19 +985,22 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
 };
 
 // Sub-components
-const OverviewTab = ({
+const OverviewTab = memo(function OverviewTab({
     properties,
     orgId,
     selectedPropertyId,
-    setSelectedPropertyId
+    setSelectedPropertyId,
+    onMenuToggle
 }: {
     properties: Property[],
     orgId: string,
     selectedPropertyId: string,
-    setSelectedPropertyId: (id: string) => void
-}) => {
+    setSelectedPropertyId: (id: string) => void,
+    onMenuToggle: () => void
+}) {
     const [isLoading, setIsLoading] = useState(true);
     const [isOverviewSelectorOpen, setIsOverviewSelectorOpen] = useState(false);
+    const hasFetched = useRef(false);
 
     // Real data from org APIs
     const [ticketSummary, setTicketSummary] = useState({
@@ -1036,54 +1034,57 @@ const OverviewTab = ({
         properties: [] as any[],
     });
 
-    // Fetch all org summaries
+    // Fetch all org summaries ONCE
     useEffect(() => {
-        if (!orgId) return;
+        if (!orgId || hasFetched.current) return;
+        hasFetched.current = true;
 
         const fetchSummaries = async () => {
             setIsLoading(true);
 
             try {
-                // Tickets summary
-                const ticketsRes = await fetch(`/api/organizations/${orgId}/tickets-summary?period=month`);
-                if (ticketsRes.ok) {
-                    const data = await ticketsRes.json();
-                    setTicketSummary(data);
-                }
+                // Run ALL API calls in parallel for faster load
+                const [ticketsRes, dieselRes, vmsRes, vendorRes] = await Promise.all([
+                    fetch(`/api/organizations/${orgId}/tickets-summary?period=month`),
+                    fetch(`/api/organizations/${orgId}/diesel-summary?period=month`),
+                    fetch(`/api/organizations/${orgId}/vms-summary?period=today`),
+                    fetch(`/api/organizations/${orgId}/vendor-summary?period=month`),
+                ]);
 
-                // Diesel summary
-                const dieselRes = await fetch(`/api/organizations/${orgId}/diesel-summary?period=month`);
-                if (dieselRes.ok) {
-                    const data = await dieselRes.json();
+                // Process responses in parallel
+                const [ticketsData, dieselData, vmsData, vendorData] = await Promise.all([
+                    ticketsRes.ok ? ticketsRes.json() : null,
+                    dieselRes.ok ? dieselRes.json() : null,
+                    vmsRes.ok ? vmsRes.json() : null,
+                    vendorRes.ok ? vendorRes.json() : null,
+                ]);
+
+                if (ticketsData) setTicketSummary(ticketsData);
+
+                if (dieselData) {
                     setDieselSummary({
-                        total_consumption: data.org_summary?.total_litres || 0,
-                        change_percentage: 0, // Not currently implemented in API
-                        properties: data.properties || [],
-                        tank_capacity: data.org_summary?.total_capacity_litres || 5000,
+                        total_consumption: dieselData.org_summary?.total_litres || 0,
+                        change_percentage: 0,
+                        properties: dieselData.properties || [],
+                        tank_capacity: dieselData.org_summary?.total_capacity_litres || 5000,
                     });
                 }
 
-                // VMS summary
-                const vmsRes = await fetch(`/api/organizations/${orgId}/vms-summary?period=today`);
-                if (vmsRes.ok) {
-                    const data = await vmsRes.json();
+                if (vmsData) {
                     setVmsSummary({
-                        total_visitors_today: data.total_visitors || 0,
-                        checked_in: data.checked_in || 0,
-                        checked_out: data.checked_out || 0,
-                        properties: data.properties || [],
+                        total_visitors_today: vmsData.total_visitors || 0,
+                        checked_in: vmsData.checked_in || 0,
+                        checked_out: vmsData.checked_out || 0,
+                        properties: vmsData.properties || [],
                     });
                 }
 
-                // Vendor summary
-                const vendorRes = await fetch(`/api/organizations/${orgId}/vendor-summary?period=month`);
-                if (vendorRes.ok) {
-                    const data = await vendorRes.json();
+                if (vendorData) {
                     setVendorSummary({
-                        total_revenue: data.total_revenue || 0,
-                        total_commission: data.total_commission || 0,
-                        total_vendors: data.total_vendors || 0,
-                        properties: data.properties || [],
+                        total_revenue: vendorData.total_revenue || 0,
+                        total_commission: vendorData.total_commission || 0,
+                        total_vendors: vendorData.total_vendors || 0,
+                        properties: vendorData.properties || [],
                     });
                 }
             } catch (error) {
@@ -1168,8 +1169,14 @@ const OverviewTab = ({
             <div className="bg-[#708F96] px-8 lg:px-12 py-10 border-b border-white/10 shadow-lg relative z-[100]">
                 <div className="flex items-center justify-between mb-5 relative z-10">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-3xl font-black text-white">Unified Dashboard</h1>
-
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            onClick={onMenuToggle}
+                            className="p-2 -ml-2 lg:hidden text-white/70 hover:text-white transition-colors"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-2xl md:text-3xl font-black text-white">Unified Dashboard</h1>
                         <div className="relative">
                             <button
                                 onClick={() => setIsOverviewSelectorOpen(!isOverviewSelectorOpen)}
@@ -1418,8 +1425,8 @@ const OverviewTab = ({
                                     <div className="text-2xl font-black text-slate-900">{displayDieselStats.total_consumption}</div>
                                 </div>
                                 <div className="p-4 bg-purple-50 rounded-xl">
-                                    <div className="text-xs font-bold text-purple-600 mb-1">Vendors</div>
-                                    <div className="text-2xl font-black text-purple-900">{displayVendorStats.total_vendors}</div>
+                                    <div className="text-xs font-bold text-purple-600 mb-1">Vendor Revenue</div>
+                                    <div className="text-2xl font-black text-purple-900">₹{displayVendorStats.total_revenue.toLocaleString('en-IN')}</div>
                                 </div>
                             </div>
                         </div>
@@ -1430,7 +1437,7 @@ const OverviewTab = ({
 
         </div>
     );
-};
+});
 
 const PropertiesTab = ({ properties, onCreate, onEdit, onDelete }: any) => (
     <div className="space-y-5">
@@ -1640,7 +1647,7 @@ const PropertyModal = ({ property, onClose, onSave }: any) => {
             <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative overflow-hidden"
+                className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative overflow-hidden max-h-[85vh] overflow-y-auto custom-scrollbar"
             >
                 <button onClick={onClose} className="absolute right-6 top-5 text-slate-300 hover:text-slate-900 transition-colors">
                     <X className="w-6 h-6" />

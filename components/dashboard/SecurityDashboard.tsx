@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Ticket, Bell, Settings, LogOut, Plus,
-    CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle, Shield, Fuel, LogIn, LogOut as LogOutIcon
+    CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle, Shield, Fuel, LogIn, LogOut as LogOutIcon, Menu, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -50,6 +50,7 @@ const SecurityDashboard = () => {
         incidentsToday: 0,
         securityAlerts: 0
     });
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const supabase = createClient();
 
@@ -159,8 +160,32 @@ const SecurityDashboard = () => {
 
     return (
         <div className="min-h-screen bg-white flex font-inter text-text-primary">
+            {/* Mobile Overlay */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Sidebar */}
-            <aside className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-20">
+            <aside className={`
+                w-72 bg-white border-r border-border flex flex-col h-screen z-50 transition-all duration-300
+                fixed lg:sticky top-0
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                {/* Mobile Close Button */}
+                <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="absolute top-4 right-4 lg:hidden p-2 rounded-lg hover:bg-surface-elevated transition-colors"
+                >
+                    <X className="w-5 h-5 text-text-secondary" />
+                </button>
                 <div className="p-8 pb-4">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse font-bold text-lg shadow-lg shadow-slate-200">
@@ -344,111 +369,140 @@ const SecurityDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-72 min-h-screen p-8 lg:p-12 overflow-y-auto bg-white">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                    >
-                        {activeTab === 'overview' && <OverviewTab stats={kpiStats} />}
-                        {activeTab === 'requests' && property && user && (
-                            <TenantTicketingDashboard
-                                propertyId={property.id}
-                                organizationId={property.organization_id || ''}
-                                user={{ id: user.id, full_name: user.user_metadata?.full_name || 'Security' }}
-                                propertyName={property.name}
-                            />
-                        )}
-                        {activeTab === 'checkinout' && property && (
-                            <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
-                                <VMSKiosk propertyId={propertyId} propertyName={property.name} />
-                            </div>
-                        )}
-                        {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
-                        {activeTab === 'diesel' && <DieselStaffDashboard />}
-                        {activeTab === 'settings' && <SettingsView />}
-                        {activeTab === 'profile' && (
-                            <div className="flex justify-center items-start py-8">
-                                <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
-                                    {/* Card Header with Autopilot Logo */}
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
-                                        {/* Autopilot Logo */}
-                                        <div className="flex items-center justify-center mb-6">
-                                            <img
-                                                src="/autopilot-logo-new.png"
-                                                alt="Autopilot Logo"
-                                                className="h-10 w-auto object-contain invert mix-blend-screen"
-                                            />
-                                        </div>
+            <main className="flex-1 lg:ml-0 flex flex-col min-h-screen bg-white">
+                {/* Top Header */}
+                <header className="h-16 bg-white border-b border-border flex items-center justify-between px-4 md:px-8 lg:px-12 sticky top-0 z-30">
+                    <div className="flex items-center gap-4">
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="p-2 -ml-2 lg:hidden text-text-tertiary hover:text-text-primary transition-colors"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <div>
+                            <h1 className="text-xl md:text-2xl font-black text-text-primary tracking-tight capitalize">{activeTab}</h1>
+                            {activeTab === 'overview' && (
+                                <p className="hidden sm:block text-text-tertiary text-[10px] font-black uppercase tracking-widest mt-0.5">
+                                    Security Monitoring Hub
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-border rounded-lg">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                            <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">System Live</span>
+                        </div>
+                    </div>
+                </header>
 
-                                        {/* User Avatar */}
-                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4 overflow-hidden">
-                                            {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
-                                                <Image
-                                                    src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
-                                                    alt="Profile"
-                                                    width={96}
-                                                    height={96}
-                                                    className="w-full h-full object-cover"
+                <div className="p-4 md:p-8 lg:p-12 pt-6">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            {activeTab === 'overview' && <OverviewTab stats={kpiStats} />}
+                            {activeTab === 'requests' && property && user && (
+                                <TenantTicketingDashboard
+                                    propertyId={property.id}
+                                    organizationId={property.organization_id || ''}
+                                    user={{ id: user.id, full_name: user.user_metadata?.full_name || 'Security' }}
+                                    propertyName={property.name}
+                                />
+                            )}
+                            {activeTab === 'checkinout' && property && (
+                                <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
+                                    <VMSKiosk propertyId={propertyId} propertyName={property.name} />
+                                </div>
+                            )}
+                            {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
+                            {activeTab === 'diesel' && <DieselStaffDashboard />}
+                            {activeTab === 'settings' && <SettingsView />}
+                            {activeTab === 'profile' && (
+                                <div className="flex justify-center items-start py-8">
+                                    <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
+                                        {/* Card Header with Autopilot Logo */}
+                                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center">
+                                            {/* Autopilot Logo */}
+                                            <div className="flex items-center justify-center mb-6">
+                                                <img
+                                                    src="/autopilot-logo-new.png"
+                                                    alt="Autopilot Logo"
+                                                    className="h-10 w-auto object-contain invert mix-blend-screen"
                                                 />
-                                            ) : (
-                                                <span className="text-4xl font-black text-white">
-                                                    {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-                                                </span>
-                                            )}
+                                            </div>
+
+                                            {/* User Avatar */}
+                                            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-white/20 mb-4 overflow-hidden">
+                                                {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
+                                                    <Image
+                                                        src={user.user_metadata.user_photo_url || user.user_metadata.avatar_url}
+                                                        alt="Profile"
+                                                        width={96}
+                                                        height={96}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-4xl font-black text-white">
+                                                        {user?.user_metadata?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Role Badge */}
+                                            <span className="px-4 py-1.5 bg-primary text-text-inverse rounded-full text-xs font-black uppercase tracking-wider">
+                                                {userRole}
+                                            </span>
                                         </div>
 
-                                        {/* Role Badge */}
-                                        <span className="px-4 py-1.5 bg-primary text-text-inverse rounded-full text-xs font-black uppercase tracking-wider">
-                                            {userRole}
-                                        </span>
-                                    </div>
+                                        {/* Card Body with User Info */}
+                                        <div className="p-8 space-y-6">
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {user?.user_metadata?.full_name || 'Not Set'}
+                                                    </span>
+                                                </div>
 
-                                    {/* Card Body with User Info */}
-                                    <div className="p-8 space-y-6">
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</span>
-                                                <span className="text-sm font-bold text-slate-900">
-                                                    {user?.user_metadata?.full_name || 'Not Set'}
-                                                </span>
-                                            </div>
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {user?.user_metadata?.phone || 'Not Set'}
+                                                    </span>
+                                                </div>
 
-                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
-                                                <span className="text-sm font-bold text-slate-900">
-                                                    {user?.user_metadata?.phone || 'Not Set'}
-                                                </span>
-                                            </div>
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                                                    <span className="text-sm font-medium text-slate-700">
+                                                        {user?.email || 'Not Set'}
+                                                    </span>
+                                                </div>
 
-                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
-                                                <span className="text-sm font-medium text-slate-700">
-                                                    {user?.email || 'Not Set'}
-                                                </span>
-                                            </div>
+                                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</span>
+                                                    <span className="text-sm font-bold text-slate-900">
+                                                        {property?.name || 'Not Assigned'}
+                                                    </span>
+                                                </div>
 
-                                            <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property</span>
-                                                <span className="text-sm font-bold text-slate-900">
-                                                    {property?.name || 'Not Assigned'}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex justify-between items-center py-3">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Work Email</span>
-                                                <span className="text-xs font-medium text-primary">
-                                                    {user?.email}
-                                                </span>
+                                                <div className="flex justify-between items-center py-3">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Work Email</span>
+                                                    <span className="text-xs font-medium text-primary">
+                                                        {user?.email}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </main>
 
             <SignOutModal

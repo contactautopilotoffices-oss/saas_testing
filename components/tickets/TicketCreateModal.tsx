@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { X, Paperclip, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@/utils/supabase/client';
 
 interface TicketCreateModalProps {
     isOpen: boolean;
     onClose: () => void;
-    propertyId: string;
-    organizationId: string;
+    propertyId?: string;
+    organizationId?: string;
     onSuccess?: (ticket: unknown) => void;
+    isAdminMode?: boolean;
+    organizations?: any[];
 }
 
 interface Classification {
@@ -24,6 +27,8 @@ export default function TicketCreateModal({
     propertyId,
     organizationId,
     onSuccess,
+    isAdminMode = false,
+    organizations = []
 }: TicketCreateModalProps) {
     const [description, setDescription] = useState('');
     const [isInternal, setIsInternal] = useState(false);
@@ -33,6 +38,28 @@ export default function TicketCreateModal({
     const [classification, setClassification] = useState<Classification | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+
+    // Admin Mode State
+    const [selectedOrgId, setSelectedOrgId] = useState(organizationId || '');
+    const [selectedPropId, setSelectedPropId] = useState(propertyId || '');
+    const [availableProperties, setAvailableProperties] = useState<any[]>([]);
+    const supabase = createClient();
+
+    // Fetch properties when org changes in admin mode
+    const handleOrgChange = async (orgId: string) => {
+        setSelectedOrgId(orgId);
+        setSelectedPropId('');
+        if (orgId) {
+            const { data } = await supabase
+                .from('properties')
+                .select('id, name, code')
+                .eq('organization_id', orgId)
+                .eq('status', 'active');
+            setAvailableProperties(data || []);
+        } else {
+            setAvailableProperties([]);
+        }
+    };
 
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -78,6 +105,14 @@ export default function TicketCreateModal({
             return;
         }
 
+        const finalOrgId = isAdminMode ? selectedOrgId : organizationId;
+        const finalPropId = isAdminMode ? selectedPropId : propertyId;
+
+        if (!finalOrgId || !finalPropId) {
+            setError('Please select an organization and property');
+            return;
+        }
+
         setIsSubmitting(true);
         setError(null);
 
@@ -92,8 +127,8 @@ export default function TicketCreateModal({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     description,
-                    propertyId,
-                    organizationId,
+                    propertyId: finalPropId,
+                    organizationId: finalOrgId,
                     isInternal,
                     photoUrl,
                 }),
@@ -185,6 +220,38 @@ export default function TicketCreateModal({
                             </div>
                         ) : (
                             <>
+                                {isAdminMode && (
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Organization</label>
+                                            <select
+                                                value={selectedOrgId}
+                                                onChange={(e) => handleOrgChange(e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                                            >
+                                                <option value="">Select Org</option>
+                                                {organizations?.map(org => (
+                                                    <option key={org.id} value={org.id}>{org.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Property</label>
+                                            <select
+                                                value={selectedPropId}
+                                                onChange={(e) => setSelectedPropId(e.target.value)}
+                                                disabled={!selectedOrgId}
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                                            >
+                                                <option value="">Select Property</option>
+                                                {availableProperties.map(prop => (
+                                                    <option key={prop.id} value={prop.id}>{prop.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Description Input */}
                                 <div>
                                     <label className="text-sm font-bold text-slate-700 mb-2 block">Description</label>

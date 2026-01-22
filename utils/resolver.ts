@@ -22,14 +22,12 @@ export async function checkInResolver(userId: string, propertyId: string) {
             is_available: true,
             current_floor: 1,
             total_resolved: 0,
-            avg_resolution_minutes: 60,
-            last_active_at: new Date().toISOString()
+            avg_resolution_minutes: 60
         });
     } else {
         // Update entry
         await supabase.from('resolver_stats').update({
-            is_available: true,
-            last_active_at: new Date().toISOString()
+            is_available: true
         }).eq('user_id', userId);
     }
 }

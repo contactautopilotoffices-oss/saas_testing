@@ -11,6 +11,7 @@ interface CreateUserRequest {
     username?: string
     create_master_admin?: boolean
     property_id?: string
+    specialization?: string
 }
 
 /**
@@ -202,6 +203,21 @@ export async function POST(request: NextRequest) {
 
             if (propMemberError) {
                 console.error('Property membership creation error:', propMemberError)
+            }
+        }
+
+        // Assign Specialization/Skill if provided (for Staff/MST)
+        const { specialization } = body;
+        if ((role === 'staff' || role === 'mst') && specialization) {
+            const { error: skillError } = await adminClient
+                .from('mst_skills')
+                .insert({
+                    user_id: userData.user.id,
+                    skill_code: specialization
+                });
+
+            if (skillError) {
+                console.error('Skill assignment error:', skillError);
             }
         }
 

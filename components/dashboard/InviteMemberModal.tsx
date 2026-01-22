@@ -22,6 +22,7 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [role, setRole] = useState('staff');
+    const [specialization, setSpecialization] = useState('');
     const [selectedPropertyId, setSelectedPropertyId] = useState(fixedPropertyId || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -41,7 +42,8 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                     full_name: fullName,
                     organization_id: orgId,
                     role,
-                    property_id: selectedPropertyId // Note: The existing API might need property_id support if it doesn't have it
+                    property_id: role === 'org_super_admin' ? null : selectedPropertyId,
+                    specialization: role === 'staff' ? specialization : undefined
                 }),
             });
 
@@ -190,32 +192,53 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                                 </div>
                             </div>
 
-                            {/* Property */}
+                            {role !== 'org_super_admin' && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Target Property</label>
+                                    <div className="relative">
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <select
+                                            value={selectedPropertyId}
+                                            onChange={(e) => setSelectedPropertyId(e.target.value)}
+                                            required={role !== 'org_super_admin'}
+                                            disabled={!!fixedPropertyId}
+                                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-slate-100 outline-none appearance-none disabled:opacity-75 disabled:cursor-not-allowed"
+                                        >
+                                            {fixedPropertyId ? (
+                                                <option value={fixedPropertyId}>Current Property</option>
+                                            ) : (
+                                                <>
+                                                    <option value="">Select Property</option>
+                                                    {properties.map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))}
+                                                </>
+                                            )}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {role === 'staff' && (
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Target Property</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Specialization</label>
                                 <div className="relative">
-                                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <select
-                                        value={selectedPropertyId}
-                                        onChange={(e) => setSelectedPropertyId(e.target.value)}
-                                        required
-                                        disabled={!!fixedPropertyId}
-                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-slate-100 outline-none appearance-none disabled:opacity-75 disabled:cursor-not-allowed"
+                                        value={specialization}
+                                        onChange={(e) => setSpecialization(e.target.value)}
+                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-slate-100 outline-none appearance-none"
                                     >
-                                        {fixedPropertyId ? (
-                                            <option value={fixedPropertyId}>Current Property</option>
-                                        ) : (
-                                            <>
-                                                <option value="">Select Property</option>
-                                                {properties.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </>
-                                        )}
+                                        <option value="">General</option>
+                                        <option value="soft_service">Soft Services</option>
+                                        <option value="technical">Technical</option>
+                                        <option value="plumbing">Plumbing</option>
+                                        <option value="electrical">Electrical</option>
                                     </select>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <button

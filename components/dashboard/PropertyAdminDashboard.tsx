@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import {
     LayoutDashboard, Users, Ticket, Settings, UserCircle, UsersRound,
     Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Building2,
-    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload, FileBarChart
+    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload, FileBarChart, Menu, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -63,11 +63,16 @@ const PropertyAdminDashboard = () => {
     const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [statsVersion, setStatsVersion] = useState(0);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
+
+    // Ref to prevent duplicate fetches
+    const hasFetchedProperty = useRef(false);
 
     useEffect(() => {
-        if (propertyId) {
+        if (propertyId && !hasFetchedProperty.current) {
+            hasFetchedProperty.current = true;
             fetchPropertyDetails();
         }
     }, [propertyId]);
@@ -110,8 +115,32 @@ const PropertyAdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-white flex font-inter text-text-primary">
+            {/* Mobile Overlay */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Sidebar */}
-            <aside className="w-72 bg-white border-r border-border flex flex-col fixed h-full z-20 transition-all duration-300">
+            <aside className={`
+                w-72 bg-white border-r border-border flex flex-col h-screen z-50 transition-all duration-300
+                fixed lg:sticky top-0
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                {/* Mobile Close Button */}
+                <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="absolute top-4 right-4 lg:hidden p-2 rounded-lg hover:bg-surface-elevated transition-colors"
+                >
+                    <X className="w-5 h-5 text-text-secondary" />
+                </button>
                 <div className="p-8 pb-4">
                     <div className="flex flex-col items-center gap-2 mb-8">
                         <img src="/autopilot-logo-new.png" alt="Autopilot Logo" className="h-12 w-auto object-contain" />
@@ -307,12 +336,21 @@ const PropertyAdminDashboard = () => {
             }
 
             {/* Main Content */}
-            <main className="flex-1 ml-72 p-8 lg:p-12 overflow-y-auto min-h-screen bg-white">
+            <main className="flex-1 lg:ml-0 flex flex-col min-h-screen bg-white">
                 {activeTab !== 'overview' && (
-                    <header className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab}</h1>
-                            <p className="text-text-tertiary text-sm font-medium mt-1">{property.address || 'Property Management Hub'}</p>
+                    <header className="h-20 flex justify-between items-center px-4 md:px-8 lg:px-12 mb-4 border-b border-border/10">
+                        <div className="flex items-center gap-4">
+                            {/* Mobile Menu Toggle */}
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="p-2 -ml-2 lg:hidden text-text-tertiary hover:text-text-primary transition-colors"
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab}</h1>
+                                <p className="text-text-tertiary text-xs md:text-sm font-medium mt-0.5">{property.address || 'Property Management Hub'}</p>
+                            </div>
                         </div>
                         <div className="flex items-center gap-6">
                             {/* User Account Info - Simplified Level Look */}
@@ -346,12 +384,13 @@ const PropertyAdminDashboard = () => {
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}
+                        className={activeTab === 'overview' ? '' : 'p-4 md:p-8 lg:p-12 pt-4'}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {activeTab === 'overview' && <OverviewTab propertyId={propertyId} statsVersion={statsVersion} property={property} />}
+                        {activeTab === 'overview' && <OverviewTab propertyId={propertyId} statsVersion={statsVersion} property={property} onMenuToggle={() => setSidebarOpen(true)} />}
                         {activeTab === 'users' && <UserDirectory
                             propertyId={propertyId}
                             orgId={property?.organization_id}
@@ -533,9 +572,11 @@ const DieselSphere = ({ percentage }: { percentage: number }) => {
     );
 };
 
-const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: string, statsVersion: number, property: { name: string; code: string; address?: string; image_url?: string } | null }) => {
+const OverviewTab = memo(function OverviewTab({ propertyId, statsVersion, property, onMenuToggle }: { propertyId: string, statsVersion: number, property: { name: string; code: string; address?: string; image_url?: string } | null, onMenuToggle?: () => void }) {
     const [isLoading, setIsLoading] = useState(true);
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
+    const hasFetched = useRef(false);
+    const lastFetchKey = useRef('');
 
     // Stats State
     const [ticketStats, setTicketStats] = useState({ total: 0, open: 0, in_progress: 0, resolved: 0, sla_breached: 0, avg_resolution_hours: 0 });
@@ -545,16 +586,28 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
     const [recentTickets, setRecentTickets] = useState<any[]>([]);
 
     useEffect(() => {
+        const fetchKey = `${propertyId}-${statsVersion}`;
+
+        // Prevent duplicate fetches for the same key
+        if (lastFetchKey.current === fetchKey && hasFetched.current) {
+            return;
+        }
+
         const fetchPropertyData = async () => {
             setIsLoading(true);
+            lastFetchKey.current = fetchKey;
+            hasFetched.current = true;
+
             try {
-                // --- Tickets ---
-                const [openRes, inProgressRes, resolvedRes, totalRes] = await Promise.all([
-                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).in('status', ['open', 'waitlist', 'blocked']),
-                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).in('status', ['assigned', 'in_progress', 'paused', 'work_started']),
-                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId).in('status', ['resolved', 'closed']),
-                    supabase.from('tickets').select('id', { count: 'exact' }).eq('property_id', propertyId),
+                // --- Tickets (all in parallel) ---
+                const [openRes, inProgressRes, resolvedRes, totalRes, recentsRes] = await Promise.all([
+                    supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).in('status', ['open', 'waitlist', 'blocked']),
+                    supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).in('status', ['assigned', 'in_progress', 'paused', 'work_started']),
+                    supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).in('status', ['resolved', 'closed']),
+                    supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId),
+                    supabase.from('tickets').select('id, title, status, created_at').eq('property_id', propertyId).order('created_at', { ascending: false }).limit(5),
                 ]);
+
                 setTicketStats({
                     total: totalRes.count || 0,
                     open: openRes.count || 0,
@@ -563,39 +616,39 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
                     sla_breached: 0,
                     avg_resolution_hours: 0
                 });
+                setRecentTickets(recentsRes.data || []);
 
-                // --- Recent Tickets ---
-                const { data: recents } = await supabase.from('tickets').select('id, title, status, created_at').eq('property_id', propertyId).order('created_at', { ascending: false }).limit(5);
-                setRecentTickets(recents || []);
+                // --- Diesel, VMS, Vendors (all in parallel) ---
+                const today = new Date().toISOString().split('T')[0];
+                const monthStart = new Date(new Date().setDate(1)).toISOString().split('T')[0];
 
-                // --- Diesel ---
-                const { data: dieselData } = await supabase.from('diesel_readings').select('computed_consumed_litres').eq('property_id', propertyId).gte('reading_date', new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-                const totalDiesel = dieselData?.reduce((acc, r) => acc + (r.computed_consumed_litres || 0), 0) || 0;
+                const [dieselRes, genRes, vmsRes, vendorRes] = await Promise.all([
+                    supabase.from('diesel_readings').select('computed_consumed_litres').eq('property_id', propertyId).gte('reading_date', monthStart),
+                    supabase.from('generators').select('tank_capacity_litres').eq('property_id', propertyId),
+                    supabase.from('visitor_logs').select('status').eq('property_id', propertyId).gte('checkin_time', today),
+                    supabase.from('vendors').select('id, commission_rate, vendor_daily_revenue(revenue_amount, revenue_date)').eq('property_id', propertyId),
+                ]);
 
-                // Fetch generator capacity for percentage calculation
-                const { data: genData } = await supabase.from('generators').select('tank_capacity_litres').eq('property_id', propertyId);
-                const totalCapacity = genData?.reduce((acc, g) => acc + (g.tank_capacity_litres || 1000), 0) || 1000;
-
+                // Process diesel
+                const totalDiesel = dieselRes.data?.reduce((acc, r) => acc + (r.computed_consumed_litres || 0), 0) || 0;
+                const totalCapacity = genRes.data?.reduce((acc, g) => acc + (g.tank_capacity_litres || 1000), 0) || 1000;
                 setDieselStats({ total_consumption: totalDiesel, change_percentage: 0, tank_capacity: totalCapacity });
 
-                // --- VMS ---
-                const today = new Date().toISOString().split('T')[0];
-                const { data: vmsData } = await supabase.from('visitor_logs').select('status').eq('property_id', propertyId).gte('checkin_time', today);
-                const checkedIn = vmsData?.filter(v => v.status === 'checked_in').length || 0;
-                const checkedOut = vmsData?.filter(v => v.status === 'checked_out').length || 0;
-                setVmsStats({ total_visitors_today: vmsData?.length || 0, checked_in: checkedIn, checked_out: checkedOut });
+                // Process VMS
+                const checkedIn = vmsRes.data?.filter(v => v.status === 'checked_in').length || 0;
+                const checkedOut = vmsRes.data?.filter(v => v.status === 'checked_out').length || 0;
+                setVmsStats({ total_visitors_today: vmsRes.data?.length || 0, checked_in: checkedIn, checked_out: checkedOut });
 
-                // --- Vendors ---
-                const { data: vendorData } = await supabase.from('vendors').select('id, commission_rate, vendor_daily_revenue(revenue_amount, revenue_date)').eq('property_id', propertyId);
+                // Process Vendors
                 let totalRev = 0, totalComm = 0;
-                vendorData?.forEach(v => {
+                vendorRes.data?.forEach(v => {
                     const todayEntry = v.vendor_daily_revenue?.find((r: any) => r.revenue_date === today);
                     if (todayEntry) {
                         totalRev += todayEntry.revenue_amount || 0;
                         totalComm += (todayEntry.revenue_amount || 0) * ((v.commission_rate || 0) / 100);
                     }
                 });
-                setVendorStats({ total_revenue: totalRev, total_commission: totalComm, total_vendors: vendorData?.length || 0 });
+                setVendorStats({ total_revenue: totalRev, total_commission: totalComm, total_vendors: vendorRes.data?.length || 0 });
 
             } catch (err) {
                 console.error('Error fetching property overview data:', err);
@@ -603,8 +656,9 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
                 setIsLoading(false);
             }
         };
+
         if (propertyId) fetchPropertyData();
-    }, [propertyId, statsVersion]);
+    }, [propertyId, statsVersion, supabase]);
 
     const completionRate = ticketStats.total > 0 ? Math.round((ticketStats.resolved / ticketStats.total) * 100 * 10) / 10 : 0;
 
@@ -615,7 +669,16 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
             {/* Header Section */}
             <div className="bg-[#708F96] px-8 lg:px-12 py-10 border-b border-white/10 shadow-lg">
                 <div className="flex items-center justify-between mb-5">
-                    <h1 className="text-3xl font-black text-white">Unified Dashboard</h1>
+                    <div className="flex items-center gap-4">
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            onClick={onMenuToggle}
+                            className="p-2 -ml-2 lg:hidden text-white/70 hover:text-white transition-colors"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-2xl md:text-3xl font-black text-white">Unified Dashboard</h1>
+                    </div>
                     <Search className="w-6 h-6 text-white/70 cursor-pointer hover:text-white transition-colors" />
                 </div>
                 <div className="flex items-center gap-2 mb-5">
@@ -719,7 +782,7 @@ const OverviewTab = ({ propertyId, statsVersion, property }: { propertyId: strin
             </div>
         </div>
     );
-};
+});
 
 // Helper to format time ago
 const formatTimeAgo = (date: Date) => {
@@ -779,15 +842,19 @@ const InspectionItem = ({ date, unit, status }: any) => (
     </div>
 );
 
-const VendorRevenueTab = ({ propertyId }: { propertyId: string }) => {
+const VendorRevenueTab = memo(function VendorRevenueTab({ propertyId }: { propertyId: string }) {
     const [vendors, setVendors] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showExportModal, setShowExportModal] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
+    const hasFetched = useRef(false);
 
     useEffect(() => {
-        fetchVendors();
+        if (!hasFetched.current) {
+            hasFetched.current = true;
+            fetchVendors();
+        }
     }, [propertyId]);
 
     const fetchVendors = async () => {
@@ -992,6 +1059,6 @@ const VendorRevenueTab = ({ propertyId }: { propertyId: string }) => {
             />
         </div>
     );
-};
+});
 
 export default PropertyAdminDashboard;

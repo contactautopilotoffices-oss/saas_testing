@@ -18,6 +18,7 @@ import { HapticCard } from '@/components/ui/HapticCard';
 import SignOutModal from '@/components/ui/SignOutModal';
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
+import TicketCreateModal from '@/components/tickets/TicketCreateModal';
 
 type Tab = 'overview' | 'organizations' | 'tickets' | 'users' | 'visitors' | 'invite-links' | 'modules' | 'settings';
 
@@ -55,6 +56,7 @@ const MasterAdminDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
     const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+    const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null); // For drill-down
     const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -370,7 +372,7 @@ const MasterAdminDashboard = () => {
                                 />
                             )
                         )}
-                        {activeTab === 'tickets' && <TicketsView />}
+                        {activeTab === 'tickets' && <TicketsView onNewRequest={() => setShowCreateTicketModal(true)} />}
                         {activeTab === 'users' && (
                             <UserDirectory
                                 users={users}
@@ -441,6 +443,17 @@ const MasterAdminDashboard = () => {
                         onCreated={fetchUsers}
                         organizations={organizations}
                         showToast={showToast}
+                    />
+                )}
+                {showCreateTicketModal && (
+                    <TicketCreateModal
+                        isOpen={showCreateTicketModal}
+                        onClose={() => setShowCreateTicketModal(false)}
+                        isAdminMode={true}
+                        organizations={organizations}
+                        onSuccess={() => {
+                            showToast('Request created successfully', 'success');
+                        }}
                     />
                 )}
             </AnimatePresence>
