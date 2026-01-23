@@ -11,6 +11,7 @@ Applied a consistent sidebar behavior across all dashboards:
 - **Toggle Mechanism**: Replaced "floating side bubbles" and inconsistent toggles with a standard header-integrated hamburger menu.
 - **Mobile Overlay**: Added a semi-transparent backdrop (`AnimatePresence`) that closes the sidebar when clicked.
 - **Close Button**: Added a dedicated `X` button inside the sidebar for mobile users.
+- **Branding Update**: Replaced generic portal icons with the official Autopilot logo (`/autopilot-logo-new.png`) across all major admin/staff dashboards for a unified brand identity.
 
 ### 2. Component Refactoring
 
@@ -37,9 +38,8 @@ Applied a consistent sidebar behavior across all dashboards:
 - Standardized the sidebar sliding behavior.
 
 #### [TenantDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/components/dashboard/TenantDashboard.tsx)
-- Removed the fixed floating menu button.
-- Added a standard mobile header with a hamburger toggle.
-- Standardized the sidebar component to be `fixed lg:sticky`.
+- Reverted to original design: Restored the floating menu button and the motion-based sliding sidebar as per user request.
+- Maintained the original layout and navigation flow.
 
 #### [SecurityDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/components/dashboard/SecurityDashboard.tsx)
 - Added `sidebarOpen` state.

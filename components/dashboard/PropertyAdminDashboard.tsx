@@ -665,7 +665,7 @@ const OverviewTab = memo(function OverviewTab({ propertyId, statsVersion, proper
     if (isLoading) return <div className="p-10 text-center text-slate-400 font-bold animate-pulse">Synchronizing Property Intelligence...</div>;
 
     return (
-        <div className="min-h-screen bg-background -m-8 lg:-m-12">
+        <div className="min-h-screen bg-background">
             {/* Header Section */}
             <div className="bg-[#708F96] px-8 lg:px-12 py-10 border-b border-white/10 shadow-lg">
                 <div className="flex items-center justify-between mb-5">

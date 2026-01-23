@@ -260,15 +260,10 @@ const MstDashboard = () => {
                 </button>
 
                 {/* Logo */}
-                <div className="p-4 border-b border-border">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-text-inverse font-bold text-sm">
-                            <Wrench className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <h2 className="font-bold text-sm text-text-primary">AUTOPILOT</h2>
-                            <p className="text-[10px] text-text-tertiary">Maintenance Portal</p>
-                        </div>
+                <div className="p-8 pb-4">
+                    <div className="flex flex-col items-center gap-2 mb-4">
+                        <img src="/autopilot-logo-new.png" alt="Autopilot Logo" className="h-12 w-auto object-contain" />
+                        <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.2em]">Maintenance Portal</p>
                     </div>
                 </div>
 

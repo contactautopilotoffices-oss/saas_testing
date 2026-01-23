@@ -187,14 +187,9 @@ const SecurityDashboard = () => {
                     <X className="w-5 h-5 text-text-secondary" />
                 </button>
                 <div className="p-8 pb-4">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse font-bold text-lg shadow-lg shadow-slate-200">
-                            <Shield className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h2 className="font-bold text-sm leading-tight text-foreground truncate max-w-[160px]">{property?.name}</h2>
-                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Security Portal</p>
-                        </div>
+                    <div className="flex flex-col items-center gap-1 mb-8">
+                        <img src="/autopilot-logo-new.png" alt="Autopilot Logo" className="h-12 w-auto object-contain" />
+                        <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.2em]">Security Portal</p>
                     </div>
                 </div>
 
