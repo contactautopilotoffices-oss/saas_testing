@@ -581,6 +581,8 @@ const StaffDashboard = () => {
                                     propertyName={property.name}
                                     userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
                                     onSettingsClick={() => setActiveTab('settings')}
+                                    onEditClick={handleEditClick}
+                                    userRole={userRole}
                                 />
                             )}
                             {activeTab === 'tasks' && <TasksTab />}
@@ -612,6 +614,7 @@ const StaffDashboard = () => {
                                     propertyName={property?.name}
                                     userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
                                     onEditClick={handleEditClick}
+                                    userRole={userRole}
                                 />
                             )}
                             {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
@@ -788,7 +791,16 @@ const StaffDashboard = () => {
     );
 };
 
-const TicketRow = ({ ticket, onTicketClick, userId, isCompleted, onEditClick }: { ticket: any, onTicketClick?: (id: string) => void, userId: string, isCompleted?: boolean, onEditClick?: (e: React.MouseEvent, t: Ticket) => void }) => (
+// Staff technical roles that can edit any request
+const STAFF_TECHNICAL_ROLES = ['mst', 'technician', 'fe', 'se', 'bms_operator'];
+
+const isStaffTechnical = (role: string): boolean => {
+    const normalizedRole = role.toLowerCase().replace(/\s+/g, '_');
+    return STAFF_TECHNICAL_ROLES.includes(normalizedRole) || normalizedRole.includes('technical');
+};
+
+const TicketRow = ({ ticket, onTicketClick, userId, isCompleted, onEditClick, userRole = '' }: { ticket: any, onTicketClick?: (id: string) => void, userId: string, isCompleted?: boolean, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, userRole?: string }) => (
+
     <div
         onClick={() => onTicketClick?.(ticket.id)}
         className={`bg-surface-elevated border rounded-lg p-3 transition-colors group cursor-pointer ${isCompleted ? 'opacity-75 grayscale-[0.3] border-border' : ticket.assigned_to === userId ? 'border-success ring-1 ring-success/20 shadow-md ring-offset-1 ring-offset-background' : 'border-border hover:border-primary/50 shadow-sm hover:shadow-md'}`}
@@ -820,8 +832,8 @@ const TicketRow = ({ ticket, onTicketClick, userId, isCompleted, onEditClick }: 
                     </span>
                 )}
 
-                {/* Edit Button - Only for user's own tickets */}
-                {ticket.raised_by === userId && !isCompleted && onEditClick && (
+                {/* Edit Button - For user's own tickets OR staff technical users */}
+                {(ticket.raised_by === userId || isStaffTechnical(userRole)) && !isCompleted && onEditClick && (
                     <button
                         onClick={(e) => onEditClick(e, ticket)}
                         className="p-1 px-2 text-primary hover:bg-primary/10 rounded border border-primary/20 transition-smooth flex items-center gap-1.5"
@@ -881,7 +893,7 @@ const TicketRow = ({ ticket, onTicketClick, userId, isCompleted, onEditClick }: 
 );
 
 // Dashboard Tab
-const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName, onSettingsClick, onEditClick }: { tickets: any[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string, onSettingsClick?: () => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void }) => {
+const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName, onSettingsClick, onEditClick, userRole = '' }: { tickets: any[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string, onSettingsClick?: () => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, userRole?: string }) => {
     const total = tickets.length + completedCount;
     const active = tickets.filter(t => t.status === 'in_progress' || t.status === 'assigned' || t.status === 'open').length;
     const completed = completedCount;
@@ -956,7 +968,7 @@ const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoadin
                                 return 0;
                             })
                             .map((ticket) => (
-                                <TicketRow key={ticket.id} userId={userId} ticket={ticket} onTicketClick={onTicketClick} onEditClick={onEditClick} />
+                                <TicketRow key={ticket.id} userId={userId} ticket={ticket} onTicketClick={onTicketClick} onEditClick={onEditClick} userRole={userRole} />
                             ))
                     )}
                 </div>
@@ -988,7 +1000,7 @@ const ProjectsTab = () => (
 );
 
 // Requests Tab
-const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick }: { activeTickets?: any[], completedTickets?: any[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void }) => (
+const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick, userRole = '' }: { activeTickets?: any[], completedTickets?: any[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, userRole?: string }) => (
     <div className="space-y-6">
         <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-text-primary">Requests</h1>
@@ -1020,7 +1032,7 @@ const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick,
                             return 0;
                         })
                         .map((ticket) => (
-                            <TicketRow key={ticket.id} ticket={ticket} onTicketClick={onTicketClick} userId={userId} onEditClick={onEditClick} />
+                            <TicketRow key={ticket.id} ticket={ticket} onTicketClick={onTicketClick} userId={userId} onEditClick={onEditClick} userRole={userRole} />
                         ))}
                 </div>
             )}

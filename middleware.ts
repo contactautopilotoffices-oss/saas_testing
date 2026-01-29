@@ -107,13 +107,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl)
     }
 
-    // If user is authenticated and tries to access login page, redirect to their dashboard
+    // If user is authenticated and tries to access login page, redirect to home
+    // The home page or client-side routing will handle proper dashboard redirect
     if (user && (pathname === '/login' || pathname === '/signup')) {
         // Don't redirect if there's a mode parameter (e.g., password reset)
         const mode = request.nextUrl.searchParams.get('mode')
         if (!mode) {
-            // We can't determine the exact redirect here without DB calls
-            // The login page will handle proper redirect based on user role
+            // Redirect to home - the client-side auth context will handle proper routing
+            return NextResponse.redirect(new URL('/', request.url))
         }
     }
 

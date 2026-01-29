@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         }
 
         if (user) {
-            // 2. COMPULSORY profile storage (always)
+            // 3. COMPULSORY profile storage (always)
             const { data: dbUser, error: profileError } = await supabase.from('users').upsert({
                 id: user.id,
                 full_name: user.user_metadata.full_name || user.email?.split('@')[0],
@@ -36,25 +36,27 @@ export async function GET(request: Request) {
 
             if (profileError) console.error('Profile Error:', profileError.message);
 
-            // --- STRICT 4-STEP ROLE CHECK ---
+            // --- STRICT ROLE CHECK ---
 
             // STEP 1: Check if Master Admin
             if (dbUser?.is_master_admin || user.user_metadata?.is_master_admin) {
                 return NextResponse.redirect(`${requestUrl.origin}/master`);
             }
 
-            // STEP 2: Check Organization Membership
-            const { data: orgMemberships } = await supabase
+            // STEP 2: Check Organization Membership (Org Super Admin)
+            const { data: orgMembership } = await supabase
                 .from('organization_memberships')
                 .select('organization_id, role')
                 .eq('user_id', user.id)
+                .eq('role', 'org_super_admin')
                 .eq('is_active', true)
-                .limit(1);
+                .maybeSingle();
 
-            const orgMembership = orgMemberships?.[0];
+            if (orgMembership) {
+                return NextResponse.redirect(`${requestUrl.origin}/org/${orgMembership.organization_id}/dashboard`);
+            }
 
             // SPECIAL CASE: Property-scoped signup (Join flow)
-            // If they have a property code, we handle that as registration/onboarding
             if (propertyCode) {
                 const { data: property } = await supabase
                     .from('properties')
@@ -74,43 +76,38 @@ export async function GET(request: Request) {
                 }
             }
 
-            // STEP 2 (cont): Redirect if Org Membership found
-            if (orgMembership) {
-                const { data: org } = await supabase
-                    .from('organizations')
-                    .select('code')
-                    .eq('id', orgMembership.organization_id)
-                    .maybeSingle();
-
-                if (org) {
-                    return NextResponse.redirect(`${requestUrl.origin}/${org.code}/dashboard`);
-                }
-            }
-
-            // STEP 3: Check Property Membership
-            const { data: propMemberships } = await supabase
+            // STEP 3: Check Property Membership with Role-based routing
+            const { data: propMembership } = await supabase
                 .from('property_memberships')
-                .select('property_id, organization_id')
+                .select('property_id, organization_id, role')
                 .eq('user_id', user.id)
                 .eq('is_active', true)
-                .limit(1);
+                .maybeSingle();
 
-            if (propMemberships && propMemberships.length > 0) {
-                const { property_id, organization_id } = propMemberships[0];
-                const { data: org } = await supabase
-                    .from('organizations')
-                    .select('code')
-                    .eq('id', organization_id)
-                    .maybeSingle();
+            if (propMembership) {
+                const role = propMembership.role;
+                const pId = propMembership.property_id;
 
-                if (org) {
-                    return NextResponse.redirect(`${requestUrl.origin}/${org.code}/properties/${property_id}/dashboard`);
+                // Role-based routing (matching login page logic)
+                if (role === 'property_admin') {
+                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/dashboard`);
+                } else if (role === 'tenant') {
+                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/tenant`);
+                } else if (role === 'security') {
+                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/security`);
+                } else if (role === 'staff') {
+                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/staff`);
+                } else if (role === 'mst') {
+                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/mst`);
+                } else if (role === 'vendor') {
+                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/vendor`);
+                } else {
+                    // Fallback for unknown roles
+                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/dashboard`);
                 }
             }
 
             // STEP 4: No Membership Found -> Redirect to login with error
-            // We don't call signOut here because the session was just created, 
-            // the login page will handle the session existence and block further access.
             return NextResponse.redirect(`${requestUrl.origin}/login?error=no_access`);
         }
     }
@@ -118,3 +115,4 @@ export async function GET(request: Request) {
     // Return to home if failed
     return NextResponse.redirect(`${requestUrl.origin}/`);
 }
+

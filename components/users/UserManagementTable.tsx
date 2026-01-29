@@ -9,14 +9,20 @@ import CapabilityWrapper from '@/components/auth/CapabilityWrapper';
 export default function UserManagementTable() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const currentUser = authService.getCurrentUser();
+    const [propertyId, setPropertyId] = useState<string | null>(null);
 
     useEffect(() => {
-        userService.getUsers(currentUser.property_id).then(data => {
-            setUsers(data);
+        const init = async () => {
+            const currentUser = await authService.getCurrentUser();
+            if (currentUser?.property_id) {
+                setPropertyId(currentUser.property_id);
+                const data = await userService.getUsers(currentUser.property_id);
+                setUsers(data);
+            }
             setLoading(false);
-        });
-    }, [currentUser.property_id]);
+        };
+        init();
+    }, []);
 
     const handleStatusToggle = async (user: User) => {
         const newStatus = user.status === 'active' ? 'suspended' : 'active';
