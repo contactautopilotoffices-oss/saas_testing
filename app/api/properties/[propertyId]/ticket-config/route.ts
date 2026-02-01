@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/utils/supabase/admin';
+import { createAdminClient } from '@/frontend/utils/supabase/admin';
 
 // Default Skill Groups
 const DEFAULT_SKILL_GROUPS = [

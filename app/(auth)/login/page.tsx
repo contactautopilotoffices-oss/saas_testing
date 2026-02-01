@@ -4,10 +4,10 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { ArrowRight, Sparkles, Building2, BarChart3, Ticket, Eye, EyeOff, Lock, Mail, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/frontend/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
-import Loader from '@/components/ui/Loader';
+import { createClient } from '@/frontend/utils/supabase/client';
+import Loader from '@/frontend/components/ui/Loader';
 
 // Feature cards for the animated showcase
 const features = [

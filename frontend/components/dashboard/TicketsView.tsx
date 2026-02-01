@@ -1,0 +1,431 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import {
+    AlertCircle, MessageSquare, User, Building2, Clock, CheckCircle2,
+    XCircle, RefreshCw, Filter, Send, ChevronRight, Camera, Plus, Pencil, X, Loader2
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@/frontend/utils/supabase/client';
+
+interface Ticket {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    status: string;
+    priority: string;
+    created_at: string;
+    updated_at: string;
+    resolved_at: string | null;
+    raised_by?: string;
+    organization: { id: string; name: string; code: string };
+    property: { id: string; name: string; code: string } | null;
+    creator: { id: string; full_name: string; email: string };
+    assignee: { id: string; full_name: string; email: string } | null;
+    ticket_comments: { count: number }[];
+    photo_before_url?: string;
+    photo_after_url?: string;
+}
+
+interface Comment {
+    id: string;
+    comment: string;
+    is_internal: boolean;
+    created_at: string;
+    user: { id: string; full_name: string; email: string };
+}
+
+interface TicketsViewProps {
+    propertyId?: string;
+    canDelete?: boolean;
+    onNewRequest?: () => void;
+}
+
+const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewRequest }) => {
+    const router = useRouter();
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+    // Edit Modal State
+    const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDescription, setEditDescription] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const supabase = createClient();
+
+    useEffect(() => {
+        // Get current user
+        const getCurrentUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+            }
+        };
+        getCurrentUser();
+    }, []);
+
+    useEffect(() => {
+        fetchTickets();
+    }, [statusFilter]);
+
+    const fetchTickets = async () => {
+        setIsLoading(true);
+        try {
+            let url = statusFilter === 'all'
+                ? '/api/tickets'
+                : `/api/tickets?status=${statusFilter}`;
+
+            if (propertyId) {
+                const sep = url.includes('?') ? '&' : '?';
+                url += `${sep}propertyId=${propertyId}`;
+            }
+
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                setTickets(data.tickets || []);
+            }
+        } catch (error) {
+            console.error('Error fetching tickets:', error);
+            setTickets([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (ticketId: string, newStatus: string) => {
+        try {
+            const response = await fetch(`/api/tickets/${ticketId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (response.ok) {
+                fetchTickets();
+            }
+        } catch (error) {
+            console.error('Error updating ticket:', error);
+        }
+    };
+
+    const handleDelete = async (e: React.MouseEvent, ticketId: string) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to delete this ticket?')) return;
+
+        try {
+            const response = await fetch(`/api/tickets/${ticketId}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                fetchTickets();
+            }
+        } catch (error) {
+            console.error('Error deleting ticket:', error);
+        }
+    };
+
+    const handleEditClick = (e: React.MouseEvent, ticket: Ticket) => {
+        e.stopPropagation();
+        setEditingTicket(ticket);
+        setEditTitle(ticket.title);
+        setEditDescription(ticket.description);
+    };
+
+    const handleEditSubmit = async () => {
+        if (!editingTicket || !editTitle.trim()) return;
+
+        setIsUpdating(true);
+        try {
+            const response = await fetch(`/api/tickets/${editingTicket.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: editTitle.trim(),
+                    description: editDescription.trim()
+                })
+            });
+
+            if (response.ok) {
+                setEditingTicket(null);
+                fetchTickets();
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to update ticket');
+            }
+        } catch (error) {
+            console.error('Error updating ticket:', error);
+            alert('Failed to update ticket');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    // Check if current user can edit this ticket
+    const canEditTicket = (ticket: Ticket): boolean => {
+        if (!currentUserId) return false;
+        // User can edit if they raised the ticket
+        return ticket.raised_by === currentUserId || ticket.creator?.id === currentUserId;
+    };
+
+    const getPriorityColor = (priority: string) => {
+        switch (priority) {
+            case 'critical': return 'text-error bg-error/10 border-error/20';
+            case 'high': return 'text-warning bg-warning/10 border-warning/20';
+            case 'medium': return 'text-secondary bg-secondary/10 border-secondary/20';
+            case 'low': return 'text-text-tertiary bg-surface-elevated border-border';
+            default: return 'text-text-tertiary bg-surface-elevated border-border';
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'resolved':
+            case 'closed':
+                return 'text-success bg-success/10 border-success/20';
+            case 'in_progress': return 'text-info bg-info/10 border-info/20';
+            case 'open': return 'text-error bg-error/10 border-error/20';
+            default: return 'text-text-tertiary bg-surface-elevated border-border';
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Header with Filters */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <h3 className="text-xl font-display font-bold text-text-primary">Support Tickets</h3>
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-text-tertiary" />
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="h-9 px-3 bg-surface border border-border rounded-[var(--radius-md)] text-xs font-semibold font-body text-text-primary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    {onNewRequest && (
+                        <button
+                            onClick={onNewRequest}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-text-inverse text-xs font-bold rounded-[var(--radius-md)] hover:opacity-90 transition-smooth shadow-lg shadow-primary/20"
+                        >
+                            <Plus className="w-4 h-4" /> New Request
+                        </button>
+                    )}
+                    <button
+                        onClick={fetchTickets}
+                        className="p-2 hover:bg-surface-elevated rounded-[var(--radius-md)] transition-smooth"
+                    >
+                        <RefreshCw className="w-4 h-4 text-text-secondary" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Tickets List */}
+            <div className="glass-card overflow-hidden">
+                {isLoading ? (
+                    <div className="p-12 text-center text-text-tertiary font-body">Loading tickets...</div>
+                ) : tickets.length === 0 ? (
+                    <div className="p-12 text-center text-text-tertiary font-body">No tickets found</div>
+                ) : (
+                    <div className="divide-y divide-border/50">
+                        {tickets.map((ticket) => (
+                            <motion.div
+                                key={ticket.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2 }}
+                                className="p-6 hover:bg-surface-elevated/30 transition-smooth cursor-pointer"
+                                onClick={() => router.push(`/tickets/${ticket.id}`)}
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <h4 className="font-display font-semibold text-text-primary">{ticket.title}</h4>
+                                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-[var(--radius-sm)] border font-body ${getPriorityColor(ticket.priority)}`}>
+                                                {ticket.priority}
+                                            </span>
+                                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-[var(--radius-sm)] border font-body ${getStatusColor(ticket.status)}`}>
+                                                {ticket.status === 'closed' || ticket.status === 'resolved' ? 'COMPLETE' : ticket.status.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-4 mt-3">
+                                            {ticket.photo_before_url && (
+                                                <div className="shrink-0 relative group/thumb">
+                                                    <img src={ticket.photo_before_url} alt="Site" className="w-16 h-16 rounded-lg object-cover border border-border/10" />
+                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 rounded-lg transition-smooth">
+                                                        <Camera className="w-4 h-4 text-white" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm text-text-secondary font-body mb-3 line-clamp-2">{ticket.description}</p>
+                                                <div className="flex items-center gap-4 text-xs text-text-tertiary font-body">
+                                                    <div className="flex items-center gap-1">
+                                                        <Building2 className="w-3 h-3" />
+                                                        {ticket.organization?.name || 'N/A'}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <User className="w-3 h-3" />
+                                                        {ticket.creator?.full_name || 'System'}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : 'N/A'}
+                                                    </div>
+                                                    {ticket.photo_before_url && (
+                                                        <div className="flex items-center gap-1 text-primary font-bold ml-auto px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10">
+                                                            <Camera className="w-3 h-3" />
+                                                            SITE PHOTO
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {ticket.status === 'open' && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleUpdateStatus(ticket.id, 'in_progress');
+                                                }}
+                                                className="px-3 py-1.5 bg-info text-text-inverse text-xs font-semibold rounded-[var(--radius-md)] hover:opacity-90 transition-smooth border border-info"
+                                            >
+                                                Start
+                                            </button>
+                                        )}
+                                        {ticket.status === 'in_progress' && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleUpdateStatus(ticket.id, 'resolved');
+                                                }}
+                                                className="px-3 py-1.5 bg-success text-text-inverse text-xs font-semibold rounded-[var(--radius-md)] hover:opacity-90 transition-smooth border border-success"
+                                            >
+                                                Resolve
+                                            </button>
+                                        )}
+                                        <div className="flex flex-col gap-2 items-end">
+                                            {/* Edit Button - Only for user's own tickets */}
+                                            {canEditTicket(ticket) && !['closed', 'resolved'].includes(ticket.status) && (
+                                                <button
+                                                    onClick={(e) => handleEditClick(e, ticket)}
+                                                    className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-smooth"
+                                                    title="Edit Request"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            {canDelete && (
+                                                <button
+                                                    onClick={(e) => handleDelete(e, ticket.id)}
+                                                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-smooth"
+                                                    title="Delete Ticket"
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <ChevronRight className="w-5 h-5 text-text-tertiary" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {editingTicket && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setEditingTicket(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                                <h2 className="text-xl font-bold text-slate-900">Edit Request</h2>
+                                <button
+                                    onClick={() => setEditingTicket(null)}
+                                    className="text-slate-400 hover:text-slate-700 transition-colors p-1 hover:bg-slate-100 rounded-lg"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Modal Content */}
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 mb-2 block">Title</label>
+                                    <input
+                                        type="text"
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                                        placeholder="Request title"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 mb-2 block">Description</label>
+                                    <textarea
+                                        value={editDescription}
+                                        onChange={(e) => setEditDescription(e.target.value)}
+                                        className="w-full h-32 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                                        placeholder="Describe the issue..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200">
+                                <button
+                                    onClick={() => setEditingTicket(null)}
+                                    className="px-4 py-2 text-slate-600 font-semibold rounded-xl hover:bg-slate-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleEditSubmit}
+                                    disabled={isUpdating || !editTitle.trim()}
+                                    className="flex items-center gap-2 px-5 py-2 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-colors disabled:opacity-50"
+                                >
+                                    {isUpdating ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <CheckCircle2 className="w-4 h-4" />
+                                    )}
+                                    Save Changes
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div >
+    );
+};
+
+export default TicketsView;
+

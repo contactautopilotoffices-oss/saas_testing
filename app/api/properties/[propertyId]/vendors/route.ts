@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/frontend/utils/supabase/server';
 
 // GET: Fetch all vendors for a property
 export async function GET(

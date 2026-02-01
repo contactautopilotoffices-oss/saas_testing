@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { classifyTicket } from '@/lib/ticketing';
-import { processIntelligentAssignment } from '@/lib/ticketing/assignment';
+import { createClient } from '@/frontend/utils/supabase/server';
+import { classifyTicket } from '@/backend/lib/ticketing';
+import { processIntelligentAssignment } from '@/backend/lib/ticketing/assignment';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 

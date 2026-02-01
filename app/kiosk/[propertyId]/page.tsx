@@ -1,5 +1,5 @@
-import { createClient } from '@/utils/supabase/server';
-import VMSKiosk from '@/components/vms/VMSKiosk';
+import { createClient } from '@/frontend/utils/supabase/server';
+import VMSKiosk from '@/frontend/components/vms/VMSKiosk';
 import { notFound } from 'next/navigation';
 
 interface Props {

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Poppins, Urbanist } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
-import { GlobalProvider } from "@/context/GlobalContext";
-import { ThemeProvider } from "@/context/ThemeContext";
-import { SessionProvider, CookieConsentToast } from "@/components/analytics";
+import { AuthProvider } from "@/frontend/context/AuthContext";
+import { GlobalProvider } from "@/frontend/context/GlobalContext";
+import { ThemeProvider } from "@/frontend/context/ThemeContext";
+import { SessionProvider, CookieConsentToast } from "@/frontend/components/analytics";
 
 const poppins = Poppins({
   subsets: ["latin"],

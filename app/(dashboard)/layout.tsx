@@ -1,11 +1,11 @@
 'use client';
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/frontend/context/AuthContext";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ContextBar } from "@/components/layout/ContextBar";
-import DashboardSidebar, { MobileHeader } from "@/components/layout/DashboardSidebar";
-import Loader from "@/components/ui/Loader";
+import { ContextBar } from "@/frontend/components/layout/ContextBar";
+import DashboardSidebar, { MobileHeader } from "@/frontend/components/layout/DashboardSidebar";
+import Loader from "@/frontend/components/ui/Loader";
 
 export default function DashboardLayout({
     children,

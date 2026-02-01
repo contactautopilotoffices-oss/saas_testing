@@ -1,4 +1,4 @@
-import SecurityDashboard from '@/components/dashboard/SecurityDashboard';
+import SecurityDashboard from '@/frontend/components/dashboard/SecurityDashboard';
 
 export default function SecurityDashboardPage() {
     return <SecurityDashboard />;

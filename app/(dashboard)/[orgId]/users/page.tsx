@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import UserManagementTable from '@/components/users/UserManagementTable'
-import AddUserModal from '@/components/users/AddUserModal'
+import UserManagementTable from '@/frontend/components/users/UserManagementTable'
+import AddUserModal from '@/frontend/components/users/AddUserModal'
 import { UserPlus } from 'lucide-react'
 
 export default function UserManagementPage() {

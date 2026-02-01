@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import HeroSection from '@/components/landing/HeroSection';
-import BuildingStory from '@/components/landing/BuildingStory';
-import Loader from '@/components/ui/Loader';
+import { useAuth } from '@/frontend/context/AuthContext';
+import { createClient } from '@/frontend/utils/supabase/client';
+import HeroSection from '@/frontend/components/landing/HeroSection';
+import BuildingStory from '@/frontend/components/landing/BuildingStory';
+import Loader from '@/frontend/components/ui/Loader';
 
 export default function Home() {
     const { user, isLoading } = useAuth();

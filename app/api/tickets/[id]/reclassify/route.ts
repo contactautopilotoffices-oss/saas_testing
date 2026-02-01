@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/frontend/utils/supabase/server';
 
-import { classifyTicket } from '@/lib/ticketing';
+import { classifyTicket } from '@/backend/lib/ticketing';
 
 /**
  * POST /api/tickets/[id]/reclassify

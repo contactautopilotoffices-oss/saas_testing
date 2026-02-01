@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from '@/frontend/utils/supabase/client';
 import { ArrowLeft, MapPin, Clock, AlertTriangle, User, CheckCircle2, Ticket } from 'lucide-react';
 
 function formatTimeAgo(dateString: string) {

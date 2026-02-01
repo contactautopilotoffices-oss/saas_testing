@@ -1,6 +1,6 @@
 'use client';
 
-import OrgAdminDashboard from '@/components/dashboard/OrgAdminDashboard';
+import OrgAdminDashboard from '@/frontend/components/dashboard/OrgAdminDashboard';
 import { useParams } from 'next/navigation';
 
 export default function OrgDashboardPage() {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/frontend/utils/supabase/server';
 
 // GET: Get resolver workload for load balancing
 export async function GET(request: NextRequest) {

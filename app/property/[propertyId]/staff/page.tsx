@@ -1,6 +1,6 @@
 'use client';
 
-import StaffDashboard from '@/components/dashboard/StaffDashboard';
+import StaffDashboard from '@/frontend/components/dashboard/StaffDashboard';
 
 export default function StaffDashboardPage() {
     return <StaffDashboard />;

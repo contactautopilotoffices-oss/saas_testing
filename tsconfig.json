@@ -25,6 +25,36 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@frontend/*": [
+        "./frontend/*"
+      ],
+      "@backend/*": [
+        "./backend/*"
+      ],
+      "@components/*": [
+        "./frontend/components/*"
+      ],
+      "@hooks/*": [
+        "./frontend/hooks/*"
+      ],
+      "@context/*": [
+        "./frontend/context/*"
+      ],
+      "@utils/*": [
+        "./frontend/utils/*"
+      ],
+      "@types/*": [
+        "./frontend/types/*"
+      ],
+      "@constants/*": [
+        "./frontend/constants/*"
+      ],
+      "@services/*": [
+        "./backend/services/*"
+      ],
+      "@lib/*": [
+        "./backend/lib/*"
       ]
     }
   },

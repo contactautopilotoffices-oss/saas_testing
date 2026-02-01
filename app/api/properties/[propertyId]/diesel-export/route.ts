@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/frontend/utils/supabase/server';
 import * as XLSX from 'xlsx';
 
 // GET: Export diesel readings as Excel (DG-2 format)

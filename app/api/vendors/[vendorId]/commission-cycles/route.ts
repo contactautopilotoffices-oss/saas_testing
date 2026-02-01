@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/frontend/utils/supabase/server';
 
 // GET: Fetch commission cycles for a vendor
 export async function GET(

@@ -1,6 +1,6 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/frontend/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import { SnagIntakeDashboard } from '@/components/snags';
+import { SnagIntakeDashboard } from '@/frontend/components/snags';
 
 interface PageProps {
     params: Promise<{ propertyId: string }>;

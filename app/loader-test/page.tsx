@@ -1,6 +1,6 @@
 'use client';
 
-import Loader, { GradientLoader } from '@/components/ui/Loader';
+import Loader, { GradientLoader } from '@/frontend/components/ui/Loader';
 import { useState } from 'react';
 
 export default function LoaderTestPage() {

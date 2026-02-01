@@ -1,10 +1,10 @@
 'use client';
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/frontend/context/AuthContext";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import Loader from "@/components/ui/Loader";
+import { createClient } from "@/frontend/utils/supabase/client";
+import Loader from "@/frontend/components/ui/Loader";
 
 interface PropertyMembership {
     property_id: string;

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft, Download, Printer } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from '@/frontend/utils/supabase/client';
 
 interface TicketData {
     id: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import PageTransition from '@/components/ui/PageTransition';
+import PageTransition from '@/frontend/components/ui/PageTransition';
 
 export default function Template({ children }: { children: React.ReactNode }) {
     return <PageTransition>{children}</PageTransition>;

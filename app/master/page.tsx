@@ -1,11 +1,11 @@
 'use client';
 
-import MasterAdminDashboard from '@/components/dashboard/MasterAdminDashboard';
-import { useAuth } from '@/context/AuthContext';
+import MasterAdminDashboard from '@/frontend/components/dashboard/MasterAdminDashboard';
+import { useAuth } from '@/frontend/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import Loader from '@/components/ui/Loader';
-import { useMasterAdminCheck } from '@/hooks/useMasterAdminCheck';
+import Loader from '@/frontend/components/ui/Loader';
+import { useMasterAdminCheck } from '@/frontend/hooks/useMasterAdminCheck';
 
 export default function MasterPage() {
     const { user, isLoading: authLoading } = useAuth();

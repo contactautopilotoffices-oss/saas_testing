@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/backend/lib/supabase/admin';
 
 /**
  * GET /api/admin/organizations/[orgId]/modules

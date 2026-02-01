@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { classifyTicket } from '@/lib/ticketing';
+import { createClient } from '@/frontend/utils/supabase/server';
+import { classifyTicket } from '@/backend/lib/ticketing';
 
 // Extract floor number from description
 function extractFloorNumber(description: string): number | null {

@@ -1,6 +1,6 @@
 'use client';
 
-import Loader from '@/components/ui/Loader';
+import Loader from '@/frontend/components/ui/Loader';
 import { useState, useEffect } from 'react';
 
 export default function TestLoaderPage() {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { processIntelligentAssignment } from '@/lib/ticketing/assignment';
+import { createClient } from '@/frontend/utils/supabase/server';
+import { processIntelligentAssignment } from '@/backend/lib/ticketing/assignment';
 
 /**
  * POST /api/tickets/bulk-assign

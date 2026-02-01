@@ -7,9 +7,9 @@ import {
     Sparkles, PartyPopper, Check, Loader2, Phone, Wrench, Hammer, Briefcase
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import Loader from '@/components/ui/Loader';
+import { useAuth } from '@/frontend/context/AuthContext';
+import { createClient } from '@/frontend/utils/supabase/client';
+import Loader from '@/frontend/components/ui/Loader';
 
 interface Property {
     id: string;

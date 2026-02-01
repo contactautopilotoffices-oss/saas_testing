@@ -1,10 +1,10 @@
 'use client';
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/frontend/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import Loader from "@/components/ui/Loader";
+import { createClient } from "@/frontend/utils/supabase/client";
+import Loader from "@/frontend/components/ui/Loader";
 
 interface OrgMembership {
     organization_id: string;

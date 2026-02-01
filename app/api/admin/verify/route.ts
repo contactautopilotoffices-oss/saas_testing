@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { createAdminClient } from '@/utils/supabase/admin';
+import { createClient } from '@/frontend/utils/supabase/server';
+import { createAdminClient } from '@/frontend/utils/supabase/admin';
 
 /**
  * GET /api/admin/verify

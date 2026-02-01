@@ -1,4 +1,4 @@
-import OrgAdminDashboard from '@/components/dashboard/OrgAdminDashboard';
+import OrgAdminDashboard from '@/frontend/components/dashboard/OrgAdminDashboard';
 
 export default function DashboardPage() {
     return <OrgAdminDashboard />;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { TicketDepartment } from '@/types/ticketing';
+import { createClient } from '@/frontend/utils/supabase/server';
+import { TicketDepartment } from '@/frontend/types/ticketing';
 
 // Type for ticket from database
 interface DbTicket {

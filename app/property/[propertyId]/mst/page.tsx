@@ -1,4 +1,4 @@
-import MstDashboard from '@/components/dashboard/MstDashboard';
+import MstDashboard from '@/frontend/components/dashboard/MstDashboard';
 
 export default function MstDashboardPage() {
     return <MstDashboard />;

@@ -2,15 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from '@/frontend/utils/supabase/client';
 import {
     ArrowLeft, Clock, Calendar, MapPin, User, CheckCircle2,
     AlertCircle, Camera, Paperclip, Send, PauseCircle, PlayCircle,
     Forward, XCircle, ShieldAlert, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { compressImage } from '@/utils/image-compression';
-import { useTheme } from '@/context/ThemeContext';
+import { compressImage } from '@/frontend/utils/image-compression';
+import { useTheme } from '@/frontend/context/ThemeContext';
 
 // Types
 interface Ticket {
