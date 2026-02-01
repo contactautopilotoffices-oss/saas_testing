@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
-    LogOut, Bell, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
+    LogOut, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, RefreshCw, Cog, X,
     AlertOctagon, BarChart3, FileText, Camera, Menu, Pencil, Loader2, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import Image from 'next/image';
 import DieselStaffDashboard from '@/frontend/components/diesel/DieselStaffDashboard';
@@ -69,6 +69,7 @@ const StaffDashboard = () => {
     const [userRole, setUserRole] = useState('Staff Professional');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const searchParams = useSearchParams();
 
     // Edit Modal State
     const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
@@ -98,6 +99,23 @@ const StaffDashboard = () => {
             fetchTickets();
         }
     }, [propertyId]);
+
+    // Restore tab from URL
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['dashboard', 'tasks', 'projects', 'requests', 'create_request', 'visitors', 'diesel', 'electricity', 'settings', 'profile'].includes(tab)) {
+            setActiveTab(tab as Tab);
+        }
+    }, [searchParams]);
+
+    // Helper to change tab with URL persistence
+    const handleTabChange = (tab: Tab) => {
+        setActiveTab(tab);
+        setSidebarOpen(false);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
+    };
 
     const fetchCheckInStatus = async () => {
         try {
@@ -216,10 +234,7 @@ const StaffDashboard = () => {
         setIsLoading(false);
     };
 
-    const handleTabChange = (tab: Tab) => {
-        setActiveTab(tab);
-        setSidebarOpen(false);
-    };
+
 
     const handleEditClick = (e: React.MouseEvent, ticket: Ticket) => {
         e.stopPropagation();
@@ -539,9 +554,7 @@ const StaffDashboard = () => {
                             onToggle={handleShiftToggle}
                         />
 
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors">
-                            <Bell className="w-4 h-4" />
-                        </button>
+
                         <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors">
                             <ChevronRight className="w-4 h-4" />
                         </button>
@@ -576,13 +589,13 @@ const StaffDashboard = () => {
                                         t.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                         t.description?.toLowerCase().includes(searchQuery.toLowerCase())
                                     ).length}
-                                    onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                    onTicketClick={(id) => router.push(`/tickets/${id}?from=${activeTab}`)}
                                     userId={user.id}
                                     isLoading={isFetching}
                                     propertyId={propertyId}
                                     propertyName={property.name}
                                     userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'Staff'}
-                                    onSettingsClick={() => setActiveTab('settings')}
+                                    onSettingsClick={() => handleTabChange('settings')}
                                     onEditClick={handleEditClick}
                                     userRole={userRole}
                                 />
@@ -610,7 +623,7 @@ const StaffDashboard = () => {
                                         t.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                         t.description?.toLowerCase().includes(searchQuery.toLowerCase())
                                     )}
-                                    onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                    onTicketClick={(id) => router.push(`/tickets/${id}?from=${activeTab}`)}
                                     userId={user.id}
                                     isLoading={isFetching}
                                     propertyName={property?.name}
@@ -725,13 +738,13 @@ const StaffDashboard = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[9998] p-4"
                     >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl"
+                            className="bg-white/90 backdrop-blur-xl rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-white/20"
                         >
                             <div className="p-8 border-b border-border">
                                 <div className="flex items-center justify-between mb-2">

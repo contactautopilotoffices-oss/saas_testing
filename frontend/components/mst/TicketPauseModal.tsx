@@ -30,7 +30,7 @@ export default function TicketPauseModal({
 
     const handleSubmit = async () => {
         const reason = selectedPreset === 'Other' ? customReason.trim() : selectedPreset;
-        
+
         if (!reason) {
             setError('Please select or enter a reason');
             return;

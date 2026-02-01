@@ -290,49 +290,46 @@ export default function OnboardingPage() {
             }
 
             // 2️⃣ Insert Resolver Stats (if skills selected)
+            // NOTE: "Staff Technical" accounts are treated as BMS accounts and are NOT stored in resolver_stats.
+            // Only 'soft_services' for staff and all 'mst' skills are eligible for the resolver pool.
             if (selectedSkills.length > 0) {
-                // TEMP Debug
-                console.log('Selected skills:', selectedSkills);
+                const skillsForResolver = selectedRole === 'staff'
+                    ? selectedSkills.filter(skill => skill !== 'technical')
+                    : selectedSkills;
 
-                // Fetch skill group IDs (Global/Active check)
-                const { data: skillGroups, error: skillError } = await supabase
-                    .from('skill_groups')
-                    .select('id, code')
-                    .eq('is_active', true)
-                    .in('code', selectedSkills);
+                if (skillsForResolver.length > 0) {
+                    // Fetch skill group IDs (Global/Active check)
+                    const { data: skillGroups, error: skillError } = await supabase
+                        .from('skill_groups')
+                        .select('id, code')
+                        .eq('is_active', true)
+                        .in('code', skillsForResolver);
 
-                // TEMP Debug
-                console.log('Fetched skill groups:', skillGroups);
+                    if (skillError) {
+                        console.error('Failed to fetch skill groups:', JSON.stringify(skillError, null, 2));
+                    } else if (skillGroups && skillGroups.length > 0) {
+                        const statsToInsert = skillGroups.map(sg => ({
+                            user_id: authUser.id,
+                            property_id: finalPropId,
+                            skill_group_id: sg.id,
+                            current_floor: 1,
+                            avg_resolution_minutes: 60,
+                            total_resolved: 0,
+                            is_available: true
+                        }));
 
-                if (skillError) {
-                    console.error('Failed to fetch skill groups:', JSON.stringify(skillError, null, 2));
-                    // Don't throw, just log. We don't want to break the entire flow if skill assign fails.
-                } else if (skillGroups && skillGroups.length > 0) {
-                    const statsToInsert = skillGroups.map(sg => ({
-                        user_id: authUser.id,
-                        property_id: finalPropId,
-                        skill_group_id: sg.id,
-                        current_floor: 1,
-                        avg_resolution_minutes: 60,
-                        total_resolved: 0,
-                        is_available: true
-                    }));
+                        const { error: statsError } = await supabase
+                            .from('resolver_stats')
+                            .insert(statsToInsert);
 
-                    const { error: statsError } = await supabase
-                        .from('resolver_stats')
-                        .insert(statsToInsert);
-
-                    if (statsError) {
-                        // Ignore duplicate key errors
-                        if (!statsError.message.toLowerCase().includes('duplicate key')) {
+                        if (statsError && !statsError.message.toLowerCase().includes('duplicate key')) {
                             console.error('Failed to insert resolver stats:', statsError);
                         }
                     }
                 }
             }
 
-
-            // 3️⃣ Update user profile with phone and onboarding status
+            // 3️⃣ Update user profile with phone and onboarding status (Always run)
             const { error: userUpdateError } = await supabase
                 .from('users')
                 .update({

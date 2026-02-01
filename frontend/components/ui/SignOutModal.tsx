@@ -39,17 +39,17 @@ const SignOutModal = ({ isOpen, onClose, onConfirm }: SignOutModalProps) => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[9998]"
                     />
 
                     {/* Modal */}
-                    <div className="fixed inset-0 flex items-center justify-center z-[101] p-4 pointer-events-none">
+                    <div className="fixed inset-0 flex items-center justify-center z-[9999] p-4 pointer-events-none">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-                            className="bg-white rounded-3xl shadow-2xl shadow-slate-200/50 w-full max-w-sm overflow-hidden pointer-events-auto border border-slate-100"
+                            className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] w-full max-w-sm overflow-hidden pointer-events-auto border border-white/20"
                         >
                             <div className="p-8">
                                 <div className="flex justify-center mb-6">

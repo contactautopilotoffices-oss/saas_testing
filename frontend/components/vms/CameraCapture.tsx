@@ -82,7 +82,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
         if (!ctx) return;
 
         // Set canvas size (passport photo ratio ~3:4)
-        canvas.width = 300;
+        canvas.width = 400;
         canvas.height = 400;
 
         // Draw video frame to canvas (center crop)

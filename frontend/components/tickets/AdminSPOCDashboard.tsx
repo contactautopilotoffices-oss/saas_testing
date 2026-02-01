@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Clock, RefreshCw, ChevronDown, User, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -49,7 +49,7 @@ interface Category {
 
 interface AdminSPOCDashboardProps {
     propertyId?: string; // Optional if viewing all properties
-    organizationId: string;
+    organizationId?: string;
     propertyName?: string;
     adminUser?: { full_name: string; avatar_url?: string };
 }
@@ -78,43 +78,63 @@ export default function AdminSPOCDashboard({
         return () => clearInterval(interval);
     }, [propertyId, organizationId]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
+        if (!loading && !tickets.length) setLoading(true);
         try {
-            // Build query params based on available IDs
-            const ticketParams = propertyId ? `propertyId=${propertyId}` : `organizationId=${organizationId}`;
-            const resolverParams = propertyId ? `propertyId=${propertyId}` : `organizationId=${organizationId}`;
+            const params = new URLSearchParams();
+            if (propertyId) params.append('propertyId', propertyId);
+            if (organizationId && organizationId !== '') params.append('organizationId', organizationId);
 
-            // Only fetch config if we have a propertyId, otherwise skip or fetch generic
-            const configPromise = propertyId
-                ? fetch(`/api/properties/${propertyId}/ticket-config`)
-                : Promise.resolve({ json: () => ({ categories: [] }) });
+            console.log('Fetching tickets with params:', params.toString()); // Debug
 
-            const [ticketsRes, resolversRes, categoriesRes] = await Promise.all([
-                fetch(`/api/tickets?${ticketParams}`),
-                fetch(`/api/resolvers/workload?${resolverParams}`),
-                configPromise,
+            // Fetch data in parallel
+            const [ticketsRes, resolversRes, configRes] = await Promise.all([
+                fetch(`/api/tickets?${params.toString()}`),
+                fetch(`/api/resolvers/workload?${params.toString()}`),
+                propertyId
+                    ? fetch(`/api/properties/${propertyId}/ticket-config`)
+                    : Promise.resolve(null)
             ]);
 
-            const ticketsData = await ticketsRes.json();
-            const resolversData = await resolversRes.json();
-            const categoriesData = await categoriesRes.json();
+            if (ticketsRes.ok) {
+                const data = await ticketsRes.json();
+                console.log('Received tickets:', data.tickets?.length || 0); // Debug
+                setTickets(data.tickets || []);
 
-            setTickets(ticketsData.tickets || []);
-            setResolvers(resolversData.resolvers || []);
-            setCategories(categoriesData.categories || []);
-
-            // Fetch recent activities from first few tickets
-            if (ticketsData.tickets?.length > 0) {
-                const actRes = await fetch(`/api/tickets/${ticketsData.tickets[0].id}/activity`);
-                const actData = await actRes.json();
-                setActivities(actData.activities?.slice(0, 5) || []);
+                // Fetch activity for the first ticket if available
+                if (data.tickets?.length > 0) {
+                    const actRes = await fetch(`/api/tickets/${data.tickets[0].id}/activity`);
+                    if (actRes.ok) {
+                        const actData = await actRes.json();
+                        setActivities(actData.activities?.slice(0, 5) || []);
+                    }
+                }
             }
+
+            if (resolversRes.ok) {
+                const data = await resolversRes.json();
+                setResolvers(data.resolvers || []);
+            }
+
+            if (configRes && configRes.ok) {
+                const data = await configRes.json();
+                setCategories(data.categories || []);
+            } else if (!propertyId) {
+                setCategories([]);
+            }
+
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching dashboard data:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [propertyId, organizationId]);
+
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(fetchData, 10000); // More frequent updates for "Live" board
+        return () => clearInterval(interval);
+    }, [fetchData]);
 
     const getSLAStatus = (deadline: string | null, breached: boolean, paused: boolean) => {
         if (paused) return { text: 'PAUSED', color: 'text-yellow-400 bg-yellow-500/20', urgent: false };
@@ -255,8 +275,8 @@ export default function AdminSPOCDashboard({
             </div>
 
             <div className="grid grid-cols-12 gap-5">
-                {/* Live Ticket Board */}
-                <div className="col-span-12 lg:col-span-3 bg-white border border-slate-100 rounded-[24px] p-5 shadow-sm">
+                {/* Live Ticket Board - Increased Size */}
+                <div className="col-span-12 lg:col-span-6 bg-white border border-slate-100 rounded-[24px] p-5 shadow-sm">
                     <h2 className="text-xs font-black text-slate-400 mb-4 flex items-center gap-2 uppercase tracking-widest">
                         <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                         Live Ticket Board
@@ -268,44 +288,61 @@ export default function AdminSPOCDashboard({
                                 <tr>
                                     <th className="text-left py-2 font-black uppercase tracking-wider">ID</th>
                                     <th className="text-left py-2 font-black uppercase tracking-wider pl-2">Subject</th>
+                                    <th className="text-left py-2 font-black uppercase tracking-wider pl-2">Status</th>
                                     <th className="text-right py-2 font-black uppercase tracking-wider">SLA</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {tickets.slice(0, 15).map((ticket) => {
-                                    const sla = getSLAStatus(ticket.sla_deadline, ticket.sla_breached, ticket.sla_paused);
-                                    return (
-                                        <tr
-                                            key={ticket.id}
-                                            className={`hover:bg-slate-50 cursor-pointer transition-colors ${selectedTicket?.id === ticket.id ? 'bg-emerald-50' : ''
-                                                }`}
-                                            onClick={() => router.push(`/tickets/${ticket.id}`)}
-                                        >
-                                            <td className="py-3 text-slate-500 font-bold">{ticket.ticket_number?.slice(-5)}</td>
-                                            <td className="py-3 text-slate-900 font-medium truncate max-w-[120px] pl-2">{ticket.title}</td>
-                                            <td className="py-3 text-right flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={(e) => handleDeleteTicket(e, ticket.id)}
-                                                    className="p-1 text-slate-300 hover:text-rose-500 rounded transition-colors"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                                {sla ? (
-                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${sla.color}`}>
-                                                        {sla.text}
+                                {tickets.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="py-12 text-center text-slate-400 font-bold italic">
+                                            No active tickets found.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    tickets.slice(0, 15).map((ticket) => {
+                                        const sla = getSLAStatus(ticket.sla_deadline, ticket.sla_breached, ticket.sla_paused);
+                                        return (
+                                            <tr
+                                                key={ticket.id}
+                                                className={`hover:bg-slate-50 cursor-pointer transition-colors ${selectedTicket?.id === ticket.id ? 'bg-emerald-50' : ''
+                                                    }`}
+                                                onClick={() => router.push(`/tickets/${ticket.id}`)}
+                                            >
+                                                <td className="py-3 text-slate-500 font-bold">{ticket.ticket_number?.slice(-5)}</td>
+                                                <td className="py-3 text-slate-900 font-medium truncate max-w-[120px] pl-2">{ticket.title}</td>
+                                                <td className="py-3 text-slate-900 font-medium pl-2">
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${ticket.status === 'resolved' ? 'bg-emerald-100 text-emerald-600' :
+                                                        ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-600' :
+                                                            'bg-slate-100 text-slate-600'
+                                                        }`}>
+                                                        {ticket.status?.replace(/_/g, ' ')}
                                                     </span>
-                                                ) : '-'}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                                </td>
+                                                <td className="py-3 text-right flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={(e) => handleDeleteTicket(e, ticket.id)}
+                                                        className="p-1 text-slate-300 hover:text-rose-500 rounded transition-colors"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    {sla ? (
+                                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${sla.color}`}>
+                                                            {sla.text}
+                                                        </span>
+                                                    ) : '-'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                {/* Resolver Load Map */}
-                <div className="col-span-12 lg:col-span-5 bg-white border border-slate-100 rounded-[24px] p-5 shadow-sm relative overflow-hidden">
+                {/* Resolver Load Map - Reduced Size per Request */}
+                <div className="col-span-12 lg:col-span-2 bg-white border border-slate-100 rounded-[24px] p-5 shadow-sm relative overflow-hidden">
                     <h2 className="text-xs font-black text-slate-400 mb-4 uppercase tracking-widest">Resolver Load Map</h2>
 
                     {/* Coming Soon Overlay */}
@@ -381,7 +418,7 @@ export default function AdminSPOCDashboard({
                             {waitlistTickets.map(t => (
                                 <div
                                     key={t.id}
-                                    onClick={() => router.push(`/tickets/${t.id}`)}
+                                    onClick={() => router.push(`/tickets/${t.id}?from=requests`)}
                                     className="flex items-center gap-2 text-xs bg-white/40 p-2 rounded-lg hover:bg-white/60 transition-colors cursor-pointer group"
                                 >
                                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.confidence_score >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
@@ -394,7 +431,7 @@ export default function AdminSPOCDashboard({
                         <button
                             onClick={() => {
                                 if (waitlistTickets[0]) {
-                                    router.push(`/tickets/${waitlistTickets[0].id}`);
+                                    router.push(`/tickets/${waitlistTickets[0].id}?from=requests`);
                                 }
                             }}
                             className="w-full mt-2 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 relative z-10"
@@ -469,7 +506,7 @@ export default function AdminSPOCDashboard({
                                             </div>
                                         </div>
                                         <button
-                                            onClick={() => router.push(`/tickets/${ticket.id}`)}
+                                            onClick={() => router.push(`/tickets/${ticket.id}?from=requests`)}
                                             className="px-4 py-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-600 transition-colors"
                                         >
                                             View
@@ -511,7 +548,7 @@ export default function AdminSPOCDashboard({
                         </div>
 
                         <button
-                            onClick={() => selectedTicket && router.push(`/tickets/${selectedTicket.id}`)}
+                            onClick={() => selectedTicket && router.push(`/tickets/${selectedTicket.id}?from=requests`)}
                             className="w-full mt-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl text-xs font-bold transition-colors uppercase tracking-wider"
                         >
                             Full Audit Trail

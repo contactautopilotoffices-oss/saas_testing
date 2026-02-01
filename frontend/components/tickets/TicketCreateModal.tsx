@@ -20,6 +20,7 @@ interface Classification {
     category: string | null;
     confidence: number;
     isVague: boolean;
+    status?: string;
 }
 
 export default function TicketCreateModal({
@@ -188,7 +189,7 @@ export default function TicketCreateModal({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
                 onClick={onClose}
             >
                 <motion.div
@@ -221,6 +222,15 @@ export default function TicketCreateModal({
                                                 <span className="text-text-secondary">Category:</span>
                                                 <span className="text-secondary font-display font-semibold capitalize">
                                                     {classification.category?.replace(/_/g, ' ') || 'Pending'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-text-secondary">Status:</span>
+                                                <span className={`font-display font-semibold uppercase px-2 py-0.5 rounded text-[10px] ${classification.status === 'assigned' ? 'bg-emerald-100 text-emerald-600' :
+                                                    classification.status === 'waitlist' ? 'bg-amber-100 text-amber-600' :
+                                                        'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                    {classification.status?.replace(/_/g, ' ') || 'Pending'}
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between text-sm">

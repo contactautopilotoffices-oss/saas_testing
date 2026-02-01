@@ -94,8 +94,8 @@ const VendorExportModal: React.FC<VendorExportModalProps> = ({
                                     <label
                                         key={option.value}
                                         className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${period === option.value
-                                                ? 'border-indigo-500 bg-indigo-50'
-                                                : 'border-slate-100 hover:border-slate-200'
+                                            ? 'border-indigo-500 bg-indigo-50'
+                                            : 'border-slate-100 hover:border-slate-200'
                                             }`}
                                     >
                                         <input
@@ -159,8 +159,8 @@ const VendorExportModal: React.FC<VendorExportModalProps> = ({
                                 <button
                                     onClick={() => setFormat('xlsx')}
                                     className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border-2 font-bold text-sm transition-all ${format === 'xlsx'
-                                            ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
-                                            : 'border-slate-100 text-slate-500 hover:border-slate-200'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                                        : 'border-slate-100 text-slate-500 hover:border-slate-200'
                                         }`}
                                 >
                                     <FileSpreadsheet className="w-5 h-5" />
@@ -169,8 +169,8 @@ const VendorExportModal: React.FC<VendorExportModalProps> = ({
                                 <button
                                     onClick={() => setFormat('csv')}
                                     className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border-2 font-bold text-sm transition-all ${format === 'csv'
-                                            ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
-                                            : 'border-slate-100 text-slate-500 hover:border-slate-200'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                                        : 'border-slate-100 text-slate-500 hover:border-slate-200'
                                         }`}
                                 >
                                     <FileText className="w-5 h-5" />

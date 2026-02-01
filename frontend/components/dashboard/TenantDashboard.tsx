@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import {
-    LayoutDashboard, Ticket as TicketIcon, Bell, Settings, LogOut, Plus,
-    CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle, Fuel,
+    LayoutDashboard, Ticket as TicketIcon, Settings, LogOut, Plus,
+    CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle,
     Calendar, Building2, Shield, ChevronRight, Sun, Moon, Menu, X, Camera, Pencil, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +20,7 @@ import SettingsView from './SettingsView';
 import Loader from '@/frontend/components/ui/Loader';
 
 // Types
-type Tab = 'overview' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'settings' | 'profile';
+type Tab = 'overview' | 'requests' | 'create_request' | 'visitors' | 'settings' | 'profile';
 
 interface Property {
     id: string;
@@ -306,16 +306,7 @@ const TenantDashboard = () => {
                                         <UsersRound className="w-4 h-4" />
                                         Visitor Management
                                     </button>
-                                    <button
-                                        onClick={() => { handleTabChange('diesel'); setSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-smooth font-bold text-sm ${activeTab === 'diesel'
-                                            ? 'bg-primary text-text-inverse shadow-sm'
-                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                            }`}
-                                    >
-                                        <Fuel className="w-4 h-4" />
-                                        Diesel Logger
-                                    </button>
+
                                 </div>
                             </div>
 
@@ -406,7 +397,7 @@ const TenantDashboard = () => {
                                 />
                             )}
                             {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
-                            {activeTab === 'diesel' && <DieselStaffDashboard isDark={false} />}
+
                             {activeTab === 'settings' && <SettingsView />}
                             {activeTab === 'profile' && (
                                 <div className="flex justify-center items-start py-8">
@@ -499,6 +490,82 @@ const TenantDashboard = () => {
                 onClose={() => setShowSignOutModal(false)}
                 onConfirm={signOut}
             />
+
+            {/* Edit Request Modal */}
+            <AnimatePresence>
+                {editingTicket && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[9998] p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20"
+                        >
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50/50">
+                                <h3 className="font-display font-semibold text-lg text-slate-800">Edit Request</h3>
+                                <button
+                                    onClick={() => setEditingTicket(null)}
+                                    className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Title</label>
+                                    <input
+                                        type="text"
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-slate-900"
+                                        placeholder="Brief title of the issue"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Description</label>
+                                    <textarea
+                                        value={editDescription}
+                                        onChange={(e) => setEditDescription(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-slate-900 min-h-[120px] resize-none"
+                                        placeholder="Detailed description..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-6 border-t border-gray-100 bg-slate-50/50 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setEditingTicket(null)}
+                                    className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleUpdateTicket}
+                                    disabled={isUpdating}
+                                    className="px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                                >
+                                    {isUpdating ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save Changes'
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 };
@@ -773,7 +840,7 @@ const RequestsTab = ({ activeTickets, completedTickets, onNavigate, isLoading, o
                             <TicketRow
                                 key={ticket.id}
                                 ticket={ticket}
-                                onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                onTicketClick={(id) => router.push(`/tickets/${id}?from=requests`)}
                                 onEditClick={onEditClick}
                                 currentUserId={user?.id}
                             />
@@ -795,7 +862,7 @@ const RequestsTab = ({ activeTickets, completedTickets, onNavigate, isLoading, o
                                 key={ticket.id}
                                 ticket={ticket}
                                 isCompleted
-                                onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                onTicketClick={(id) => router.push(`/tickets/${id}?from=requests`)}
                             />
                         ))}
                     </div>
@@ -805,32 +872,6 @@ const RequestsTab = ({ activeTickets, completedTickets, onNavigate, isLoading, o
     );
 };
 
-// Community Tab for Tenant
-const CommunityTab = () => {
-    const updates = [
-        { id: 1, icon: Bell, title: 'Elevator maintenance scheduled for Sunday 10AM-2PM.', time: '2 hours ago' },
-        { id: 2, icon: Bell, title: 'New security protocol for visitor entry starts Monday.', time: 'Yesterday' },
-        { id: 3, icon: Bell, title: 'Water supply will be interrupted on Saturday 8AM-12PM.', time: '3 days ago' },
-    ];
 
-    return (
-        <div className="bg-card border border-border rounded-[32px] p-8 shadow-sm">
-            <h3 className="text-xl font-black text-text-primary mb-6">Community Updates</h3>
-            <div className="space-y-6">
-                {updates.map((update) => (
-                    <div key={update.id} className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-surface-elevated flex-shrink-0 flex items-center justify-center">
-                            <update.icon className="w-5 h-5 text-text-tertiary" />
-                        </div>
-                        <div>
-                            <p className="text-text-primary font-medium leading-tight">{update.title}</p>
-                            <p className="text-text-tertiary text-xs mt-1 font-bold">{update.time}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
 
 export default TenantDashboard;

@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
-    LogOut, Bell, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
+    LogOut, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, Cog, X,
-    AlertOctagon, BarChart3, FileText, Wrench, Camera, Menu, Pencil, Loader2
+    AlertOctagon, BarChart3, FileText, Wrench, Camera, Menu, Pencil, Loader2, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { checkInResolver } from '@/frontend/utils/resolver';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import Image from 'next/image';
@@ -71,6 +71,7 @@ const MstDashboard = () => {
     const [userRole, setUserRole] = useState('MST Professional');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const searchParams = useSearchParams();
 
     // Edit Modal State
     const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
@@ -100,6 +101,23 @@ const MstDashboard = () => {
             }
         }
     }, [propertyId, user?.id]);
+
+    // Restore tab from URL
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['dashboard', 'tasks', 'projects', 'requests', 'create_request', 'visitors', 'diesel', 'settings', 'profile'].includes(tab)) {
+            setActiveTab(tab as Tab);
+        }
+    }, [searchParams]);
+
+    // Helper to change tab with URL persistence
+    const handleTabChange = (tab: Tab) => {
+        setActiveTab(tab);
+        setSidebarOpen(false);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
+    };
 
     const fetchShiftStatus = async () => {
         if (!propertyId) return;
@@ -231,11 +249,7 @@ const MstDashboard = () => {
         </div>
     );
 
-    // Helper to change tab and close mobile sidebar
-    const handleTabChange = (tab: Tab) => {
-        setActiveTab(tab);
-        setSidebarOpen(false);
-    };
+
 
     const handleEditClick = (e: React.MouseEvent, ticket: Ticket) => {
         e.stopPropagation();
@@ -539,9 +553,7 @@ const MstDashboard = () => {
                             onToggle={handleShiftToggle}
                         />
 
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-text-tertiary hover:text-text-primary transition-colors">
-                            <Bell className="w-4 h-4" />
-                        </button>
+
                         <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-text-tertiary hover:text-text-primary transition-colors">
                             <ChevronRight className="w-4 h-4" />
                         </button>
@@ -565,7 +577,7 @@ const MstDashboard = () => {
                                 <DashboardTab
                                     tickets={incomingTickets}
                                     completedCount={completedTickets.length}
-                                    onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                    onTicketClick={(id) => router.push(`/tickets/${id}?from=${activeTab}`)}
                                     userId={user.id}
                                     isLoading={isFetching}
                                     propertyId={propertyId}
@@ -581,7 +593,7 @@ const MstDashboard = () => {
                                 <RequestsTab
                                     activeTickets={incomingTickets}
                                     completedTickets={completedTickets}
-                                    onTicketClick={(id) => router.push(`/tickets/${id}`)}
+                                    onTicketClick={(id) => router.push(`/tickets/${id}?from=${activeTab}`)}
                                     userId={user.id}
                                     isLoading={isFetching}
                                     propertyName={property?.name}
@@ -706,13 +718,13 @@ const MstDashboard = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[9998] p-4"
                     >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl"
+                            className="bg-white/90 backdrop-blur-xl rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-white/20"
                         >
                             <div className="p-8 border-b border-border">
                                 <div className="flex items-center justify-between mb-2">
@@ -975,58 +987,115 @@ const ProjectsTab = () => (
 );
 
 // Requests Tab
-const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick }: { activeTickets?: Ticket[], completedTickets?: Ticket[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void }) => (
-    <div className="space-y-6">
-        <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-text-primary">Requests</h1>
-            {propertyName && <span className="text-xs text-text-tertiary font-bold uppercase tracking-widest bg-surface-elevated px-3 py-1 rounded-full border border-border">{propertyName}</span>}
-        </div>
+const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick }: { activeTickets?: Ticket[], completedTickets?: Ticket[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void }) => {
+    const [filter, setFilter] = useState<'all' | 'completed' | 'tasks' | 'waitlist'>('all');
 
-        {/* Active Requests */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-text-secondary mb-4 px-2 uppercase tracking-wider flex items-center gap-2">
-                <Clock className="w-4 h-4 text-success" />
-                Active Requests ({activeTickets.length})
-            </h2>
-            {isLoading ? (
-                <div className="flex flex-col gap-2 py-4">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-20 bg-surface-elevated border border-border rounded-lg animate-pulse" />
-                    ))}
+    const getFilteredTickets = () => {
+        const uId = userId || '';
+        switch (filter) {
+            case 'completed':
+                // Shows only tickets COMPLETED by the logged-in user
+                return completedTickets.filter(t =>
+                    String(t.assigned_to) === String(uId) ||
+                    (t as any).assignee?.id === uId
+                );
+            case 'tasks':
+                // Shows ACTIVE tasks assigned to the logged-in user
+                return activeTickets.filter(t =>
+                    String(t.assigned_to) === String(uId) ||
+                    (t as any).assignee?.id === uId
+                );
+            case 'waitlist':
+                // Shows unassigned or waitlisted property-wide requests
+                return activeTickets.filter(t => !t.assigned_to || t.status === 'waitlist');
+            default:
+                // Shows all activity for the property
+                return [...activeTickets, ...completedTickets];
+        }
+    };
+
+    const filtered = getFilteredTickets();
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-text-primary">Requests</h1>
+                    <p className="text-text-tertiary text-xs mt-1">Manage and track service requests</p>
                 </div>
-            ) : activeTickets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center bg-muted rounded-xl border border-dashed border-border">
-                    <p className="text-text-tertiary text-sm">No active requests</p>
+
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-surface-elevated border border-border px-3 py-1.5 rounded-xl shadow-sm">
+                        <Filter className="w-3.5 h-3.5 text-text-tertiary" />
+                        <select
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value as any)}
+                            className="bg-transparent text-xs font-bold text-text-secondary focus:outline-none cursor-pointer"
+                        >
+                            <option value="all">All Requests</option>
+                            <option value="tasks">Your Tasks</option>
+                            <option value="completed">Completed By You</option>
+                            <option value="waitlist">Waitlist (Unassigned)</option>
+                        </select>
+                    </div>
+                    {propertyName && <span className="hidden md:inline-flex text-[10px] text-text-tertiary font-black uppercase tracking-widest bg-surface-elevated px-3 py-2 rounded-xl border border-border">{propertyName}</span>}
                 </div>
-            ) : (
-                <div className="flex flex-col gap-2">
-                    {[...activeTickets]
-                        .sort((a, b) => {
-                            if (a.assigned_to === userId && b.assigned_to !== userId) return -1;
-                            if (a.assigned_to !== userId && b.assigned_to === userId) return 1;
-                            return 0;
-                        })
-                        .map((ticket) => (
-                            <TicketRow key={ticket.id} ticket={ticket} onTicketClick={onTicketClick} userId={userId} onEditClick={onEditClick} />
+            </div>
+
+            {/* Content Area */}
+            <div className="bg-card border border-border rounded-xl p-5 shadow-sm min-h-[400px]">
+                <div className="flex items-center justify-between mb-6 px-2">
+                    <h2 className="text-sm font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                        {filter === 'completed' ? <CheckCircle2 className="w-4 h-4 text-success" /> :
+                            filter === 'tasks' ? <ClipboardList className="w-4 h-4 text-primary" /> :
+                                filter === 'waitlist' ? <AlertCircle className="w-4 h-4 text-warning" /> :
+                                    <FolderKanban className="w-4 h-4 text-info" />
+                        }
+                        {filter === 'all' ? 'All Property Activity' :
+                            filter === 'tasks' ? 'Tasks Assigned To You' :
+                                filter === 'completed' ? 'Your Completed Work' : 'Awaiting Assignment'}
+                        <span className="ml-2 text-[10px] bg-muted px-2 py-0.5 rounded-full text-text-tertiary">{filtered.length}</span>
+                    </h2>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex flex-col gap-3 py-4">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="h-24 bg-surface-elevated border border-border rounded-xl animate-pulse" />
                         ))}
-                </div>
-            )}
-        </div>
-
-        {/* Completed Requests */}
-        <div className="bg-muted border border-border rounded-xl p-5 opacity-90">
-            <h2 className="text-sm font-bold text-text-tertiary mb-4 px-2 uppercase tracking-wider flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-success/50" />
-                Recently Completed ({completedTickets.length})
-            </h2>
-            <div className="flex flex-col gap-2">
-                {completedTickets.slice(0, 10).map((ticket) => (
-                    <TicketRow key={ticket.id} ticket={ticket} onTicketClick={onTicketClick} userId={userId} isCompleted />
-                ))}
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/30 rounded-[2rem] border border-dashed border-border group">
+                        <div className="w-16 h-16 bg-surface-elevated rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            {filter === 'completed' ? <CheckCircle2 className="w-8 h-8 text-text-tertiary/20" /> :
+                                filter === 'tasks' ? <ClipboardList className="w-8 h-8 text-text-tertiary/20" /> :
+                                    filter === 'waitlist' ? <AlertCircle className="w-8 h-8 text-text-tertiary/20" /> :
+                                        <Ticket className="w-8 h-8 text-text-tertiary/20" />
+                            }
+                        </div>
+                        <p className="text-text-secondary font-bold">No matching records found</p>
+                        <p className="text-text-tertiary text-xs mt-1">Try switching the filter to see more data.</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {filtered
+                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                            .map((ticket) => (
+                                <TicketRow
+                                    key={ticket.id}
+                                    ticket={ticket}
+                                    onTicketClick={onTicketClick}
+                                    userId={userId}
+                                    isCompleted={['resolved', 'closed'].includes(ticket.status)}
+                                    onEditClick={onEditClick}
+                                />
+                            ))}
+                    </div>
+                )}
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 

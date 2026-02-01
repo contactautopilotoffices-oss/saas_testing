@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     BarChart3, Users, Building2, LayoutDashboard,
-    Settings, Bell, Search, Plus, Zap, AlertTriangle,
+    Settings, Search, Plus, Zap, AlertTriangle,
     History, ShieldCheck, Mail, LogOut, Command,
     ClipboardList, Package, Map, PieChart, ExternalLink, IndianRupee, Store, UsersRound
 } from 'lucide-react';
@@ -58,7 +58,7 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
             section: 'CORE OPERATIONS', items: [
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'requests', label: 'Requests', icon: ClipboardList },
-                { id: 'alerts', label: 'Alerts', icon: Bell },
+
                 { id: 'quick-actions', label: 'Quick Actions', icon: Zap },
             ]
         },
@@ -232,7 +232,7 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
                             )}
                             {activeTab === 'requests' && <RequestsFeed />}
                             {activeTab === 'users' && <UserManagement orgId={orgId} />}
-                            {activeTab === 'alerts' && <AlertsCenter />}
+
                             {activeTab === 'vendors' && <VendorSummary orgId={orgId} />}
                             {activeTab === 'visitors' && <VMSOrgSummary orgId={orgId} />}
                             {activeTab === 'analytics' && <SLAAnalytics />}
@@ -360,42 +360,7 @@ const RequestsFeed = () => (
     </div>
 );
 
-const AlertsCenter = () => (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="bg-rose-500/5 border border-rose-500/20 p-10 rounded-[40px] relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-[100px] -mr-20 -mt-20" />
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                <div>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-rose-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-rose-500/30 animate-pulse">
-                            <AlertTriangle size={20} />
-                        </div>
-                        <h2 className="text-3xl font-black text-white tracking-widest italic uppercase">Active Alerts</h2>
-                    </div>
-                    <p className="text-rose-200/60 text-sm font-medium max-w-md">Immediate attention required for system inconsistencies detected in the last 60 minutes.</p>
-                </div>
-                <button className="px-10 py-4 bg-rose-500 text-white font-black text-xs rounded-2xl uppercase tracking-[0.2em] shadow-2xl shadow-rose-500/20 hover:bg-rose-600 transition-all">Clear All Signals</button>
-            </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-                { label: 'Unusual Power Spike', loc: 'Level 14 - Server Room', time: '5m ago', risk: 'HIGH' },
-                { label: 'Low Water Pressure', loc: 'Ground Floor Main', time: '22m ago', risk: 'MID' },
-            ].map((alert, i) => (
-                <div key={i} className="bg-zinc-950 border border-zinc-800 p-8 rounded-3xl group">
-                    <div className="flex justify-between items-start mb-6">
-                        <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest border border-rose-500/20 px-2 py-1 rounded bg-rose-500/5">{alert.risk} RISK</span>
-                        <span className="text-[10px] font-bold text-zinc-600 italic">{alert.time}</span>
-                    </div>
-                    <h3 className="text-xl font-black text-white mb-2">{alert.label}</h3>
-                    <p className="text-xs text-zinc-500 font-medium mb-6 uppercase tracking-widest">{alert.loc}</p>
-                    <button className="w-full py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:text-white hover:border-zinc-700 transition-all">Acknowledge Signal</button>
-                </div>
-            ))}
-        </div>
-    </div>
-);
 
 const SLAAnalytics = () => (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">

@@ -9,10 +9,12 @@ import {
     UserCircle, FileDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { useAuth } from '@/frontend/context/AuthContext';
 import OrgPropertyDashboard from './OrgPropertyDashboard';
 import TicketsView from './TicketsView';
+import AdminSPOCDashboard from '../tickets/AdminSPOCDashboard';
 import InviteLinkGenerator from './InviteLinkGenerator';
 import { HapticCard } from '@/frontend/components/ui/HapticCard';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
@@ -60,6 +62,8 @@ const MasterAdminDashboard = () => {
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null); // For drill-down
     const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const supabase = createClient();
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -87,6 +91,22 @@ const MasterAdminDashboard = () => {
             initDashboard();
         }
     }, [user]);
+
+    // Restore tab from URL
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['overview', 'organizations', 'tickets', 'users', 'visitors', 'invite-links', 'modules', 'settings'].includes(tab)) {
+            setActiveTab(tab as Tab);
+        }
+    }, [searchParams]);
+
+    // Helper to change tab with URL persistence
+    const handleTabChange = (tab: Tab) => {
+        setActiveTab(tab);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
+    };
 
     // We now fetch users on mount to ensure counts are accurate across the dashboard
 
@@ -251,7 +271,7 @@ const MasterAdminDashboard = () => {
                     {navItems.map((item) => (
                         <button
                             key={item.id}
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => handleTabChange(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm ${activeTab === item.id
                                 ? 'bg-primary text-text-inverse shadow-sm'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -372,7 +392,15 @@ const MasterAdminDashboard = () => {
                                 />
                             )
                         )}
-                        {activeTab === 'tickets' && <TicketsView onNewRequest={() => setShowCreateTicketModal(true)} />}
+                        {activeTab === 'tickets' && (
+                            <AdminSPOCDashboard
+                                organizationId=""
+                                adminUser={{
+                                    full_name: user?.user_metadata?.full_name || 'Master Admin',
+                                    avatar_url: user?.user_metadata?.avatar_url
+                                }}
+                            />
+                        )}
                         {activeTab === 'users' && (
                             <UserDirectory
                                 users={users}
@@ -1152,13 +1180,13 @@ const CreateOrgModal = ({ onClose, onCreated, showToast }: { onClose: () => void
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[9998] p-4"
         >
             <motion.div
                 initial={{ scale: 0.95, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
-                className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl"
+                className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-white/20"
             >
                 <div className="flex justify-between items-start mb-6">
                     <div>
@@ -1457,13 +1485,13 @@ const CreateUserModal = ({ onClose, onCreated, organizations, showToast }: {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[9998] p-4"
         >
             <motion.div
                 initial={{ scale: 0.95, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
-                className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl"
+                className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-white/20"
             >
                 {generatedPassword ? (
                     <div className="space-y-6 text-center">

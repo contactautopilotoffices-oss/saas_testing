@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
 import {
     ArrowLeft, Clock, Calendar, MapPin, User, CheckCircle2,
@@ -64,6 +64,8 @@ interface Comment {
 export default function TicketDetailPage() {
     const { ticketId } = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const from = searchParams.get('from');
     const { theme } = useTheme();
     const supabase = createClient();
 
@@ -85,6 +87,7 @@ export default function TicketDetailPage() {
 
     // Creator Role State
     const [creatorRole, setCreatorRole] = useState<string>('Tenant');
+    const [assigneeRole, setAssigneeRole] = useState<string>('MST');
 
     // Notification State
     const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
@@ -156,14 +159,33 @@ export default function TicketDetailPage() {
                     .maybeSingle();
 
                 if (creatorMembership?.role) {
-                    // Format role for display (e.g., 'property_admin' -> 'Property Admin')
-                    const formattedRole = creatorMembership.role
+                    const formattedRole = creatorMembership.role === 'mst' ? 'MST' : creatorMembership.role
                         .split('_')
                         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
                         .join(' ');
                     setCreatorRole(formattedRole);
                 } else {
                     setCreatorRole('Tenant');
+                }
+            }
+
+            // Fetch assignee's role from property_memberships
+            if (t.assigned_to && t.property_id) {
+                const { data: assigneeMembership } = await supabase
+                    .from('property_memberships')
+                    .select('role')
+                    .eq('user_id', t.assigned_to)
+                    .eq('property_id', t.property_id)
+                    .maybeSingle();
+
+                if (assigneeMembership?.role) {
+                    const formattedRole = assigneeMembership.role === 'mst' ? 'MST' : assigneeMembership.role
+                        .split('_')
+                        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ');
+                    setAssigneeRole(formattedRole);
+                } else {
+                    setAssigneeRole('MST');
                 }
             }
 
@@ -534,6 +556,16 @@ export default function TicketDetailPage() {
         }
     };
 
+    const handleBack = () => {
+        if (from) {
+            // If we came from a dashboard, try to go back to that specific tab
+            // This assumes the dashboard handles ?tab= parameter
+            window.history.back();
+        } else {
+            router.back();
+        }
+    };
+
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div></div>;
     if (!ticket) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-bold">Ticket not found</div>;
 
@@ -562,7 +594,7 @@ export default function TicketDetailPage() {
             <div className={`${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} border-b sticky top-0 z-30 shadow-xl backdrop-blur-md bg-opacity-80`}>
                 <div className="max-w-5xl mx-auto px-4 lg:px-8 py-4">
                     <div className="flex items-center gap-4 mb-4">
-                        <button onClick={() => router.back()} className={`p-2 -ml-2 ${isDark ? 'hover:bg-[#21262d] text-slate-500 hover:text-white' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-900'} rounded-lg transition-all`}>
+                        <button onClick={handleBack} className={`p-2 -ml-2 ${isDark ? 'hover:bg-[#21262d] text-slate-500 hover:text-white' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-900'} rounded-lg transition-all`}>
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div className="flex-1">
@@ -743,7 +775,7 @@ export default function TicketDetailPage() {
                                             <p className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'} text-sm leading-tight`}>{ticket.assignee.full_name}</p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className={`px-1.5 py-0.5 ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'} text-[9px] font-black uppercase tracking-wider rounded`}>
-                                                    {ticket.skill_group?.name || 'Technical MST'}
+                                                    {assigneeRole}
                                                 </span>
                                                 <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} font-medium uppercase tracking-tighter`}>Assigned {new Date(ticket.assigned_at!).toLocaleDateString()}</span>
                                             </div>

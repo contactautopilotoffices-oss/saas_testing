@@ -129,8 +129,8 @@ export default function AddUserModal({ isOpen, onClose, organizationId, onSucces
                                 type="button"
                                 onClick={() => setMode('invite')}
                                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${mode === 'invite'
-                                        ? 'bg-blue-500 text-white shadow-lg'
-                                        : 'text-zinc-400 hover:text-white'
+                                    ? 'bg-blue-500 text-white shadow-lg'
+                                    : 'text-zinc-400 hover:text-white'
                                     }`}
                             >
                                 Invite via Email
@@ -139,8 +139,8 @@ export default function AddUserModal({ isOpen, onClose, organizationId, onSucces
                                 type="button"
                                 onClick={() => setMode('create')}
                                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${mode === 'create'
-                                        ? 'bg-blue-500 text-white shadow-lg'
-                                        : 'text-zinc-400 hover:text-white'
+                                    ? 'bg-blue-500 text-white shadow-lg'
+                                    : 'text-zinc-400 hover:text-white'
                                     }`}
                             >
                                 Create Directly

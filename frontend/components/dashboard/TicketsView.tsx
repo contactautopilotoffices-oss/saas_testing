@@ -88,7 +88,26 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                setTickets(data.tickets || []);
+                const fetchedTickets = data.tickets || [];
+
+                // Define status order for sorting
+                const statusOrder = ['waitlist', 'open', 'assigned', 'in_progress', 'blocked', 'resolved', 'closed'];
+
+                // Sort tickets: by status order first, then by created_at descending
+                const sorted = [...fetchedTickets].sort((a, b) => {
+                    const statusA = a.status || 'open';
+                    const statusB = b.status || 'open';
+                    const idxA = statusOrder.indexOf(statusA);
+                    const idxB = statusOrder.indexOf(statusB);
+
+                    if (idxA !== idxB && idxA !== -1 && idxB !== -1) {
+                        return idxA - idxB;
+                    }
+
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                });
+
+                setTickets(sorted);
             }
         } catch (error) {
             console.error('Error fetching tickets:', error);
@@ -187,8 +206,11 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
             case 'resolved':
             case 'closed':
                 return 'text-success bg-success/10 border-success/20';
-            case 'in_progress': return 'text-info bg-info/10 border-info/20';
-            case 'open': return 'text-error bg-error/10 border-error/20';
+            case 'in_progress':
+            case 'assigned':
+                return 'text-info bg-info/10 border-info/20';
+            case 'open': return 'text-warning bg-warning/10 border-warning/20';
+            case 'waitlist': return 'text-slate-500 bg-slate-100 border-slate-200';
             default: return 'text-text-tertiary bg-surface-elevated border-border';
         }
     };
@@ -206,11 +228,10 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                             onChange={(e) => setStatusFilter(e.target.value)}
                             className="h-9 px-3 bg-surface border border-border rounded-[var(--radius-md)] text-xs font-semibold font-body text-text-primary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
                         >
-                            <option value="all">All Status</option>
-                            <option value="open">Open</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="resolved">Resolved</option>
-                            <option value="closed">Closed</option>
+                            <option value="all">All</option>
+                            <option value="resolved,closed">Completed</option>
+                            <option value="open,assigned,in_progress,blocked">Open</option>
+                            <option value="waitlist">Waitlist</option>
                         </select>
                     </div>
                 </div>
@@ -247,7 +268,7 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.2 }}
                                 className="p-6 hover:bg-surface-elevated/30 transition-smooth cursor-pointer"
-                                onClick={() => router.push(`/tickets/${ticket.id}`)}
+                                onClick={() => router.push(`/tickets/${ticket.id}?from=requests`)}
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">

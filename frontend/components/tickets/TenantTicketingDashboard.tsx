@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquare, Loader2, CheckCircle, Camera } from 'lucide-react';
+import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquare, Loader2, CheckCircle, Camera, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { compressImage } from '@/frontend/utils/image-compression';
@@ -61,6 +61,7 @@ export default function TenantTicketingDashboard({
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [ratingTicket, setRatingTicket] = useState<Ticket | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
+    const [filter, setFilter] = useState<'all' | 'in_progress' | 'completed'>('all');
 
     useEffect(() => {
         fetchTickets();
@@ -76,7 +77,7 @@ export default function TenantTicketingDashboard({
             if (response.ok) {
                 const tickets = data.tickets || [];
                 setActiveTickets(tickets.filter((t: Ticket) => !['resolved', 'closed'].includes(t.status)));
-                setResolvedTickets(tickets.filter((t: Ticket) => ['resolved', 'closed'].includes(t.status)).slice(0, 5));
+                setResolvedTickets(tickets.filter((t: Ticket) => ['resolved', 'closed'].includes(t.status)));
             }
         } catch (error) {
             console.error('Error fetching tickets:', error);
@@ -318,9 +319,24 @@ export default function TenantTicketingDashboard({
                     {/* Right Panel - My Tickets */}
                     <div className="space-y-8">
                         <div className={`${isDark ? 'bg-[#161b22] border-[#21262d]' : 'glass-panel'} p-10 rounded-3xl border transition-all`}>
-                            <h2 className={`text-xs font-bold ${isDark ? 'text-slate-500 border-[#21262d]' : 'text-text-tertiary border-border/5'} mb-10 uppercase tracking-[0.2em] border-b pb-6`}>
-                                {isStaff ? 'Assigned Operations' : 'Recent Activity'}
-                            </h2>
+                            <div className="flex items-center justify-between mb-10 border-b pb-6">
+                                <h2 className={`text-xs font-bold ${isDark ? 'text-slate-500 border-[#21262d]' : 'text-text-tertiary border-border/5'} uppercase tracking-[0.2em]`}>
+                                    {isStaff ? 'Assigned Operations' : 'Recent Activity'}
+                                </h2>
+
+                                <div className={`flex items-center gap-2 ${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-white border-slate-100'} border px-3 py-1.5 rounded-xl shadow-sm`}>
+                                    <Filter className={`w-3.5 h-3.5 ${isDark ? 'text-slate-500' : 'text-text-tertiary'}`} />
+                                    <select
+                                        value={filter}
+                                        onChange={(e) => setFilter(e.target.value as any)}
+                                        className={`bg-transparent text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-primary'} focus:outline-none cursor-pointer`}
+                                    >
+                                        <option value="all">All</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+                            </div>
 
                             {loading ? (
                                 <div className="space-y-6">
@@ -331,137 +347,83 @@ export default function TenantTicketingDashboard({
                                         </div>
                                     ))}
                                 </div>
-                            ) : activeTickets.length === 0 ? (
-                                <div className="text-center py-20 px-8">
-                                    <div className={`w-20 h-20 ${isDark ? 'bg-[#0d1117]' : 'bg-text-primary/5'} rounded-full flex items-center justify-center mx-auto mb-6`}>
-                                        <MessageSquare className={`w-8 h-8 ${isDark ? 'text-slate-800' : 'text-text-tertiary/30'}`} />
-                                    </div>
-                                    <p className={`${isDark ? 'text-slate-600' : 'text-text-tertiary'} font-medium`}>No active requests currently in progress</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {activeTickets.map((ticket) => {
-                                        const sla = getSLAProgress(ticket);
-                                        return (
-                                            <div
-                                                key={ticket.id}
-                                                onClick={() => router.push(`/tickets/${ticket.id}`)}
-                                                className={`group/ticket ${isDark ? 'bg-[#0d1117] border-[#21262d] hover:border-emerald-500/30' : 'premium-list border-border/5 hover:border-primary/20'} p-8 cursor-pointer transition-all rounded-2xl border hover:shadow-2xl`}
-                                            >
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex items-start gap-6">
-                                                        <div className={`w-14 h-14 ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'kpi-icon'} flex items-center justify-center flex-shrink-0 rounded-xl border`}>
-                                                            <MessageSquare className={`w-7 h-7 ${isDark ? 'text-emerald-500' : 'text-primary'}`} />
-                                                        </div>
-                                                        <div>
-                                                            <p className={`font-display font-semibold ${isDark ? 'text-white group-hover/ticket:text-emerald-400' : 'text-text-primary group-hover/ticket:text-primary'} text-xl mb-1.5 transition-all`}>{ticket.title}</p>
-                                                            <div className="flex items-center gap-3">
-                                                                <span className={`text-[10px] font-bold ${isDark ? 'text-slate-500 bg-[#161b22]' : 'text-text-tertiary bg-text-primary/5'} uppercase tracking-widest px-2.5 py-1 rounded-md`}>
-                                                                    {((ticket as any).category && typeof (ticket as any).category === 'string')
-                                                                        ? (ticket as any).category.replace(/_/g, ' ')
-                                                                        : (ticket.category?.name || 'General')}
-                                                                </span>
-                                                                {sla && <span className={`text-[10px] font-bold uppercase tracking-widest ${sla.color}`}>{sla.text}</span>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="pt-2">
-                                                        <ChevronRight className={`w-6 h-6 ${isDark ? 'text-slate-800' : 'text-text-tertiary'} group-hover/ticket:text-primary group-hover/ticket:translate-x-1 transition-all`} />
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-4">
-                                                    {ticket.photo_before_url && (
-                                                        <div className="shrink-0 relative group/thumb">
-                                                            <img src={ticket.photo_before_url} alt="Site" className="w-16 h-16 rounded-xl object-cover border border-border/10" />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 rounded-xl transition-all">
-                                                                <Camera className="w-4 h-4 text-white" />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
-                                                        {sla && (
-                                                            <div className={`mt-2 h-1.5 ${isDark ? 'bg-[#161b22]' : 'bg-text-primary/5'} rounded-full overflow-hidden`}>
-                                                                <motion.div
-                                                                    initial={{ width: 0 }}
-                                                                    animate={{ width: `${sla.progress}%` }}
-                                                                    className={`h-full rounded-full transition-all duration-1000 ${sla.progress > 80 ? 'bg-error shadow-[0_0_12px_rgba(239,68,68,0.2)]' : (isDark ? 'bg-emerald-500' : 'bg-primary')} shadow-[0_0_12px_rgba(112,143,150,0.2)]`}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                            ) : (() => {
+                                const filteredTickets = filter === 'all'
+                                    ? [...activeTickets, ...resolvedTickets]
+                                    : filter === 'in_progress'
+                                        ? activeTickets
+                                        : resolvedTickets;
 
-                        {/* History Panel */}
-                        <div className={`${isDark ? 'bg-[#161b22]/40 border-[#21262d]' : 'glass-panel bg-opacity-40'} p-10 rounded-3xl border transition-all`}>
-                            <div className="flex items-center justify-between mb-8">
-                                <h2 className={`text-xs font-bold ${isDark ? 'text-slate-600' : 'text-text-tertiary'} uppercase tracking-[0.2em]`}>Recently Resolved</h2>
-                                <button
-                                    onClick={() => router.push(`/tickets?createdBy=${user.id}`)}
-                                    className={`text-[10px] font-bold ${isDark ? 'text-emerald-500 hover:text-emerald-400' : 'text-primary hover:text-secondary'} uppercase tracking-widest transition-all underline decoration-primary/20 underline-offset-8`}
-                                >
-                                    Full Archive
-                                </button>
-                            </div>
-
-                            {resolvedTickets.length === 0 ? (
-                                <p className={`text-center ${isDark ? 'text-slate-700' : 'text-text-tertiary/60'} py-8 font-medium italic`}>Your resolution history will appear here</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {resolvedTickets.map((ticket) => (
-                                        <div key={ticket.id} className={`${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'premium-list bg-white/20 border-border/5'} p-6 rounded-2xl border`}>
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="flex items-center gap-5">
-                                                    <div className={`w-12 h-12 ${isDark ? 'bg-[#161b22]' : 'kpi-icon'} flex items-center justify-center rounded-xl`}>
-                                                        {ticket.photo_after_url ? (
-                                                            <img src={ticket.photo_after_url} className="w-full h-full object-cover rounded-xl" />
-                                                        ) : (
-                                                            <CheckCircle className={`w-6 h-6 ${isDark ? 'text-emerald-500' : 'text-primary'}`} />
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <p className={`font-display font-semibold ${isDark ? 'text-white' : 'text-text-primary'} text-lg mb-1 leading-tight`}>{ticket.title}</p>
-                                                        <div className="flex items-center gap-1.5">
-                                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                                <Star
-                                                                    key={star}
-                                                                    className={`w-3.5 h-3.5 transition-all ${star <= (ticket.rating || 0) ? (isDark ? 'text-emerald-500 fill-emerald-500' : 'text-secondary fill-secondary') : (isDark ? 'text-slate-800' : 'text-text-tertiary/20 hover:text-secondary/40')}`}
-                                                                    onClick={() => {
-                                                                        if (!ticket.rating) {
-                                                                            setRatingTicket(ticket);
-                                                                            setSelectedRating(star);
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {!ticket.rating && (
-                                                    <button
-                                                        onClick={() => setRatingTicket(ticket)}
-                                                        className={`text-[10px] ${isDark ? 'text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10' : 'text-primary border-primary/30 hover:bg-primary hover:text-white'} font-bold uppercase tracking-widest border px-4 py-2 rounded-xl transition-all`}
-                                                    >
-                                                        Rate
-                                                    </button>
-                                                )}
+                                if (filteredTickets.length === 0) {
+                                    return (
+                                        <div className="text-center py-20 px-8">
+                                            <div className={`w-20 h-20 ${isDark ? 'bg-[#0d1117]' : 'bg-text-primary/5'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+                                                <MessageSquare className={`w-8 h-8 ${isDark ? 'text-slate-800' : 'text-text-tertiary/30'}`} />
                                             </div>
-                                            {ticket.photo_before_url && (
-                                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">
-                                                    <Camera className="w-3.5 h-3.5 text-emerald-500" />
-                                                    Evidence Logged
-                                                </div>
-                                            )}
+                                            <p className={`${isDark ? 'text-slate-600' : 'text-text-tertiary'} font-medium`}>
+                                                {filter === 'completed' ? 'No completed requests found' : 'No active requests currently in progress'}
+                                            </p>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                    );
+                                }
+
+                                return (
+                                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {filteredTickets
+                                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                            .map((ticket) => {
+                                                const isFinal = ['resolved', 'closed'].includes(ticket.status);
+                                                const sla = getSLAProgress(ticket);
+                                                return (
+                                                    <div
+                                                        key={ticket.id}
+                                                        onClick={() => router.push(`/tickets/${ticket.id}`)}
+                                                        className={`group/ticket ${isDark ? 'bg-[#0d1117] border-[#21262d] hover:border-emerald-500/30' : 'premium-list border-border/5 hover:border-primary/20'} p-8 cursor-pointer transition-all rounded-2xl border hover:shadow-2xl ${isFinal ? 'opacity-80' : ''}`}
+                                                    >
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex items-start gap-6">
+                                                                <div className={`w-14 h-14 ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'kpi-icon'} flex items-center justify-center flex-shrink-0 rounded-xl border`}>
+                                                                    {isFinal ? (
+                                                                        <CheckCircle className={`w-7 h-7 ${isDark ? 'text-emerald-500' : 'text-success'}`} />
+                                                                    ) : (
+                                                                        <MessageSquare className={`w-7 h-7 ${isDark ? 'text-emerald-500' : 'text-primary'}`} />
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <p className={`font-display font-semibold ${isDark ? 'text-white group-hover/ticket:text-emerald-400' : 'text-text-primary group-hover/ticket:text-primary'} text-xl transition-all`}>{ticket.title}</p>
+                                                                        {isFinal && <span className="text-[9px] bg-success/10 text-success px-2 py-0.5 rounded font-black uppercase tracking-tighter">Resolved</span>}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className={`text-[10px] font-bold ${isDark ? 'text-slate-500 bg-[#161b22]' : 'text-text-tertiary bg-text-primary/5'} uppercase tracking-widest px-2.5 py-1 rounded-md`}>
+                                                                            {((ticket as any).category && typeof (ticket as any).category === 'string')
+                                                                                ? (ticket as any).category.replace(/_/g, ' ')
+                                                                                : (ticket.category?.name || 'General')}
+                                                                        </span>
+                                                                        {!isFinal && sla && <span className={`text-[10px] font-bold uppercase tracking-widest ${sla.color}`}>{sla.text}</span>}
+                                                                        {isFinal && ticket.rating && (
+                                                                            <div className="flex gap-0.5">
+                                                                                {[1, 2, 3, 4, 5].map(s => (
+                                                                                    <Star key={s} className={`w-2.5 h-2.5 ${s <= ticket.rating! ? 'text-yellow-400 fill-yellow-400' : 'text-slate-300'}`} />
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="pt-2">
+                                                                <ChevronRight className={`w-6 h-6 ${isDark ? 'text-slate-800' : 'text-text-tertiary'} group-hover/ticket:text-primary group-hover/ticket:translate-x-1 transition-all`} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                );
+                            })()}
                         </div>
+
+
                     </div>
                 </div>
             </div>

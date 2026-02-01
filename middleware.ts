@@ -15,7 +15,7 @@ const securityHeaders = {
     // Control referrer information
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     // Restrict browser features/APIs
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Permissions-Policy': 'camera=(self), microphone=(), geolocation=()',
     // HTTP Strict Transport Security (enable in production with HTTPS)
     ...(process.env.NODE_ENV === 'production' ? {
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
@@ -23,10 +23,10 @@ const securityHeaders = {
     // Content Security Policy - adjust based on your needs
     'Content-Security-Policy': [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required for Next.js
-        "style-src 'self' 'unsafe-inline'", // Required for inline styles
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: blob: https://xvucakstcmtfoanmgcql.supabase.co",
-        "font-src 'self' data:",
+        "font-src 'self' data: https://fonts.gstatic.com",
         "connect-src 'self' https://xvucakstcmtfoanmgcql.supabase.co wss://xvucakstcmtfoanmgcql.supabase.co",
         "frame-ancestors 'none'",
         "base-uri 'self'",

@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import {
     LayoutDashboard, Building2, Users, UserPlus, Ticket, Settings, UserCircle,
-    Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
+    Search, Plus, Filter, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
     Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload, FileBarChart, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { HapticCard } from '@/frontend/components/ui/HapticCard';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
@@ -79,6 +79,7 @@ const OrgAdminDashboard = () => {
     const [isPropSelectorOpen, setIsPropSelectorOpen] = useState(false);
     const [userRole, setUserRole] = useState<string>('User');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const searchParams = useSearchParams();
 
     // Derived state
     const activeProperty = selectedPropertyId === 'all'
@@ -97,6 +98,14 @@ const OrgAdminDashboard = () => {
             fetchOrgDetails();
         }
     }, [orgSlugOrId]);
+
+    // Restore tab from URL
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['overview', 'properties', 'requests', 'reports', 'visitors', 'settings', 'profile', 'revenue', 'users', 'diesel', 'electricity'].includes(tab)) {
+            setActiveTab(tab as Tab);
+        }
+    }, [searchParams]);
 
     // Fetch properties ONCE when org is loaded (not on every tab change)
     useEffect(() => {
@@ -353,6 +362,11 @@ const OrgAdminDashboard = () => {
     const handleTabChange = (tab: Tab) => {
         setActiveTab(tab);
         setSidebarOpen(false);
+
+        // Update URL with current tab for history persistence
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
     };
 
     if (!org && !isLoading) return (
@@ -1184,7 +1198,7 @@ const OverviewTab = memo(function OverviewTab({
     return (
         <div className="min-h-screen bg-background">
             {/* Header Section */}
-            <div className="bg-[#708F96] px-8 lg:px-12 py-10 border-b border-white/10 shadow-lg relative z-[100]">
+            <div className="bg-[#708F96] px-8 lg:px-12 py-10 border-b border-white/10 shadow-lg relative z-30">
                 <div className="flex items-center justify-between mb-5 relative z-10">
                     <div className="flex items-center gap-4">
                         {/* Mobile Menu Toggle */}
@@ -1266,9 +1280,6 @@ const OverviewTab = memo(function OverviewTab({
                                 )}
                             </AnimatePresence>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-5">
-                        <Search className="w-6 h-6 text-white/70 cursor-pointer hover:text-white transition-colors" />
                     </div>
                 </div>
 
@@ -1661,11 +1672,11 @@ const PropertyModal = ({ property, onClose, onSave }: any) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[9998] p-4">
             <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative overflow-hidden max-h-[85vh] overflow-y-auto custom-scrollbar"
+                className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative overflow-hidden max-h-[85vh] overflow-y-auto custom-scrollbar border border-white/20"
             >
                 <button onClick={onClose} className="absolute right-6 top-5 text-slate-300 hover:text-slate-900 transition-colors">
                     <X className="w-6 h-6" />
@@ -1753,11 +1764,11 @@ const UserModal = ({ user, onClose, onSave }: any) => {
     const [orgRole, setOrgRole] = useState(user?.role || 'org_admin');
 
     return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[9998] p-4">
             <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative"
+                className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative border border-white/20"
             >
                 <button onClick={onClose} className="absolute right-6 top-5 text-slate-300 hover:text-slate-900 transition-colors">
                     <X className="w-6 h-6" />

@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import {
     LayoutDashboard, Users, Ticket, Settings, UserCircle, UsersRound,
-    Search, Plus, Filter, Bell, LogOut, ChevronRight, MapPin, Building2,
+    Search, Plus, Filter, LogOut, ChevronRight, MapPin, Building2,
     Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload, FileBarChart, Menu, X, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import DieselAnalyticsDashboard from '@/frontend/components/diesel/DieselAnalyticsDashboard';
@@ -66,6 +66,7 @@ const PropertyAdminDashboard = () => {
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [statsVersion, setStatsVersion] = useState(0);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const searchParams = useSearchParams();
 
     const supabase = useMemo(() => createClient(), []);
 
@@ -78,6 +79,23 @@ const PropertyAdminDashboard = () => {
             fetchPropertyDetails();
         }
     }, [propertyId]);
+
+    // Restore tab from URL
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['overview', 'requests', 'reports', 'users', 'visitors', 'diesel', 'electricity', 'electricity_analytics', 'cafeteria', 'settings', 'profile', 'units', 'vendor_revenue'].includes(tab)) {
+            setActiveTab(tab as Tab);
+        }
+    }, [searchParams]);
+
+    // Helper to change tab with URL persistence
+    const handleTabChange = (tab: Tab) => {
+        setActiveTab(tab);
+        setSidebarOpen(false);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
+    };
 
     const fetchPropertyDetails = async () => {
         setIsLoading(true);
@@ -190,7 +208,7 @@ const PropertyAdminDashboard = () => {
                         </p>
                         <div className="space-y-1">
                             <button
-                                onClick={() => setActiveTab('overview')}
+                                onClick={() => handleTabChange('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'overview'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -200,7 +218,7 @@ const PropertyAdminDashboard = () => {
                                 Dashboard
                             </button>
                             <button
-                                onClick={() => setActiveTab('requests')}
+                                onClick={() => handleTabChange('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'requests'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -210,7 +228,7 @@ const PropertyAdminDashboard = () => {
                                 Requests
                             </button>
                             <button
-                                onClick={() => setActiveTab('reports')}
+                                onClick={() => handleTabChange('reports')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'reports'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -231,7 +249,7 @@ const PropertyAdminDashboard = () => {
                         <div className="space-y-1">
 
                             <button
-                                onClick={() => setActiveTab('users')}
+                                onClick={() => handleTabChange('users')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'users'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -241,7 +259,7 @@ const PropertyAdminDashboard = () => {
                                 User Management
                             </button>
                             <button
-                                onClick={() => setActiveTab('visitors')}
+                                onClick={() => handleTabChange('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'visitors'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -251,7 +269,7 @@ const PropertyAdminDashboard = () => {
                                 Visitor Management
                             </button>
                             <button
-                                onClick={() => setActiveTab('diesel')}
+                                onClick={() => handleTabChange('diesel')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'diesel'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -261,7 +279,7 @@ const PropertyAdminDashboard = () => {
                                 Diesel Analytics
                             </button>
                             <button
-                                onClick={() => setActiveTab('vendor_revenue')}
+                                onClick={() => handleTabChange('vendor_revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'vendor_revenue'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -271,7 +289,7 @@ const PropertyAdminDashboard = () => {
                                 Cafeteria Revenue
                             </button>
                             <button
-                                onClick={() => setActiveTab('electricity')}
+                                onClick={() => handleTabChange('electricity')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'electricity'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -281,7 +299,7 @@ const PropertyAdminDashboard = () => {
                                 Electricity Logger
                             </button>
                             <button
-                                onClick={() => setActiveTab('electricity_analytics')}
+                                onClick={() => handleTabChange('electricity_analytics')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'electricity_analytics'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -301,7 +319,7 @@ const PropertyAdminDashboard = () => {
                         </p>
                         <div className="space-y-1">
                             <button
-                                onClick={() => setActiveTab('settings')}
+                                onClick={() => handleTabChange('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'settings'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -311,7 +329,7 @@ const PropertyAdminDashboard = () => {
                                 Settings
                             </button>
                             <button
-                                onClick={() => setActiveTab('profile')}
+                                onClick={() => handleTabChange('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'profile'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -376,7 +394,7 @@ const PropertyAdminDashboard = () => {
                             {/* User Account Info - Simplified Level Look */}
                             <div className="flex items-center gap-6">
                                 <button
-                                    onClick={() => setActiveTab('profile')}
+                                    onClick={() => handleTabChange('profile')}
                                     className="flex items-center gap-4 group transition-all"
                                 >
                                     <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-base group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
@@ -701,7 +719,6 @@ const OverviewTab = memo(function OverviewTab({ propertyId, statsVersion, proper
                         </button>
                         <h1 className="text-2xl md:text-3xl font-black text-white">Unified Dashboard</h1>
                     </div>
-                    <Search className="w-6 h-6 text-white/70 cursor-pointer hover:text-white transition-colors" />
                 </div>
                 <div className="flex items-center gap-2 mb-5">
                     <span className="text-white text-sm font-bold">Dashboard / {property?.name || 'Property'}</span>

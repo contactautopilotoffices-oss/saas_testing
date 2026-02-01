@@ -95,7 +95,13 @@ export async function GET(request: NextRequest) {
 
         if (propertyId) query = query.eq('property_id', propertyId);
         if (organizationId) query = query.eq('organization_id', organizationId);
-        if (status) query = query.eq('status', status);
+        if (status) {
+            if (status.includes(',')) {
+                query = query.in('status', status.split(',').map(s => s.trim()));
+            } else {
+                query = query.eq('status', status);
+            }
+        }
         if (isInternal !== null && isInternal !== undefined) {
             query = query.eq('is_internal', isInternal === 'true');
         }
@@ -259,14 +265,27 @@ export async function POST(request: NextRequest) {
             }, { status: 500 });
         }
 
+        // Re-fetch the ticket to get the trigger-updated status (assigned/waitlist)
+        // The PostgreSQL trigger 'trigger_auto_assign_ticket' may have updated the status
+        const { data: updatedTicket } = await supabase
+            .from('tickets')
+            .select('*')
+            .eq('id', ticket.id)
+            .single();
+
+        const finalTicket = updatedTicket || ticket;
+
         return NextResponse.json({
             success: true,
-            ticket,
+            ticket: finalTicket,
             classification: {
                 issue_code,
                 skill_group,
                 confidence,
                 isAutoClassified: !explicitDepartment,
+                // Include the actual status for frontend display
+                status: finalTicket.status,
+                assigned_to: finalTicket.assigned_to,
             },
         }, { status: 201 });
     } catch (error) {

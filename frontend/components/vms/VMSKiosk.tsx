@@ -149,12 +149,12 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
 
     if (step === 'home') {
         return (
-            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+            <div className="min-h-[700px] bg-[#ebf5f4] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
                 {/* Brand Mesh Gradient Background */}
                 <div className="absolute inset-0 z-0">
                     <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[100px]" />
                     <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[100px]" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#0F172A]/80 backdrop-blur-3xl" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#ebf5f4]/80" />
                 </div>
 
                 <motion.div
@@ -197,11 +197,11 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // CATEGORY SELECTION
     if (step === 'category') {
         return (
-            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+            <div className="min-h-[700px] bg-[#ebf5f4] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
                 <div className="absolute inset-0 z-0">
                     <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[100px]" />
                     <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[100px]" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#0F172A]/80 backdrop-blur-3xl" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#ebf5f4]/80" />
                 </div>
                 <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md relative z-10">
                     <button
@@ -255,7 +255,7 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // VISITOR FORM
     if (step === 'form') {
         return (
-            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+            <div className="min-h-[700px] bg-[#ebf5f4] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
                 <div className="absolute inset-0 z-0">
                     <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[100px]" />
                 </div>
@@ -409,7 +409,7 @@ const VMSKiosk: React.FC<VMSKioskProps> = ({ propertyId, propertyName }) => {
     // CHECKOUT SCREEN
     if (step === 'checkout') {
         return (
-            <div className="min-h-[700px] bg-[#0F172A] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
+            <div className="min-h-[700px] bg-[#ebf5f4] relative flex flex-col items-center justify-center p-8 overflow-hidden rounded-[2.5rem]">
                 <div className="absolute inset-0 z-0">
                     <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[100px]" />
                 </div>

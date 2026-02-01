@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-    LayoutDashboard, Ticket, Bell, Settings, LogOut, Plus,
+    LayoutDashboard, Ticket, Settings, LogOut, Plus,
     CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle, Shield, Fuel, LogIn, LogOut as LogOutIcon, Menu, X, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import Image from 'next/image';
 import DieselStaffDashboard from '@/frontend/components/diesel/DieselStaffDashboard';
@@ -51,6 +51,7 @@ const SecurityDashboard = () => {
         securityAlerts: 0
     });
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const searchParams = useSearchParams();
 
     const supabase = createClient();
 
@@ -61,6 +62,23 @@ const SecurityDashboard = () => {
             fetchKPIStats();
         }
     }, [propertyId, user?.id]);
+
+    // Restore tab from URL
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['overview', 'requests', 'checkinout', 'visitors', 'diesel', 'settings', 'profile'].includes(tab)) {
+            setActiveTab(tab as Tab);
+        }
+    }, [searchParams]);
+
+    // Helper to change tab with URL persistence
+    const handleTabChange = (tab: Tab) => {
+        setActiveTab(tab);
+        setSidebarOpen(false);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
+    };
 
     const fetchKPIStats = async () => {
         try {
@@ -202,7 +220,7 @@ const SecurityDashboard = () => {
                         </p>
                         <div className="grid grid-cols-2 gap-2 px-3">
                             <button
-                                onClick={() => setActiveTab('requests')}
+                                onClick={() => handleTabChange('requests')}
                                 className="flex items-center gap-2 p-2 bg-white text-text-primary rounded-lg hover:bg-muted transition-all border border-border group"
                                 title="New Request"
                             >
@@ -212,7 +230,7 @@ const SecurityDashboard = () => {
                                 <span className="text-[9px] font-bold uppercase tracking-tight">Report</span>
                             </button>
                             <button
-                                onClick={() => setActiveTab('checkinout')}
+                                onClick={() => handleTabChange('checkinout')}
                                 className="flex items-center gap-2 p-2 bg-muted border border-border rounded-lg hover:bg-emerald-50 focus:bg-emerald-50 transition-all"
                                 title="Check In/Out"
                             >
@@ -221,14 +239,14 @@ const SecurityDashboard = () => {
                             </button>
                             <button
                                 onClick={() => alert('URGENT: Emergency SOS Signal Broadcasted to all Staff.')}
-                                className="flex items-center gap-2 p-2 bg-muted border border-border rounded-lg hover:bg-rose-50 transition-all font-bold"
+                                className="flex items-center gap-2 p-2 bg-rose-50 border border-border rounded-lg hover:bg-rose-100 transition-all font-black"
                                 title="Emergency SOS"
                             >
                                 <Shield className="w-3.5 h-3.5 text-rose-600" />
                                 <span className="text-[9px] font-black text-rose-600 uppercase tracking-wider">SOS</span>
                             </button>
                             <button
-                                onClick={() => setActiveTab('visitors')}
+                                onClick={() => handleTabChange('visitors')}
                                 className="flex items-center gap-2 p-2 bg-muted border border-border rounded-lg hover:bg-indigo-50 transition-all"
                                 title="View Visitors"
                             >
@@ -246,7 +264,7 @@ const SecurityDashboard = () => {
                         </p>
                         <div className="space-y-1">
                             <button
-                                onClick={() => setActiveTab('overview')}
+                                onClick={() => handleTabChange('overview')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'overview'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -256,7 +274,7 @@ const SecurityDashboard = () => {
                                 Dashboard
                             </button>
                             <button
-                                onClick={() => setActiveTab('requests')}
+                                onClick={() => handleTabChange('requests')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'requests'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -266,7 +284,7 @@ const SecurityDashboard = () => {
                                 Requests
                             </button>
                             <button
-                                onClick={() => setActiveTab('checkinout')}
+                                onClick={() => handleTabChange('checkinout')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'checkinout'
                                     ? 'bg-secondary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -286,7 +304,7 @@ const SecurityDashboard = () => {
                         </p>
                         <div className="space-y-1">
                             <button
-                                onClick={() => setActiveTab('visitors')}
+                                onClick={() => handleTabChange('visitors')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'visitors'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -296,7 +314,7 @@ const SecurityDashboard = () => {
                                 Visitor Registry
                             </button>
                             <button
-                                onClick={() => setActiveTab('diesel')}
+                                onClick={() => handleTabChange('diesel')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'diesel'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -316,7 +334,7 @@ const SecurityDashboard = () => {
                         </p>
                         <div className="space-y-1">
                             <button
-                                onClick={() => setActiveTab('settings')}
+                                onClick={() => handleTabChange('settings')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'settings'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -326,7 +344,7 @@ const SecurityDashboard = () => {
                                 Settings
                             </button>
                             <button
-                                onClick={() => setActiveTab('profile')}
+                                onClick={() => handleTabChange('profile')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'profile'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
@@ -520,7 +538,7 @@ const OverviewTab = ({ stats }: { stats: any }) => (
                 { label: 'Active Visitors', value: stats.activeVisitors.toString(), icon: UsersRound, color: 'text-primary', bg: 'bg-primary/10' },
                 { label: 'Pending Clearances', value: stats.pendingClearances.toString(), icon: Clock, color: 'text-secondary', bg: 'bg-secondary/10' },
                 { label: 'Incidents Today', value: stats.incidentsToday.toString(), icon: AlertCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { label: 'Security Alerts', value: stats.securityAlerts.toString(), icon: Bell, color: 'text-rose-600', bg: 'bg-rose-50' },
+                { label: 'Security Alerts', value: stats.securityAlerts.toString(), icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
             ].map((stat, i) => (
                 <div key={i} className="bg-card p-6 rounded-3xl border border-border shadow-sm">
                     <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4 transition-transform hover:scale-110`}>
