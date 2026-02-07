@@ -123,6 +123,39 @@ export async function POST(
         }, { status: 404 });
     }
 
+    // Check for existing multiplier on same date -> Update instead of Insert
+    const { data: existing } = await supabase
+        .from('meter_multipliers')
+        .select('*')
+        .eq('meter_id', body.meter_id)
+        .eq('effective_from', body.effective_from)
+        .single();
+
+    if (existing) {
+        console.log('[MeterMultipliers] Updating existing multiplier for date:', body.effective_from);
+        const { data, error } = await supabase
+            .from('meter_multipliers')
+            .update({
+                ct_ratio_primary: body.ct_ratio_primary || existing.ct_ratio_primary,
+                ct_ratio_secondary: body.ct_ratio_secondary || existing.ct_ratio_secondary,
+                pt_ratio_primary: body.pt_ratio_primary || existing.pt_ratio_primary,
+                pt_ratio_secondary: body.pt_ratio_secondary || existing.pt_ratio_secondary,
+                meter_constant: body.meter_constant || existing.meter_constant,
+                multiplier_value: body.multiplier_value || existing.multiplier_value, // Ensure value is updated
+                reason: body.reason || existing.reason,
+                // Do not change effective_from or created_by
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[MeterMultipliers] Error updating multiplier:', error.message);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        return NextResponse.json(data);
+    }
+
     // Close any existing active multiplier (set effective_to)
     const effectiveFromDate = new Date(body.effective_from);
     const dayBefore = new Date(effectiveFromDate);
@@ -144,7 +177,8 @@ export async function POST(
             ct_ratio_secondary: body.ct_ratio_secondary || 5,
             pt_ratio_primary: body.pt_ratio_primary || 11000,
             pt_ratio_secondary: body.pt_ratio_secondary || 110,
-            meter_constant: body.meter_constant || 1.0,
+            meter_constant: body.meter_constant,
+            multiplier_value: body.multiplier_value, // Explicitly save the value
             effective_from: body.effective_from,
             effective_to: body.effective_to || null,
             reason: body.reason || null,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Fuel, Plus, Minus, AlertTriangle, TrendingUp, Trash2, IndianRupee } from 'lucide-react';
+import { Fuel, Plus, Minus, AlertTriangle, Save, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface Generator {
@@ -36,16 +36,16 @@ interface DieselLoggerCardProps {
     averageConsumption?: number;
     activeTariff?: DGTariff | null;
     onReadingChange: (generatorId: string, reading: DieselReading) => void;
+    onSave?: (generatorId: string) => Promise<void>;
     onDelete?: (generatorId: string) => void;
     isSubmitting?: boolean;
     isDark?: boolean;
 }
 
 /**
- * Diesel Logger Card v2
- * PRD: Cost is computed, never entered
- * PRD: Cost shown before units
- * PRD: Full parity analytics with electricity
+ * Diesel Logger Card v2.1
+ * PRD: Pure input, no analytics, no cost shown.
+ * Front: Opening (Auto), Closing (User), Diesel Added, Save Entry.
  */
 const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
     generator,
@@ -53,41 +53,23 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
     averageConsumption,
     activeTariff,
     onReadingChange,
+    onSave,
     onDelete,
     isSubmitting = false,
     isDark = false
 }) => {
     const [openingHours, setOpeningHours] = useState<number>(previousClosing || 0);
     const [dieselAdded, setDieselAdded] = useState<number>(0);
-    const [closingHours, setClosingHours] = useState<number>(0);
+    const [closingHours, setClosingHours] = useState<number | ''>('');
     const [notes, setNotes] = useState<string>('');
-    const [isFocused, setIsFocused] = useState(false);
 
-    // Calculate consumption, run time, and cost
-    const runHours = closingHours > openingHours ? closingHours - openingHours : 0;
+    // Calculate consumption (Internal logic only for data submission, NOT displayed)
+    const runHours = (closingHours !== '' && closingHours > openingHours) ? closingHours - openingHours : 0;
     const fuelEfficiency = generator.fuel_efficiency_lphr || 15;
     const estimatedConsumption = Math.round(runHours * fuelEfficiency);
-
-    // Compute cost (PRD: Cost = Units × DG Rate)
     const tariffRate = activeTariff?.cost_per_litre || 0;
-    const computedCost = estimatedConsumption * tariffRate;
 
-    // Warning state: consumption > 25% vs average
-    const isHighConsumption = averageConsumption && estimatedConsumption > averageConsumption * 1.25;
-    const hasValidReading = closingHours > openingHours;
-
-    // Status styling
-    const getStatusColor = () => {
-        if (generator.status === 'standby') return isDark ? 'bg-[#21262d] text-slate-400' : 'bg-slate-200 text-slate-500';
-        if (generator.status === 'maintenance') return 'bg-rose-100 text-rose-600';
-        return 'bg-primary/10 text-primary';
-    };
-
-    const getStripColor = () => {
-        if (!hasValidReading) return isDark ? 'bg-[#21262d]' : 'bg-slate-200';
-        if (isHighConsumption) return 'bg-amber-400';
-        return isDark ? 'bg-primary' : 'bg-primary';
-    };
+    const hasValidReading = closingHours !== '' && closingHours > openingHours;
 
     // Notify parent of changes
     useEffect(() => {
@@ -95,14 +77,14 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
             onReadingChange(generator.id, {
                 opening_hours: openingHours,
                 diesel_added_litres: dieselAdded,
-                closing_hours: closingHours,
+                closing_hours: Number(closingHours),
                 computed_consumed_litres: estimatedConsumption,
                 tariff_id: activeTariff?.id,
                 tariff_rate: tariffRate,
                 notes: notes || undefined,
             });
         }
-    }, [openingHours, dieselAdded, closingHours, notes, hasValidReading, activeTariff]);
+    }, [openingHours, dieselAdded, closingHours, notes, hasValidReading, activeTariff, estimatedConsumption, tariffRate]);
 
     // Set opening hours from previous closing
     useEffect(() => {
@@ -111,19 +93,32 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
         }
     }, [previousClosing]);
 
+    // Handle Save
+    const handleSaveEntry = async () => {
+        if (onSave && hasValidReading) {
+            await onSave(generator.id);
+        }
+    };
+
+    // Status styling
+    const getStatusColor = () => {
+        if (generator.status === 'standby') return isDark ? 'bg-[#21262d] text-slate-400' : 'bg-slate-200 text-slate-500';
+        if (generator.status === 'maintenance') return 'bg-rose-100 text-rose-600';
+        return 'bg-primary/10 text-primary';
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`group relative flex flex-col ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border overflow-hidden ${generator.status === 'standby' ? 'opacity-60 hover:opacity-100' : ''
-                }`}
+            className={`group relative flex flex-col justify-between ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border overflow-hidden min-h-[480px]`}
         >
             {/* Status Strip */}
-            <div className={`absolute top-0 left-0 w-1.5 h-full ${getStripColor()} transition-colors`} />
+            <div className={`absolute top-0 left-0 w-1.5 h-full ${hasValidReading ? 'bg-primary' : (isDark ? 'bg-[#21262d]' : 'bg-slate-200')} transition-colors`} />
 
-            <div className="p-5 md:p-6 flex flex-col h-full">
+            <div className="p-5 md:p-6 flex flex-col h-full justify-between">
                 {/* Header */}
-                <div className="flex justify-between items-start mb-6 pl-2">
+                <div className="flex justify-between items-start mb-4 pl-2">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{generator.name}</h2>
@@ -135,169 +130,88 @@ const DieselLoggerCard: React.FC<DieselLoggerCardProps> = ({
                             {generator.make || 'Generator'} · {generator.capacity_kva || '—'} KVA
                         </p>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center gap-2">
-                            {/* Show current tariff rate */}
-                            {tariffRate > 0 && (
-                                <div className={`flex items-center gap-1 text-xs ${isDark ? 'text-primary bg-primary/10' : 'text-primary bg-primary/5'} px-2 py-1 rounded-lg`}>
-                                    <IndianRupee className="w-3 h-3" />
-                                    <span>{tariffRate}/L</span>
-                                </div>
-                            )}
-                            {onDelete && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDelete(generator.id);
-                                    }}
-                                    className={`${isDark ? 'text-slate-600 hover:text-rose-500 bg-rose-500/5' : 'text-slate-400 hover:text-rose-500 bg-rose-50'} p-2 rounded-lg transition-all border border-transparent hover:border-rose-500/20`}
-                                    title="Delete Generator"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                        {averageConsumption && (
-                            <div className={`flex items-center gap-1 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                                <TrendingUp className="w-3 h-3" />
-                                <span>Avg: {averageConsumption}L/day</span>
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 {/* Input Grid */}
-                <div className="flex-1 space-y-5 pl-2">
+                <div className="flex-1 space-y-6 flex flex-col justify-center pl-2">
                     {/* Row 1: Opening & Added */}
                     <div className="grid grid-cols-2 gap-4">
                         {/* Opening Hours (readonly) */}
-                        <label className="flex flex-col gap-1.5">
-                            <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide`}>Opening</span>
-                            <div className="relative">
-                                <input
-                                    type="number"
-                                    value={openingHours}
-                                    readOnly
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-500'} font-bold rounded-lg p-2.5 pl-3 focus:outline-none cursor-not-allowed border`}
-                                />
-                                <span className={`absolute right-3 top-2.5 ${isDark ? 'text-slate-600' : 'text-slate-400'} text-sm font-medium`}>hrs</span>
+                        <div className={`${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-slate-50 border-slate-200'} rounded-lg p-3 border border-dashed`}>
+                            <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide block mb-1`}>Opening</span>
+                            <div className={`text-xl font-mono font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                {openingHours.toFixed(1)} <span className="text-sm">hrs</span>
                             </div>
-                        </label>
+                        </div>
 
                         {/* Diesel Added */}
-                        <label className="flex flex-col gap-1.5">
-                            <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide`}>Diesel Added</span>
-                            <div className="relative">
+                        <div>
+                            <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide block mb-1`}>Diesel Added</span>
+                            <div className="relative flex items-center">
                                 <button
                                     onClick={() => setDieselAdded(Math.max(0, dieselAdded - 10))}
-                                    className="absolute inset-y-0 left-0 flex items-center pl-2 z-10"
+                                    className={`absolute left-0 z-10 p-2 ${isDark ? 'text-slate-500 hover:text-primary' : 'text-slate-400 hover:text-primary'}`}
                                 >
-                                    <span className={`p-1 rounded-md ${isDark ? 'text-slate-500 hover:text-primary hover:bg-primary/10' : 'text-slate-400 hover:text-primary hover:bg-primary/10'} transition-colors`}>
-                                        <Minus className="w-4 h-4" />
-                                    </span>
+                                    <Minus className="w-4 h-4" />
                                 </button>
                                 <input
                                     type="number"
                                     value={dieselAdded}
                                     onChange={(e) => setDieselAdded(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} text-slate-900 font-bold rounded-lg py-2.5 px-8 text-center transition-all shadow-sm border`}
-                                    placeholder="0"
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-white border-slate-200 text-slate-900'} font-bold rounded-lg py-3 px-8 text-center border focus:outline-none focus:ring-2 focus:ring-primary/20`}
                                 />
                                 <button
                                     onClick={() => setDieselAdded(dieselAdded + 10)}
-                                    className="absolute inset-y-0 right-0 flex items-center pr-2 z-10"
+                                    className={`absolute right-0 z-10 p-2 ${isDark ? 'text-slate-500 hover:text-primary' : 'text-slate-400 hover:text-primary'}`}
                                 >
-                                    <span className={`p-1 rounded-md ${isDark ? 'text-slate-500 hover:text-primary hover:bg-primary/10' : 'text-slate-400 hover:text-primary hover:bg-primary/10'} transition-colors`}>
-                                        <Plus className="w-4 h-4" />
-                                    </span>
+                                    <Plus className="w-4 h-4" />
                                 </button>
                             </div>
-                            <span className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'} text-right`}>Litres</span>
-                        </label>
+                        </div>
                     </div>
 
-                    {/* Row 2: Closing Reading (Main Action) */}
-                    <label className="flex flex-col gap-2">
-                        <div className="flex justify-between items-end">
-                            <span className={`text-xs font-bold uppercase tracking-wide ${isHighConsumption ? 'text-amber-600' : (isDark ? 'text-primary' : 'text-primary')}`}>
-                                Closing Reading
-                            </span>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${hasValidReading ? 'bg-green-100 text-green-700' : (isDark ? 'bg-[#0d1117] text-amber-500' : 'bg-primary/10 text-primary')
-                                }`}>
-                                {hasValidReading ? '✓ VALID' : 'REQUIRED'}
-                            </span>
-                        </div>
+                    {/* Closing Reading (User) */}
+                    <div>
+                        <span className={`text-xs font-bold ${isDark ? 'text-primary' : 'text-primary'} uppercase tracking-wide block mb-2`}>
+                            Closing Reading
+                        </span>
                         <div className="relative">
                             <input
                                 type="number"
-                                value={closingHours || ''}
-                                onChange={(e) => setClosingHours(parseFloat(e.target.value) || 0)}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => setIsFocused(false)}
-                                className={`w-full ${isDark ? 'bg-[#0d1117] border-primary/50 focus:border-primary text-white' : 'bg-white border-primary/30 focus:border-primary text-slate-900'} border-2 focus:ring-4 ${isDark ? 'focus:ring-primary/10' : 'focus:ring-primary/10'} text-lg font-bold rounded-xl py-3 px-4 shadow-sm transition-all`}
-                                placeholder={`>${openingHours}`}
+                                value={closingHours}
+                                onChange={(e) => setClosingHours(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                className={`w-full ${isDark ? 'bg-[#0d1117] border-primary/50 text-white placeholder-slate-600' : 'bg-white border-primary/30 text-slate-900 placeholder-slate-300'} border-2 focus:ring-4 ${isDark ? 'focus:ring-primary/10' : 'focus:ring-primary/10'} text-3xl font-bold rounded-xl py-4 px-5 shadow-sm transition-all outline-none`}
+                                placeholder="Hours"
                             />
-                            <span className={`absolute right-4 top-4 ${isDark ? 'text-slate-600' : 'text-slate-400'} text-sm font-bold`}>hrs</span>
-                        </div>
-                        {isFocused && (
-                            <p className={`text-xs ${isDark ? 'text-primary' : 'text-primary'} animate-pulse font-medium`}>Typing...</p>
-                        )}
-                        {isHighConsumption && hasValidReading && (
-                            <div className={`flex items-center gap-1.5 text-xs text-amber-600 font-semibold ${isDark ? 'bg-amber-500/10' : 'bg-amber-50'} p-2 rounded border border-amber-100`}>
-                                <AlertTriangle className="w-4 h-4" />
-                                Warning: Usage &gt; 25% vs 30-day Avg
-                            </div>
-                        )}
-                    </label>
-
-                    {/* Cost + Consumption Result Box (PRD: Cost shown before units) */}
-                    <div className={`rounded-xl p-4 border ${hasValidReading
-                        ? (isDark ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20')
-                        : (isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-slate-50 border-slate-100')
-                        }`}>
-                        <div className="flex justify-between items-center">
-                            {/* Cost First (PRD requirement) */}
-                            <div className="flex flex-col">
-                                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'} font-medium`}>Cost Incurred</span>
-                                <div className="flex items-center gap-1">
-                                    <IndianRupee className={`w-5 h-5 ${hasValidReading && tariffRate > 0 ? (isDark ? 'text-primary' : 'text-primary') : 'text-slate-300'}`} />
-                                    <span className={`text-xl font-black ${hasValidReading && tariffRate > 0 ? (isDark ? 'text-primary' : 'text-primary') : 'text-slate-300'}`}>
-                                        {hasValidReading && tariffRate > 0 ? computedCost.toFixed(2) : '—'}
-                                    </span>
-                                </div>
-                                {!tariffRate && hasValidReading && (
-                                    <span className={`text-[10px] ${isDark ? 'text-amber-500' : 'text-amber-600'}`}>No tariff set</span>
-                                )}
-                            </div>
-                            <div className={`h-10 w-[1px] ${isDark ? 'bg-[#21262d]' : 'bg-slate-200'}`} />
-                            <div className="flex flex-col items-center">
-                                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'} font-medium`}>Run Time</span>
-                                <span className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                    {hasValidReading ? `${Math.floor(runHours)}h ${Math.round((runHours % 1) * 60)}m` : '—'}
-                                </span>
-                            </div>
-                            <div className={`h-10 w-[1px] ${isDark ? 'bg-[#21262d]' : 'bg-slate-200'}`} />
-                            {/* Consumption Second */}
-                            <div className="flex flex-col items-end">
-                                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'} font-medium`}>Consumed</span>
-                                <div className="flex items-center gap-1">
-                                    <Fuel className={`w-4 h-4 ${hasValidReading ? (isDark ? 'text-primary' : 'text-primary') : 'text-slate-300'}`} />
-                                    <span className={`text-lg font-black ${hasValidReading ? (isDark ? 'text-white' : 'text-slate-900') : 'text-slate-300'}`}>
-                                        {hasValidReading ? `${estimatedConsumption}L` : '—'}
-                                    </span>
-                                </div>
-                            </div>
+                            <span className={`absolute right-5 top-6 ${isDark ? 'text-slate-600' : 'text-slate-400'} font-bold`}>hrs</span>
                         </div>
                     </div>
+                </div>
 
-                    {/* Notes (Optional) */}
-                    <input
-                        type="text"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Add notes (optional)..."
-                        className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary/50' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-primary/50'} rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'} border`}
-                    />
+                {/* Save Button */}
+                <div className="mt-6 mb-2 pl-2">
+                    <button
+                        onClick={handleSaveEntry}
+                        disabled={!hasValidReading || isSubmitting}
+                        className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${hasValidReading
+                                ? 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/20 hover:scale-[1.02]'
+                                : `${isDark ? 'bg-[#21262d] text-slate-600' : 'bg-slate-100 text-slate-400'} cursor-not-allowed`
+                            }`}
+                    >
+                        {isSubmitting ? (
+                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <>
+                                <Save className="w-5 h-5" />
+                                Save Entry
+                            </>
+                        )}
+                    </button>
+                    {hasValidReading && (
+                        <p className={`text-xs text-center mt-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            Consumption will be calculated automatically
+                        </p>
+                    )}
                 </div>
             </div>
         </motion.div>

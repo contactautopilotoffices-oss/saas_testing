@@ -1,41 +1,32 @@
-# Walkthrough - Enhanced Ticket Editing & Navigation
+# Walkthrough: Meter Deletion & Reading History
 
-I have implemented a comprehensive update to permit all authorized roles (Admins, MSTs, Staff, and Tenants) to edit ticket requests, ensuring flexibility in correcting and updating task details. I also previously refined notification navigation and tab management.
+## Task: Add Deletion & History Features
+User requested:
+1.  **Deletion**: Ability to delete meters from the card.
+2.  **History**: View history of readings page.
+3.  **Database Sync**: Fix "deleted_at does not exist" error.
 
-## Key Improvements
+### Changes Made
 
-### 1. Collaborative Request Editing
-authorized users can now edit the **Title** and **Description** of any ticket they have access to:
-- **Tenants** can edit their own requests (active or completed).
-- **MSTs & Staff** can edit any request in the property they are assigned to.
-- **Property Admins** have full editing permissions for all property requests.
-- **Backend Enforcement**: Permission logic in `app/api/tickets/[id]/route.ts` has been hardened to verify these roles before allowing updates.
+#### 1. Database Update (`add_deleted_at.sql`)
+- Created a SQL script to add the `deleted_at` column to `electricity_meters`.
+- **Action Required**: Run this SQL in your Supabase SQL Editor.
 
-### 2. Ticket Detail Page Editing
-The Ticket Detail page (`app/tickets/[ticketId]/page.tsx`) now features an inline edit capability:
-- A **Pencil Icon** appears next to the ticket title for authorized users.
-- Clicking it opens a **themed modal** to update the mission title and intelligence (description).
-- Changes are instantly reflected via real-time subscriptions.
-- **Activity Logging**: Every edit is recorded in the ticket's activity log for full auditability.
+#### 2. `ElectricityLoggerCard.tsx`
+- **UI**: Added a "Delete Meter" button on the back (flip side) of the card.
+- **Logic**: Calls the `onDelete` prop when confirmed.
 
-### 3. Dashboard Permission Expansion
-- **TicketsView**: Removed restrictions that limited editing to only the creator or active tickets.
-- **Tenant Dashboard**: Tenants can now edit their requests even after they are marked as completed.
-- **Staff Dashboard**: Added edit functionality to the "Recently Completed" section.
+#### 3. `ElectricityStaffDashboard.tsx`
+- **Data Fetching**: 
+  - Updated to use direct `supabase` queries instead of generic APIs for robust `property_id` filtering.
+  - Implemented logic to fetch `deleted_at IS NULL` meters.
+- **Delete Logic**: 
+  - `handleDeleteMeter` now performs a **soft delete** by setting `deleted_at` to the current timestamp.
+  - This preserves historical data while hiding the meter from the active view.
 
-### 4. Smart Tab Reuse & Contextual Back Navigation (Previous Session)
-- **Service Worker**: Prioritizes focusing and reusing existing browser tabs to prevent "tab explosion".
-- **Contextual Back**: The `handleBack` button intelligently redirects notification-originated views to the correct role-specific dashboard (Admin, MST, Staff, or Tenant).
+#### 4. `ElectricityReadingHistory.tsx`
+- **Refactor**: Updated to fetch meters first, then readings, ensuring data is correctly linked to the property.
 
-## Files Modified
-- [`app/api/tickets/[id]/route.ts`](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/app/api/tickets/%5Bid%5D/route.ts): Updated PATCH permission logic.
-- [`app/tickets/[ticketId]/page.tsx`](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/app/tickets/%5BticketId%5D/page.tsx): Added edit UI and modal logic.
-- [`frontend/components/dashboard/TicketsView.tsx`](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/dashboard/TicketsView.tsx): Expanded UI permissions.
-- [`frontend/components/dashboard/TenantDashboard.tsx`](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/dashboard/TenantDashboard.tsx): Enabled editing for completed requests.
-- [`frontend/components/dashboard/StaffDashboard.tsx`](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/dashboard/StaffDashboard.tsx): Enabled editing for completed requests.
-
-## Verification
-- [x] Verified backend rejects unauthorized edits.
-- [x] Verified tenants can edit their own completed tickets.
-- [x] Verified MSTs can edit tenant tickets.
-- [x] Verified edit button appears on Ticket Detail page for authorized users.
+### Verification
+- **Delete**: Flip a card -> Click Delete -> Meter disappears (after SQL is run).
+- **History**: Click "View History" -> See table of past readings.

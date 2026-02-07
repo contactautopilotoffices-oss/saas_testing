@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Lock, History, Settings, CheckCircle, AlertTriangle, Download, ArrowLeft, Fuel, Trash2 } from 'lucide-react';
+import { Lock, History, Settings, CheckCircle, AlertTriangle, ArrowLeft, Fuel } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -30,17 +30,20 @@ interface DieselReading {
     diesel_added_litres: number;
     closing_hours: number;
     computed_consumed_litres?: number;
+    tariff_id?: string;
+    tariff_rate?: number;
     notes?: string;
 }
 
-/**
- * Staff Dashboard for daily diesel logging
- * Matches the provided HTML mockup design
- */
-const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }) => {
+interface DieselStaffDashboardProps {
+    propertyId?: string;
+    isDark?: boolean;
+}
+
+const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId: propIdFromProps, isDark = false }) => {
     const params = useParams();
     const router = useRouter();
-    const propertyId = params?.propertyId as string;
+    const propertyId = propIdFromProps || (params?.propertyId as string);
     const supabase = createClient();
 
     // State
@@ -49,6 +52,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
     const [readings, setReadings] = useState<Record<string, DieselReading>>({});
     const [previousClosings, setPreviousClosings] = useState<Record<string, number>>({});
     const [averages, setAverages] = useState<Record<string, number>>({});
+    const [activeTariffs, setActiveTariffs] = useState<Record<string, any>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showConfigModal, setShowConfigModal] = useState(false);
@@ -60,7 +64,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
     const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-    // Fetch property and generators
+    // Fetch data
     const fetchData = useCallback(async () => {
         if (!propertyId) return;
         setIsLoading(true);
@@ -83,7 +87,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
             const generatorsData = await generatorsRes.json();
             setGenerators(generatorsData);
 
-            // Fetch yesterday's readings for opening hours
+            // Fetch yesterday's readings for opening
             if (generatorsData.length > 0) {
                 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                 const readingsRes = await fetch(
@@ -98,7 +102,7 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
                     setPreviousClosings(closings);
                 }
 
-                // Fetch 30-day averages
+                // Fetch averages
                 const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                 const avgRes = await fetch(
                     `/api/properties/${propertyId}/diesel-readings?startDate=${monthAgo}`
@@ -118,169 +122,116 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
                     });
                     setAverages(avgs);
                 }
+
+                // Fetch tariffs for each generator
+                const today = new Date().toISOString().split('T')[0];
+                const tariffs: Record<string, any> = {};
+                await Promise.all(generatorsData.map(async (gen: Generator) => {
+                    try {
+                        const tariffRes = await fetch(`/api/properties/${propertyId}/dg-tariffs?generator_id=${gen.id}&date=${today}`);
+                        if (tariffRes.ok) {
+                            const t = await tariffRes.json();
+                            tariffs[gen.id] = t;
+                        }
+                    } catch (e) {
+                        console.warn('No tariff for', gen.name);
+                    }
+                }));
+                setActiveTariffs(tariffs);
             }
         } catch (err: any) {
             setError(err.message || 'Failed to load data');
         } finally {
             setIsLoading(false);
         }
-    }, [propertyId]);
+    }, [propertyId, supabase]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    // Handle reading changes from cards
+    // Handle reading changes
     const handleReadingChange = (generatorId: string, reading: DieselReading) => {
         setReadings(prev => ({ ...prev, [generatorId]: reading }));
     };
 
-    // Calculate totals
-    const totalConsumption = Object.values(readings).reduce(
-        (sum, r) => sum + (r.computed_consumed_litres || 0), 0
-    );
-    const totalRunTime = Object.values(readings).reduce(
-        (sum, r) => sum + (r.closing_hours - r.opening_hours), 0
-    );
-    const warningsCount = Object.entries(readings).filter(([genId, r]) => {
-        const avg = averages[genId];
-        return avg && r.computed_consumed_litres && r.computed_consumed_litres > avg * 1.25;
-    }).length;
-    const validReadingsCount = Object.values(readings).filter(
-        r => r.closing_hours > r.opening_hours
-    ).length;
-
-    // Submit all readings
-    const handleSubmitAll = async () => {
-        if (validReadingsCount === 0) {
-            setError('Please enter at least one valid reading');
+    // Save Single Reading
+    const handleSaveSingleReading = async (generatorId: string) => {
+        const r = readings[generatorId];
+        if (!r || r.closing_hours <= r.opening_hours) {
+            setError('Invalid reading provided');
             return;
         }
 
         setIsSubmitting(true);
         setError(null);
-
         try {
-            const readingsToSubmit = Object.entries(readings)
-                .filter(([_, r]) => r.closing_hours > r.opening_hours)
-                .map(([generatorId, r]) => ({
-                    generator_id: generatorId,
-                    reading_date: new Date().toISOString().split('T')[0],
-                    ...r,
-                    alert_status: averages[generatorId] && r.computed_consumed_litres &&
-                        r.computed_consumed_litres > averages[generatorId] * 1.25 ? 'warning' : 'normal',
-                }));
+            const readingToSubmit = {
+                generator_id: generatorId,
+                reading_date: new Date().toISOString().split('T')[0],
+                ...r,
+                alert_status: averages[generatorId] && r.computed_consumed_litres &&
+                    r.computed_consumed_litres > averages[generatorId] * 1.25 ? 'warning' : 'normal',
+            };
 
             const res = await fetch(`/api/properties/${propertyId}/diesel-readings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ readings: readingsToSubmit }),
+                body: JSON.stringify({ readings: [readingToSubmit] }),
             });
 
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.error || 'Failed to submit readings');
-            }
+            if (!res.ok) throw new Error('Failed to save reading');
 
-            setSuccessMessage('All readings submitted successfully!');
-            setTimeout(() => setSuccessMessage(null), 3000);
+            setSuccessMessage('Entry saved!');
+            setTimeout(() => setSuccessMessage(null), 2000);
 
-            // Reset readings
-            setReadings({});
+            // Refresh data to lock in the new opening hours for next time? 
+            // Or just clear current state for that generator?
+            // For now, we keep it as is, maybe user wants to edit.
         } catch (err: any) {
-            setError(err.message || 'Failed to submit readings');
+            setError(err.message);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Add generator
-    const handleAddGenerator = async (data: any) => {
-        const res = await fetch(`/api/properties/${propertyId}/generators`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-
-        if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.error || 'Failed to add generator');
-        }
-
-        fetchData();
-    };
-
-    // Delete generator
+    // Handle delete
     const handleDeleteGenerator = async (generatorId: string) => {
-        if (!window.confirm('Are you sure you want to delete this generator? This action cannot be undone.')) return;
-
-        console.log('[DieselDashboard] Deleting generator:', generatorId);
+        if (!window.confirm('Delete this generator?')) return;
         try {
-            const res = await fetch(`/api/properties/${propertyId}/generators?id=${generatorId}`, {
-                method: 'DELETE',
-            });
-
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.error || 'Failed to delete generator');
-            }
-
-            console.log('[DieselDashboard] Generator deleted successfully');
-            setSuccessMessage('Generator deleted successfully');
-            setTimeout(() => setSuccessMessage(null), 3000);
+            const res = await fetch(`/api/properties/${propertyId}/generators?id=${generatorId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed delete');
             fetchData();
         } catch (err: any) {
-            console.error('[DieselDashboard] Delete error:', err.message);
-            setError(err.message || 'Failed to delete generator');
+            setError(err.message);
         }
     };
 
-    // Export to Excel
-    const handleExport = async () => {
-        const today = new Date().toISOString().split('T')[0];
-        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-        window.open(
-            `/api/properties/${propertyId}/diesel-export?startDate=${monthAgo}&endDate=${today}`,
-            '_blank'
-        );
-    };
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="flex flex-col items-center gap-4">
-                    <div className={`w-12 h-12 border-4 ${isDark ? 'border-primary/20 border-t-primary' : 'border-slate-200 border-t-primary'} rounded-full animate-spin`} />
-                    <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-bold`}>Loading diesel logger...</p>
-                </div>
-            </div>
-        );
-    }
+    if (isLoading) return <div className="p-12 text-center text-slate-500">Loading...</div>;
 
     return (
-        <div className="min-h-screen bg-background pb-24 transition-colors duration-300">
+        <div className={`min-h-screen ${isDark ? 'bg-[#0d1117]' : 'bg-slate-50'} transition-colors duration-300`}>
             {/* Top Navigation */}
-            <header className="sticky top-0 z-30 w-full border-b border-border bg-surface/80 backdrop-blur-md">
-                <div className="px-4 sm:px-6 lg:px-8 py-3 mx-auto max-w-[1440px]">
+            <header className={`sticky top-0 z-30 w-full border-b ${isDark ? 'bg-[#161b22]/80 border-[#30363d]' : 'bg-white/80 border-slate-200'} backdrop-blur-md`}>
+                <div className="px-4 sm:px-6 lg:px-8 py-4 mx-auto max-w-7xl">
                     <div className="flex items-center justify-between">
-                        {/* Left: Property Context Lock */}
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 bg-surface-elevated border-border px-3 py-1.5 rounded-full border select-none">
-                                <Lock className="w-4 h-4 text-primary" />
-                                <span className="text-sm font-bold text-text-primary tracking-tight">
-                                    {property?.name || 'Property'}
+                            <div className="flex items-center gap-2 bg-slate-100/50 border border-slate-200 px-3 py-1.5 rounded-full select-none">
+                                <Lock className="w-3 h-3 text-slate-500" />
+                                <span className="text-sm font-bold text-slate-700 tracking-tight">
+                                    {property?.name || 'Loading...'}
                                 </span>
                             </div>
                         </div>
-
-                        {/* Right: Meta Info */}
-                        <div className="flex items-center gap-4 sm:gap-6">
-                            <div className={`hidden sm:flex items-center gap-2 ${isDark ? 'text-primary' : 'text-primary'} text-sm font-medium animate-pulse`}>
-                                <CheckCircle className="w-4 h-4" />
-                                <span>Auto-saved</span>
+                        <div className="flex items-center gap-4">
+                            <div className={`flex items-center gap-2 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
+                                <span>{dateStr}</span>
+                                <span className="text-slate-300">•</span>
+                                <span>{timeStr}</span>
                             </div>
-                            <div className={`flex items-center gap-2 ${isDark ? 'text-white bg-[#0d1117] border-[#21262d]' : 'text-slate-900 bg-white border-slate-100'} text-sm font-bold shadow-sm rounded-lg px-3 py-1.5 border`}>
-                                <span className="hidden sm:inline">{dateStr} ·</span> {timeStr}
+                            <div className={`hidden sm:flex items-center gap-2 ${isDark ? 'text-emerald-500' : 'text-emerald-600'} text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded-full`}>
+                                <CheckCircle className="w-3 h-3" />
+                                <span>Auto-Sync</span>
                             </div>
                         </div>
                     </div>
@@ -288,143 +239,83 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Feature Header */}
-                <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
+                <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <div className={`flex items-center gap-2 mb-2 ${isDark ? 'text-primary' : 'text-primary'} font-bold tracking-wider text-xs uppercase`}>
-                            <span className={`w-2 h-2 rounded-full ${isDark ? 'bg-primary' : 'bg-primary'}`} />
-                            Live Logging
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="p-1.5 bg-primary/10 rounded-md">
+                                <Fuel className="w-5 h-5 text-primary" />
+                            </div>
+                            <span className="text-xs font-bold text-primary tracking-widest uppercase">Diesel Logger</span>
                         </div>
                         <h1 className={`text-3xl md:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            Daily Diesel Log
+                            Generator Readings
                         </h1>
-                        <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium max-w-2xl`}>
-                            Enter readings for today. Consumption is calculated automatically based on opening/closing values.
+                        <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium max-w-2xl text-sm leading-relaxed`}>
+                            Enter closing hours and fuel added for each generator. Consumption is calculated automatically.
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={handleExport}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'text-slate-300 bg-[#161b22] border-[#30363d] hover:bg-[#21262d]' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'} rounded-lg transition-colors border`}
-                        >
-                            <History className="w-5 h-5" />
-                            View History
-                        </button>
-                        <button
                             onClick={() => setShowConfigModal(true)}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'text-slate-300 bg-[#161b22] border-[#30363d] hover:bg-[#21262d]' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'} rounded-lg transition-colors border`}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-lg border transition-all`}
                         >
-                            <Settings className="w-5 h-5" />
-                            Config
+                            <Settings className="w-4 h-4" />
+                            Reference Config
                         </button>
                     </div>
                 </div>
 
-                {/* Error/Success Messages */}
-                {error && (
-                    <div className={`${isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-700'} mb-6 px-4 py-3 rounded-xl flex items-center gap-2 border`}>
-                        <AlertTriangle className="w-5 h-5" />
-                        {error}
-                    </div>
-                )}
+                {/* Messages */}
                 {successMessage && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`${isDark ? 'bg-primary/10 border-primary/20 text-primary-light' : 'bg-green-50 border-green-200 text-green-700'} mb-6 px-4 py-3 rounded-xl flex items-center gap-2 border`}
-                    >
-                        <CheckCircle className="w-5 h-5" />
-                        {successMessage}
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 flex items-center gap-2 font-bold shadow-sm">
+                        <CheckCircle className="w-5 h-5" /> {successMessage}
+                    </motion.div>
+                )}
+                {error && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 flex items-center gap-2 font-bold shadow-sm">
+                        <AlertTriangle className="w-5 h-5" /> {error}
                     </motion.div>
                 )}
 
-                {/* Liquid Gauge Summary */}
-                {totalConsumption > 0 && (
-                    <div className="mb-8 flex justify-center">
-                        <LiquidDieselGauge
-                            value={Math.min(100, (totalConsumption / (generators.reduce((sum, g) => sum + (g.tank_capacity_litres || 1000), 0) || 1000)) * 100)}
-                            size={200}
-                            consumedLitres={totalConsumption}
-                            tankCapacity={generators.reduce((sum, g) => sum + (g.tank_capacity_litres || 1000), 0)}
-                            label="Today's Total"
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {generators.map(gen => (
+                        <DieselLoggerCard
+                            key={gen.id}
+                            generator={gen}
+                            previousClosing={previousClosings[gen.id]}
+                            averageConsumption={averages[gen.id]}
+                            activeTariff={activeTariffs[gen.id]}
+                            onReadingChange={handleReadingChange}
+                            onSave={handleSaveSingleReading}
+                            onDelete={handleDeleteGenerator}
+                            isSubmitting={isSubmitting}
                             isDark={isDark}
                         />
-                    </div>
-                )}
-
-                {/* Generators Grid */}
-                {generators.length === 0 ? (
-                    <div className={`${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-100 shadow-sm'} rounded-3xl p-12 text-center border`}>
-                        <Fuel className={`w-16 h-16 ${isDark ? 'text-primary/20' : 'text-primary/20'} mx-auto mb-4`} />
-                        <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'} mb-2`}>No Generators Configured</h3>
-                        <p className={`${isDark ? 'text-slate-500' : 'text-slate-500'} mb-6`}>Add your first diesel generator to start logging.</p>
-                        <button
-                            onClick={() => setShowConfigModal(true)}
-                            className={`px-6 py-3 ${isDark ? 'bg-primary hover:bg-primary-dark shadow-primary/40' : 'bg-primary hover:bg-primary-dark shadow-primary/20'} text-white font-bold rounded-xl transition-colors shadow-lg`}
-                        >
-                            + Add Generator
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {generators.map((gen) => (
-                            <DieselLoggerCard
-                                key={gen.id}
-                                generator={gen}
-                                previousClosing={previousClosings[gen.id]}
-                                averageConsumption={averages[gen.id]}
-                                onReadingChange={handleReadingChange}
-                                onDelete={handleDeleteGenerator}
-                                isSubmitting={isSubmitting}
-                                isDark={isDark}
-                            />
-                        ))}
-                    </div>
-                )}
+                    ))}
+                    {generators.length === 0 && (
+                        <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-xl">
+                            <p className="text-slate-400 font-bold">No generators found.</p>
+                            <button onClick={() => setShowConfigModal(true)} className="mt-4 text-primary font-bold hover:underline">Configure Generators</button>
+                        </div>
+                    )}
+                </div>
             </main>
 
-            {/* Sticky Footer */}
-            <footer className={`fixed bottom-0 left-0 w-full ${isDark ? 'bg-[#161b22]/90 border-[#21262d]' : 'bg-white/90 border-slate-200'} backdrop-blur-lg border-t z-50`}>
-                <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => router.back()}
-                                className={`hidden sm:flex items-center gap-1 ${isDark ? 'text-slate-500 hover:text-white' : 'text-slate-500 hover:text-slate-900'} transition-colors font-medium text-sm`}
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Back to Dashboard
-                            </button>
-                            <div className={`h-8 w-[1px] ${isDark ? 'bg-[#21262d]' : 'bg-slate-200'} hidden sm:block`} />
-                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
-                                <span className={`text-sm font-medium ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Today Total</span>
-                                <span className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tight`}>{totalConsumption} L</span>
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2 pl-4">
-                                <span className={`text-sm font-medium ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Total Units</span>
-                                <span className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tight`}>
-                                    {totalRunTime.toFixed(1)} KVAH
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            {warningsCount > 0 && (
-                                <div className={`hidden lg:flex items-center gap-2 text-xs font-medium ${isDark ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' : 'text-rose-600 bg-rose-50 border-rose-100'} px-3 py-1.5 rounded-full border`}>
-                                    <AlertTriangle className="w-4 h-4" />
-                                    {warningsCount} Warning{warningsCount > 1 ? 's' : ''} pending review
-                                </div>
-                            )}
-                            <button
-                                onClick={handleSubmitAll}
-                                disabled={isSubmitting || validReadingsCount === 0}
-                                className={`${isDark ? 'bg-primary hover:bg-primary-dark shadow-primary/40' : 'bg-primary hover:bg-primary-dark shadow-primary/20'} text-white text-base font-bold py-3 px-8 rounded-lg shadow-lg active:scale-95 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                                <CheckCircle className={`w-5 h-5 ${!isSubmitting ? 'group-hover:animate-bounce' : ''}`} />
-                                {isSubmitting ? 'Submitting...' : 'SUBMIT ALL'}
-                            </button>
-                        </div>
+            {/* Footer - Minimal */}
+            <footer className={`fixed bottom-0 left-0 w-full ${isDark ? 'bg-[#0d1117]/80 border-[#30363d]' : 'bg-white/90 border-slate-200'} backdrop-blur-xl border-t z-50`}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                    <button
+                        onClick={() => router.back()}
+                        className={`flex items-center gap-2 text-sm font-bold ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'} transition-colors`}
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Analytics
+                    </button>
+                    {/* Only show simplified status here, no cost/units totals to avoid clutter/confusion */}
+                    <div className="text-xs font-bold text-slate-400">
+                        {Object.keys(readings).length} active entries
                     </div>
                 </div>
             </footer>
@@ -433,7 +324,14 @@ const DieselStaffDashboard: React.FC<{ isDark?: boolean }> = ({ isDark = false }
             <GeneratorConfigModal
                 isOpen={showConfigModal}
                 onClose={() => setShowConfigModal(false)}
-                onSubmit={handleAddGenerator}
+                onSubmit={async (data) => {
+                    const res = await fetch(`/api/properties/${propertyId}/generators`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (res.ok) fetchData();
+                }}
                 isDark={isDark}
             />
         </div>

@@ -1,56 +1,49 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Calendar, TrendingUp, Download, Zap, AlertTriangle,
-    BarChart3, Plus, X, IndianRupee, Activity
+    BarChart3, Plus, X, IndianRupee, Activity, ChevronDown, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
 import ElectricityStaffDashboard from './ElectricityStaffDashboard';
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, Area, AreaChart, YAxis, CartesianGrid } from 'recharts';
 
 interface ElectricityMeter {
     id: string;
     name: string;
     meter_number?: string;
     meter_type?: string;
-    max_load_kw?: number;
 }
 
-interface ElectricityMetrics {
-    todayUnits: number;
-    todayCost: number;
-    monthUnits: number;
-    monthCost: number;
-    averageUnits: number;
-    averageCost: number;
-    todayChange: number;
-    monthChange: number;
-    tariffRate: number;
-}
-
-interface MeterBreakdown {
+interface ElectricityReading {
     id: string;
-    name: string;
-    meterType?: string;
-    totalUnits: number;
+    meter_id: string;
+    reading_date: string;
+    opening_reading: number;
+    closing_reading: number;
+    computed_units: number;
+    computed_cost: number;
+    multiplier_value: number;
+    meter: { name: string; meter_type: string };
+}
+
+interface Metrics {
     totalCost: number;
-    percentage: number;
+    totalUnits: number;
+    avgDailyCost: number;
+    avgDailyUnits: number;
+    changeCost: number; // vs previous period
 }
 
-interface Alert {
-    id: string;
-    meter_name: string;
-    message: string;
-    time: string;
-    severity: 'warning' | 'critical';
+interface TrendPoint {
+    date: string;
+    cost: number;
+    units: number;
 }
 
-/**
- * Admin/Super Admin analytics dashboard for electricity consumption
- * PRD v2: Cost shown before units, kVAh unit, tariff-based cost computation
- */
 interface ElectricityAnalyticsDashboardProps {
     propertyId?: string;
     orgId?: string;
@@ -61,574 +54,414 @@ const ElectricityAnalyticsDashboard: React.FC<ElectricityAnalyticsDashboardProps
     const propertyId = propIdFromProps || (params?.propertyId as string);
     const supabase = createClient();
 
-    // State
-    const [property, setProperty] = useState<{ name: string } | null>(null);
-    const [metrics, setMetrics] = useState<ElectricityMetrics>({
-        todayUnits: 0,
-        todayCost: 0,
-        monthUnits: 0,
-        monthCost: 0,
-        averageUnits: 0,
-        averageCost: 0,
-        todayChange: 0,
-        monthChange: 0,
-        tariffRate: 0,
-    });
-    const [breakdown, setBreakdown] = useState<MeterBreakdown[]>([]);
-    const [alerts, setAlerts] = useState<Alert[]>([]);
-    const [trendData, setTrendData] = useState<{ date: string; units: number; cost: number }[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [period, setPeriod] = useState<'7D' | '30D'>('7D');
+    // UI State
+    const [viewMode, setViewMode] = useState<'combined' | 'meter'>('combined');
+    const [selectedMeterId, setSelectedMeterId] = useState<string>('all');
+    const [costTimeframe, setCostTimeframe] = useState<'today' | 'month'>('month');
+    const [unitsTimeframe, setUnitsTimeframe] = useState<'today' | 'month'>('month');
+    const [trendMetric, setTrendMetric] = useState<'cost' | 'units'>('cost');
+    const [trendPeriod, setTrendPeriod] = useState<'7D' | '30D'>('7D');
     const [showLogModal, setShowLogModal] = useState(false);
 
-    // Fetch data
+    // Data State
+    const [property, setProperty] = useState<{ name: string } | null>(null);
+    const [meters, setMeters] = useState<ElectricityMeter[]>([]);
+    const [rawReadings, setRawReadings] = useState<{
+        today: ElectricityReading[];
+        month: ElectricityReading[];
+        prevMonth: ElectricityReading[];
+        trend: ElectricityReading[];
+    }>({ today: [], month: [], prevMonth: [], trend: [] });
+
+    const [activeTariff, setActiveTariff] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch Initial Data
     const fetchData = useCallback(async () => {
         if (!propertyId && !orgId) return;
         setIsLoading(true);
 
         try {
+            // 1. Property Name
             if (propertyId) {
-                // Fetch property name
-                const { data: propData } = await supabase
-                    .from('properties')
-                    .select('name')
-                    .eq('id', propertyId)
-                    .single();
-                setProperty(propData);
-
-                // Fetch active tariff rate
-                const today = new Date().toISOString().split('T')[0];
-                let tariffRate = 0;
-                try {
-                    const tariffRes = await fetch(`/api/properties/${propertyId}/grid-tariffs?date=${today}`);
-                    if (tariffRes.ok) {
-                        const tariffData = await tariffRes.json();
-                        tariffRate = tariffData?.rate_per_unit || 0;
-                    }
-                } catch (e) {
-                    console.warn('Failed to fetch tariff:', e);
-                }
-
-                // Fetch today's readings
-                const todayDate = new Date().toISOString().split('T')[0];
-                const todayRes = await fetch(
-                    `/api/properties/${propertyId}/electricity-readings?startDate=${todayDate}&endDate=${todayDate}`
-                );
-                const todayData = await todayRes.json();
-                const todayUnits = (todayData || []).reduce((sum: number, r: any) => {
-                    const units = r.computed_units || 0;
-                    const mult = r.multiplier_value || 1;
-                    return sum + (units * mult);
-                }, 0);
-                const todayCost = (todayData || []).reduce((sum: number, r: any) =>
-                    sum + (r.computed_cost || 0), 0);
-
-                // Fetch this month's readings
-                const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-                    .toISOString().split('T')[0];
-                const monthRes = await fetch(
-                    `/api/properties/${propertyId}/electricity-readings?startDate=${monthStart}`
-                );
-                const monthData = await monthRes.json();
-                const monthUnits = (monthData || []).reduce((sum: number, r: any) => {
-                    const units = r.computed_units || 0;
-                    const mult = r.multiplier_value || 1;
-                    return sum + (units * mult);
-                }, 0);
-                const monthCost = (monthData || []).reduce((sum: number, r: any) =>
-                    sum + (r.computed_cost || 0), 0);
-
-                // Fetch previous month's readings for comparison
-                const prevMonthStart = new Date();
-                prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
-                prevMonthStart.setDate(1);
-                const prevMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth(), 0);
-                const prevMonthRes = await fetch(
-                    `/api/properties/${propertyId}/electricity-readings?startDate=${prevMonthStart.toISOString().split('T')[0]}&endDate=${prevMonthEnd.toISOString().split('T')[0]}`
-                );
-                const prevMonthData = await prevMonthRes.json();
-                const prevMonthCost = (prevMonthData || []).reduce((sum: number, r: any) =>
-                    sum + (r.computed_cost || 0), 0);
-
-                // Calculate daily average
-                const uniqueDays = new Set((monthData || []).map((r: any) => r.reading_date)).size;
-                const avgUnits = uniqueDays > 0 ? Math.round(monthUnits / uniqueDays) : 0;
-                const avgCost = uniqueDays > 0 ? Math.round(monthCost / uniqueDays) : 0;
-
-                // Calculate month-over-month change
-                const monthChange = prevMonthCost > 0
-                    ? Math.round(((monthCost - prevMonthCost) / prevMonthCost) * 100)
-                    : 0;
-
-                setMetrics({
-                    todayUnits: Math.round(todayUnits),
-                    todayCost: Math.round(todayCost),
-                    monthUnits: Math.round(monthUnits),
-                    monthCost: Math.round(monthCost),
-                    averageUnits: avgUnits,
-                    averageCost: avgCost,
-                    todayChange: avgUnits > 0 ? Math.round(((todayUnits - avgUnits) / avgUnits) * 100) : 0,
-                    monthChange,
-                    tariffRate,
-                });
-
-                // Calculate meter breakdown with cost
-                const meterBreakdown: Record<string, { units: number; cost: number; name: string; meterType?: string }> = {};
-                (monthData || []).forEach((r: any) => {
-                    const meterId = r.meter_id;
-                    if (!meterBreakdown[meterId]) {
-                        meterBreakdown[meterId] = {
-                            units: 0,
-                            cost: 0,
-                            name: r.meter?.name || 'Unknown',
-                            meterType: r.meter?.meter_type,
-                        };
-                    }
-                    const units = (r.computed_units || 0) * (r.multiplier_value || 1);
-                    meterBreakdown[meterId].units += units;
-                    meterBreakdown[meterId].cost += r.computed_cost || 0;
-                });
-
-                const totalMonthCost = Object.values(meterBreakdown).reduce((sum, m) => sum + m.cost, 0);
-                const breakdownArr: MeterBreakdown[] = Object.entries(meterBreakdown)
-                    .map(([id, data]) => ({
-                        id,
-                        name: data.name,
-                        meterType: data.meterType,
-                        totalUnits: Math.round(data.units),
-                        totalCost: Math.round(data.cost),
-                        percentage: totalMonthCost > 0 ? Math.round((data.cost / totalMonthCost) * 100) : 0,
-                    }))
-                    .sort((a, b) => b.totalCost - a.totalCost);
-                setBreakdown(breakdownArr);
-
-                // Build trend data based on selected period (7D or 30D)
-                const daysToFetch = period === '30D' ? 30 : 7;
-                const trendStartDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000)
-                    .toISOString().split('T')[0];
-                const trendRes = await fetch(
-                    `/api/properties/${propertyId}/electricity-readings?startDate=${trendStartDate}`
-                );
-                const trendRawData = await trendRes.json();
-                const dailyTotals: Record<string, { units: number; cost: number }> = {};
-                (trendRawData || []).forEach((r: any) => {
-                    const date = r.reading_date;
-                    if (!dailyTotals[date]) dailyTotals[date] = { units: 0, cost: 0 };
-                    const units = (r.computed_units || 0) * (r.multiplier_value || 1);
-                    dailyTotals[date].units += units;
-                    dailyTotals[date].cost += r.computed_cost || 0;
-                });
-
-                // Fill in missing days
-                const trend: { date: string; units: number; cost: number }[] = [];
-                for (let i = daysToFetch - 1; i >= 0; i--) {
-                    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-                    const dateStr = d.toISOString().split('T')[0];
-                    trend.push({
-                        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        units: Math.round(dailyTotals[dateStr]?.units || 0),
-                        cost: Math.round(dailyTotals[dateStr]?.cost || 0),
-                    });
-                }
-                setTrendData(trend);
-
-                // Get alerts (high consumption readings)
-                const alertsList: Alert[] = (monthData || [])
-                    .filter((r: any) => r.alert_status === 'warning' || r.alert_status === 'critical')
-                    .slice(0, 5)
-                    .map((r: any) => ({
-                        id: r.id,
-                        meter_name: r.meter?.name || 'Unknown',
-                        message: `${r.meter?.name} consumption is high (₹${r.computed_cost || 0})`,
-                        time: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        severity: r.alert_status as 'warning' | 'critical',
-                    }));
-                setAlerts(alertsList);
+                const { data } = await supabase.from('properties').select('name').eq('id', propertyId).single();
+                setProperty(data);
             }
-        } catch (err) {
-            console.error('Failed to fetch electricity analytics:', err);
+
+            // 2. Meters
+            const metersRes = await fetch(propertyId
+                ? `/api/properties/${propertyId}/electricity-meters`
+                : `/api/organizations/${orgId}/electricity-meters`); // Adjust endpoint if needed
+            if (metersRes.ok) setMeters(await metersRes.json());
+
+            // 3. Tariff
+            const today = new Date().toISOString().split('T')[0];
+            const tariffRes = await fetch(`/api/properties/${propertyId}/grid-tariffs?date=${today}`);
+            if (tariffRes.ok) {
+                const t = await tariffRes.json();
+                setActiveTariff(t?.rate_per_unit || 0);
+            }
+
+            // 4. Readings (Batch or separate)
+            // We need Today, Month, Prev Month, and Trend (30 days max)
+            // Ideally backend would provide this, but we'll fetch ranges
+            const dates = {
+                today: today,
+                monthStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                prevMonthStart: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0],
+                prevMonthEnd: new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString().split('T')[0],
+                trendStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            };
+
+            const [todayR, monthR, prevMonthR, trendR] = await Promise.all([
+                fetch(`/api/properties/${propertyId}/electricity-readings?startDate=${dates.today}&endDate=${dates.today}`).then(r => r.json()),
+                fetch(`/api/properties/${propertyId}/electricity-readings?startDate=${dates.monthStart}`).then(r => r.json()),
+                fetch(`/api/properties/${propertyId}/electricity-readings?startDate=${dates.prevMonthStart}&endDate=${dates.prevMonthEnd}`).then(r => r.json()),
+                fetch(`/api/properties/${propertyId}/electricity-readings?startDate=${dates.trendStart}`).then(r => r.json())
+            ]);
+
+            setRawReadings({
+                today: todayR || [],
+                month: monthR || [],
+                prevMonth: prevMonthR || [],
+                trend: trendR || []
+            });
+
+        } catch (error) {
+            console.error('Failed to load electricity data:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [propertyId, orgId, period]);
+    }, [propertyId, orgId, supabase]);
 
     useEffect(() => {
         fetchData();
-    }, [fetchData, period]);
+    }, [fetchData]);
 
-    // Export to Excel
-    const handleExport = () => {
-        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const today = new Date().toISOString().split('T')[0];
-        const exportUrl = propertyId
-            ? `/api/properties/${propertyId}/electricity-export?startDate=${monthAgo}&endDate=${today}`
-            : `/api/organizations/${orgId}/electricity-export?startDate=${monthAgo}&endDate=${today}`;
-        window.open(exportUrl, '_blank');
-    };
+    // Derived Metrics based on View Filters
+    const metrics = useMemo(() => {
+        const filterFn = (r: ElectricityReading) => {
+            if (viewMode === 'combined') return true;
+            return r.meter_id === selectedMeterId;
+        };
 
-    // Handle modal close and refresh data
-    const handleLogModalClose = () => {
-        setShowLogModal(false);
-        fetchData(); // Refresh analytics after logging
-    };
+        const calc = (readings: ElectricityReading[]) => {
+            return readings.filter(filterFn).reduce((acc, r) => ({
+                cost: acc.cost + (r.computed_cost || 0),
+                units: acc.units + ((r.computed_units || 0) * (r.multiplier_value || 1))
+            }), { cost: 0, units: 0 });
+        };
 
-    // Chart SVG renderer - now using cost values
-    const maxValue = Math.max(...trendData.map(d => d.cost), 1);
-    const chartWidth = 800;
-    const chartHeight = 280;
-    const points = trendData.map((d, i) => ({
-        x: (i / Math.max(trendData.length - 1, 1)) * chartWidth,
-        y: chartHeight - (d.cost / maxValue) * (chartHeight - 40) - 20,
-    }));
+        const today = calc(rawReadings.today);
+        const month = calc(rawReadings.month);
+        const prevMonth = calc(rawReadings.prevMonth);
 
-    const pathD = points.length > 1
-        ? `M${points[0].x},${points[0].y} ${points.slice(1).map(p => `L${p.x},${p.y}`).join(' ')}`
-        : '';
-    const areaD = pathD
-        ? `${pathD} L${chartWidth},${chartHeight} L0,${chartHeight} Z`
-        : '';
+        // Averages (Month)
+        const uniqueDays = new Set(rawReadings.month.filter(filterFn).map(r => r.reading_date)).size || 1;
+        const avgDailyCost = month.cost / uniqueDays;
+        const avgDailyUnits = month.units / uniqueDays;
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
-                    <p className="text-slate-500 font-bold">Loading analytics...</p>
-                </div>
-            </div>
-        );
-    }
+        return {
+            today,
+            month,
+            prevMonth,
+            averages: { cost: avgDailyCost, units: avgDailyUnits }
+        };
+    }, [rawReadings, viewMode, selectedMeterId]);
 
-    // No property selected state
-    if (!propertyId && !orgId) {
-        return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <Zap className="w-16 h-16 text-primary/20 mb-4" />
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Select a Property</h3>
-                <p className="text-slate-500 text-center max-w-md">
-                    Please select a specific property from the dropdown above to view electricity analytics.
-                </p>
-            </div>
-        );
-    }
+    // Derived Trend Data
+    const chartData = useMemo(() => {
+        const days = trendPeriod === '7D' ? 7 : 30;
+        const result: TrendPoint[] = [];
+        const now = new Date();
 
-    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const filterFn = (r: ElectricityReading) => {
+            if (viewMode === 'combined') return true;
+            return r.meter_id === selectedMeterId;
+        };
+
+        const relevantReadings = rawReadings.trend.filter(filterFn);
+
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const label = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+
+            const dayReadings = relevantReadings.filter(r => r.reading_date === dateStr);
+            const dayTotals = dayReadings.reduce((acc, r) => ({
+                cost: acc.cost + (r.computed_cost || 0),
+                units: acc.units + ((r.computed_units || 0) * (r.multiplier_value || 1))
+            }), { cost: 0, units: 0 });
+
+            result.push({
+                date: label,
+                cost: Math.round(dayTotals.cost),
+                units: Math.round(dayTotals.units)
+            });
+        }
+        return result;
+    }, [rawReadings.trend, trendPeriod, viewMode, selectedMeterId]);
+
+    // Format Helpers
+    const fmtCost = (val: number) => val > 0 ? `₹${val.toLocaleString()}` : '—';
+    const fmtUnits = (val: number) => val > 0 ? `${Math.round(val).toLocaleString()} kVAh` : '—';
+
+    // Current Display Values based on Toggles
+    const displayCost = costTimeframe === 'today' ? metrics.today.cost : metrics.month.cost;
+    const displayUnits = unitsTimeframe === 'today' ? metrics.today.units : metrics.month.units;
+
+    if (isLoading) return <div className="p-12 text-center text-slate-500">Loading Analytics...</div>;
 
     return (
-        <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex flex-wrap items-end justify-between gap-4">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <span className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
-                            Grid Power Analytics
-                        </span>
-                        {property?.name && (
-                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">/ {property.name}</span>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        Grid Power Analytics
+                        {property?.name && <span className="text-sm font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md uppercase tracking-wider">{property.name}</span>}
+                    </h1>
+                    <div className="flex items-center gap-3 mt-2">
+                        {activeTariff > 0 && (
+                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+                                Active Tariff: ₹{activeTariff}/kVAh
+                            </span>
                         )}
+                        <span className="text-xs font-medium text-slate-400">
+                            Updates daily based on logs
+                        </span>
+                    </div>
+                </div>
+
+                {/* Scope Toggle */}
+                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                    <button
+                        onClick={() => { setViewMode('combined'); setSelectedMeterId('all'); }}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${viewMode === 'combined' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        Combined
+                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => { setViewMode('meter'); if (meters.length && selectedMeterId === 'all') setSelectedMeterId(meters[0].id); }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${viewMode === 'meter' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Meter-wise
+                            {viewMode === 'meter' && <ChevronDown className="w-3 h-3" />}
+                        </button>
+                        {/* Meter Dropdown (Simple implementation) */}
+                        {viewMode === 'meter' && (
+                            <select
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                value={selectedMeterId}
+                                onChange={(e) => setSelectedMeterId(e.target.value)}
+                            >
+                                {meters.map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* 3-Tile Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Tile 1: Cost (Primary) - Mint Green Theme */}
+                <div className="bg-[#ecfdf5] rounded-2xl p-6 shadow-sm border border-emerald-100 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-6 opacity-5">
+                        <IndianRupee className="w-24 h-24 text-emerald-600" />
+                    </div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div>
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-3">
+                                    <span className="p-2.5 bg-emerald-100 rounded-full text-emerald-600">
+                                        <IndianRupee className="w-5 h-5" />
+                                    </span>
+                                    <span className="text-sm font-bold text-slate-700 uppercase tracking-widest leading-tight">
+                                        ELECTRICITY<br />COST
+                                    </span>
+                                </div>
+                                <div className="flex bg-emerald-100/50 rounded-lg p-1">
+                                    <button onClick={() => setCostTimeframe('today')} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${costTimeframe === 'today' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-emerald-600'}`}>Today</button>
+                                    <button onClick={() => setCostTimeframe('month')} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${costTimeframe === 'month' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-emerald-600'}`}>This Month</button>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <div className="text-3xl font-black text-slate-800 tracking-tight">
+                                    {fmtCost(displayCost)}
+                                </div>
+                                <div className="h-1.5 w-12 bg-emerald-500 rounded-full mt-4 mb-4" />
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                                    {costTimeframe === 'today' ? 'Total today' : 'Total this month'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tile 2: Units (Secondary) - Light Blue Theme */}
+                <div className="bg-[#eff6ff] rounded-2xl p-6 shadow-sm border border-blue-100 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-6 opacity-5">
+                        <Zap className="w-24 h-24 text-blue-600" />
+                    </div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div>
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-3">
+                                    <span className="p-2.5 bg-blue-100 rounded-full text-blue-600">
+                                        <Zap className="w-5 h-5" />
+                                    </span>
+                                    <span className="text-sm font-bold text-slate-700 uppercase tracking-widest leading-tight">
+                                        UNITS<br />CONSUMED
+                                    </span>
+                                </div>
+                                <div className="flex bg-blue-100/50 rounded-lg p-1">
+                                    <button onClick={() => setUnitsTimeframe('today')} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${unitsTimeframe === 'today' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-blue-600'}`}>Today</button>
+                                    <button onClick={() => setUnitsTimeframe('month')} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${unitsTimeframe === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-blue-600'}`}>This Month</button>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <div className="text-3xl font-black text-slate-800 tracking-tight">
+                                    {fmtUnits(displayUnits)}
+                                </div>
+                                <div className="h-1.5 w-12 bg-blue-500 rounded-full mt-4 mb-4" />
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                                    {unitsTimeframe === 'today' ? 'Total consumption' : 'Total consumption'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tile 3: Averages - Light Orange/Yellow Theme */}
+                <div className="bg-[#fff7ed] rounded-2xl p-6 shadow-sm border border-orange-100 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-6 opacity-5">
+                        <Activity className="w-24 h-24 text-orange-500" />
+                    </div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="p-2.5 bg-orange-100 rounded-full text-orange-500">
+                                <BarChart3 className="w-5 h-5" />
+                            </span>
+                            <span className="text-sm font-bold text-slate-700 uppercase tracking-widest leading-tight">
+                                DAILY<br />AVERAGE
+                            </span>
+                        </div>
+                        <div className="space-y-6">
+                            <div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-black text-slate-800">{fmtCost(Math.round(metrics.averages.cost))}</span>
+                                </div>
+                                <div className="h-1 w-8 bg-orange-500 rounded-full mt-1" />
+                            </div>
+                            <div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xl font-bold text-slate-600">{fmtUnits(Math.round(metrics.averages.units))}</span>
+                                </div>
+                                <div className="h-1 w-8 bg-orange-300 rounded-full mt-1" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Trends Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">Consumption Trends</h3>
+                        <p className="text-sm text-slate-500">Analyze usage patterns over time</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-primary font-medium">
-                            <Calendar className="w-4 h-4" />
-                            {currentMonth}
-                        </div>
-                        {metrics.tariffRate > 0 && (
-                            <div className="flex items-center gap-1 text-sm text-slate-500">
-                                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-bold">
-                                    Tariff: ₹{metrics.tariffRate}/kVAh
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                <button
-                    onClick={handleExport}
-                    className="hidden sm:flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 text-slate-900 text-sm font-bold hover:bg-slate-50 transition-colors bg-white"
-                >
-                    <Download className="w-4 h-4" />
-                    <span>Report</span>
-                </button>
-            </div>
-
-            {/* Metrics Grid - PRD: Cost shown before units */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Today's Cost */}
-                <div className="bg-white rounded-xl p-6 border border-slate-200 relative overflow-hidden group shadow-sm">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <IndianRupee className="w-16 h-16 text-primary" />
-                    </div>
-                    <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="p-1.5 bg-primary/10 rounded-md text-primary">
-                                <IndianRupee className="w-4 h-4" />
-                            </span>
-                            <p className="text-slate-900 text-sm font-bold uppercase tracking-wider opacity-70">Today&apos;s Cost</p>
-                        </div>
-                        <div>
-                            <p className="text-primary text-4xl font-bold leading-tight tracking-tight">₹{metrics.todayCost.toLocaleString()}</p>
-                            <p className="text-slate-500 text-sm mt-1">{metrics.todayUnits.toLocaleString()} kVAh</p>
-                            <div className="flex items-center gap-1 mt-1">
-                                <TrendingUp className={`w-4 h-4 ${metrics.todayChange >= 0 ? 'text-rose-500' : 'text-emerald-500'}`} />
-                                <p className={`text-sm font-bold ${metrics.todayChange >= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                    {metrics.todayChange >= 0 ? '+' : ''}{metrics.todayChange}%
-                                </p>
-                                <p className="text-slate-500 text-sm">vs avg</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* This Month's Cost */}
-                <div className="bg-white rounded-xl p-6 border border-slate-200 relative overflow-hidden group shadow-sm">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <BarChart3 className="w-16 h-16 text-primary" />
-                    </div>
-                    <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="p-1.5 bg-primary/10 rounded-md text-primary">
-                                <Calendar className="w-4 h-4" />
-                            </span>
-                            <p className="text-slate-900 text-sm font-bold uppercase tracking-wider opacity-70">This Month</p>
-                        </div>
-                        <div>
-                            <p className="text-primary text-4xl font-bold leading-tight tracking-tight">₹{metrics.monthCost.toLocaleString()}</p>
-                            <p className="text-slate-500 text-sm mt-1">{metrics.monthUnits.toLocaleString()} kVAh</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                                On track for ₹{Math.round((metrics.monthCost / new Date().getDate()) * new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()).toLocaleString()}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Daily Average */}
-                <div className="bg-white rounded-xl p-6 border border-slate-200 relative overflow-hidden group shadow-sm">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Activity className="w-16 h-16 text-emerald-500" />
-                    </div>
-                    <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="p-1.5 bg-emerald-500/10 rounded-md text-emerald-500">
-                                <BarChart3 className="w-4 h-4" />
-                            </span>
-                            <p className="text-slate-900 text-sm font-bold uppercase tracking-wider opacity-70">Daily Average</p>
-                        </div>
-                        <div>
-                            <p className="text-emerald-600 text-4xl font-bold leading-tight tracking-tight">₹{metrics.averageCost.toLocaleString()}</p>
-                            <p className="text-slate-500 text-sm mt-1">{metrics.averageUnits.toLocaleString()} kVAh/day</p>
-                            <div className="flex items-center gap-1 mt-1">
-                                <TrendingUp className="w-4 h-4 text-primary" />
-                                <p className="text-primary text-sm font-bold">{metrics.monthChange >= 0 ? '+' : ''}{metrics.monthChange}%</p>
-                                <p className="text-slate-500 text-sm">vs last month</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Chart & Breakdown Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Chart Area */}
-                <div className="lg:col-span-2 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-900">
-                                Cost Trends
-                            </h3>
-                            <p className="text-sm text-slate-500">
-                                Daily electricity cost over time
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <span
-                                onClick={() => setPeriod('7D')}
-                                className={`px-2 py-1 text-xs font-bold rounded cursor-pointer transition-colors ${period === '7D' ? 'text-primary bg-primary/10' : 'text-slate-500 hover:bg-slate-50'
-                                    }`}
-                            >
-                                7D
-                            </span>
-                            <span
-                                onClick={() => setPeriod('30D')}
-                                className={`px-2 py-1 text-xs font-bold rounded cursor-pointer transition-colors ${period === '30D' ? 'text-primary bg-primary/10' : 'text-slate-500 hover:bg-slate-50'
-                                    }`}
-                            >
-                                30D
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* SVG Chart */}
-                    <div className="relative w-full h-[280px]">
-                        {/* Average band */}
-                        <div
-                            className="absolute left-0 right-0 bg-primary/5 border-y border-dashed border-primary/20 pointer-events-none"
-                            style={{
-                                top: `${chartHeight - (metrics.averageCost / maxValue) * (chartHeight - 40) - 40}px`,
-                                height: '40px'
-                            }}
-                        />
-                        <div className="absolute right-2 text-[10px] text-slate-400 font-medium" style={{ top: '40%' }}>
-                            Avg: ₹{metrics.averageCost}/day
-                        </div>
-
-                        <svg className="w-full h-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id="gradientPrimary" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" style={{ stopColor: 'var(--primary)', stopOpacity: 0.2 }} />
-                                    <stop offset="100%" style={{ stopColor: 'var(--primary)', stopOpacity: 0 }} />
-                                </linearGradient>
-                            </defs>
-                            {/* Area Fill */}
-                            <path d={areaD} fill="url(#gradientPrimary)" />
-                            {/* Line Stroke */}
-                            <path d={pathD} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinecap="round" />
-                            {/* Data Points */}
-                            {points.map((p, i) => (
-                                <g key={i}>
-                                    <circle cx={p.x} cy={p.y} r="4" fill="#ffffff" stroke="var(--primary)" strokeWidth="2" />
-                                    {i === points.length - 1 && (
-                                        <>
-                                            <circle cx={p.x} cy={p.y} r="6" fill="var(--primary)" />
-                                            <circle cx={p.x} cy={p.y} r="12" fill="var(--primary)" opacity="0.2">
-                                                <animate attributeName="r" from="6" to="16" dur="1.5s" repeatCount="indefinite" />
-                                                <animate attributeName="opacity" from="0.4" to="0" dur="1.5s" repeatCount="indefinite" />
-                                            </circle>
-                                        </>
-                                    )}
-                                </g>
-                            ))}
-                        </svg>
-
-                        {/* Tooltip for today */}
-                        {trendData.length > 0 && (
-                            <div className="absolute top-[35px] right-[10px] bg-slate-900 text-white text-xs py-1 px-2 rounded shadow-lg pointer-events-none">
-                                Today: ₹{trendData[trendData.length - 1]?.cost}
-                                <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* X-Axis Labels */}
-                    <div className="flex justify-between mt-2 px-2 text-xs font-medium text-slate-500">
-                        {trendData.filter((_, i) => period === '7D' || i % 5 === 0 || i === trendData.length - 1).map((d, i) => (
-                            <span
-                                key={i}
-                                className={i === trendData.length - 1 ? 'text-primary font-bold' : ''}
-                            >
-                                {d.date}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="flex flex-col gap-6">
-                    {/* Meter Breakdown - PRD: Cost first */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-900">
-                                Meter Breakdown
-                            </h3>
-                            <button className="text-xs font-bold text-primary hover:underline">View Details</button>
-                        </div>
-
-                        {breakdown.map((meter, i) => (
-                            <div key={meter.id} className={`flex flex-col gap-2 ${i > 0 ? 'pt-2 border-t border-slate-100' : ''}`}>
-                                <div className="flex justify-between items-end">
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900">
-                                            {meter.name}
-                                            {meter.meterType && (
-                                                <span className="text-xs font-normal text-slate-500 ml-1">({meter.meterType})</span>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-primary">₹{meter.totalCost.toLocaleString()}</p>
-                                        <p className="text-xs text-slate-400">{meter.totalUnits.toLocaleString()} kVAh</p>
-                                    </div>
-                                </div>
-                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${meter.percentage}%` }}
-                                        transition={{ duration: 0.5 }}
-                                        className={`h-full rounded-full ${i === 0 ? 'bg-primary' : 'bg-primary/50'}`}
-                                    />
-                                </div>
-                                <div className="flex justify-between text-[11px] text-slate-500">
-                                    <span>{i === 0 ? 'Primary Load' : 'Secondary Load'}</span>
-                                    <span>{meter.percentage}% of cost</span>
-                                </div>
-                            </div>
-                        ))}
-
-                        {breakdown.length === 0 && (
-                            <p className="text-sm text-slate-400 text-center py-4">No meter data available</p>
-                        )}
-                    </div>
-
-                    {/* Alerts Panel */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col gap-3 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-bl-full -mr-8 -mt-8 z-0" />
-                        <div className="flex items-center gap-2 z-10 relative mb-1">
-                            <AlertTriangle className="w-5 h-5 text-rose-500" />
-                            <h3 className="text-base font-bold text-slate-900">Cost Alerts</h3>
-                        </div>
-
-                        {alerts.length > 0 ? (
-                            alerts.map((alert) => (
-                                <div
-                                    key={alert.id}
-                                    className="flex gap-3 items-start p-3 rounded-lg bg-rose-50/50 border border-rose-100 z-10"
-                                >
-                                    <div className="min-w-[4px] h-8 bg-rose-400 rounded-full mt-1" />
-                                    <div className="flex flex-col gap-1">
-                                        <p className="text-sm font-bold text-slate-900">High Cost</p>
-                                        <p className="text-xs text-slate-500 leading-relaxed">
-                                            {alert.message}
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 mt-1">{alert.time}</p>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-slate-400 text-center py-4 z-10">No cost alerts</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Floating CTA Bar */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-t border-slate-200 px-6 py-4">
-                <div className="max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-4">
-                    <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
-                        <Zap className="w-4 h-4 text-primary" />
-                        <span>Grid Power Analytics</span>
-                        {metrics.tariffRate > 0 && (
-                            <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">
-                                ₹{metrics.tariffRate}/kVAh
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex w-full md:w-auto gap-3">
-                        {propertyId && (
-                            <button
-                                onClick={() => setShowLogModal(true)}
-                                className="flex-1 md:flex-none h-11 px-6 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Log Entry
+                        {/* Metric Toggle */}
+                        <div className="flex bg-slate-100 rounded-lg p-1">
+                            <button onClick={() => setTrendMetric('cost')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-2 ${trendMetric === 'cost' ? 'bg-white text-primary shadow-sm' : 'text-slate-500'}`}>
+                                <IndianRupee className="w-3 h-3" /> Cost
                             </button>
-                        )}
-                        <button
-                            onClick={handleExport}
-                            className="flex-1 md:flex-none h-11 px-6 rounded-lg border border-slate-200 text-slate-900 font-bold text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <Download className="w-4 h-4" />
-                            Export Data
-                        </button>
+                            <button onClick={() => setTrendMetric('units')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-2 ${trendMetric === 'units' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+                                <Zap className="w-3 h-3" /> Units
+                            </button>
+                        </div>
+                        {/* Period Toggle */}
+                        <div className="flex gap-2">
+                            <button onClick={() => setTrendPeriod('7D')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${trendPeriod === '7D' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>7 Days</button>
+                            <button onClick={() => setTrendPeriod('30D')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${trendPeriod === '30D' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>30 Days</button>
+                        </div>
                     </div>
                 </div>
+
+                {/* Chart */}
+                <div className="h-[300px] w-full">
+                    {chartData.every(d => d[trendMetric] === 0) ? (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                            <TrendingUp className="w-12 h-12 mb-2 opacity-20" />
+                            <p className="font-medium">No data logged for selected period</p>
+                        </div>
+                    ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={trendMetric === 'cost' ? '#3b82f6' : '#64748b'} stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor={trendMetric === 'cost' ? '#3b82f6' : '#64748b'} stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tickMargin={10}
+                                />
+                                <YAxis
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tickFormatter={(val) => trendMetric === 'cost' ? `₹${val}` : val}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    cursor={{ stroke: '#cbd5e1', strokeDasharray: '4 4' }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey={trendMetric}
+                                    stroke={trendMetric === 'cost' ? '#3b82f6' : '#64748b'}
+                                    fillOpacity={1}
+                                    fill="url(#colorValue)"
+                                    strokeWidth={3}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+            </div>
+
+            {/* CTA Bar */}
+            <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+                <button
+                    onClick={() => setShowLogModal(true)}
+                    className="h-14 w-14 rounded-full bg-slate-900 text-white shadow-xl hover:bg-black transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
+                    title="Log Entry"
+                >
+                    <Plus className="w-6 h-6" />
+                </button>
+                <button
+                    onClick={() => {
+                        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                        const today = new Date().toISOString().split('T')[0];
+                        window.open(`/api/properties/${propertyId}/electricity-export?startDate=${monthAgo}&endDate=${today}`, '_blank');
+                    }}
+                    className="h-14 w-14 rounded-full bg-white text-slate-900 shadow-xl border border-slate-200 hover:bg-slate-50 transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
+                    title="Export Report"
+                >
+                    <Download className="w-6 h-6" />
+                </button>
             </div>
 
             {/* Log Entry Modal */}
@@ -639,37 +472,22 @@ const ElectricityAnalyticsDashboard: React.FC<ElectricityAnalyticsDashboardProps
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-end"
-                        onClick={handleLogModalClose}
+                        onClick={() => setShowLogModal(false)}
                     >
                         <motion.div
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="h-full w-full max-w-3xl bg-white shadow-2xl overflow-y-auto"
+                            className="h-full w-full max-w-2xl bg-white shadow-2xl overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Modal Header */}
-                            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                                        <Zap className="w-5 h-5 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-900">Log Daily Reading</h2>
-                                        <p className="text-sm text-slate-500">{property?.name || 'Property'}</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={handleLogModalClose}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                                >
+                            <div className="absolute top-4 right-4 z-10">
+                                <button onClick={() => { setShowLogModal(false); fetchData(); }} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
                                     <X className="w-5 h-5 text-slate-500" />
                                 </button>
                             </div>
-
-                            {/* Embedded Logger */}
-                            <div className="p-6">
+                            <div className="p-2">
                                 <ElectricityStaffDashboard propertyId={propertyId} />
                             </div>
                         </motion.div>

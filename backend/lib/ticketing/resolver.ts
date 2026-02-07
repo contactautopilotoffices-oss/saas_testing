@@ -101,15 +101,20 @@ export async function resolveClassification(ticketText: string): Promise<Resolve
         confidenceAnalysis,
     };
 
-    // Step 3: If LLM is needed (Zone B/C or semantic signals), try LLM
-    if (confidenceAnalysis.needsLlm) {
-        // Emit rule failure/low confidence insight
-        emitWebhook('rule.low_confidence', 'pending', {
-            text: ticketText,
-            reason: confidenceAnalysis.reason,
-            margin: ruleResult.margin,
-            top_category: ruleResult.skill_group
-        });
+    // Step 3: Force LLM classification for ALL tickets (AI Assisted for all properties)
+    // We override the confidence check to ensure every ticket gets AI enrichment (risk, priority, reasoning)
+    const forceLlm = true;
+
+    if (forceLlm || confidenceAnalysis.needsLlm) {
+        // Only emit low confidence webhook if it was ACTUALLY low confidence
+        if (confidenceAnalysis.needsLlm) {
+            emitWebhook('rule.low_confidence', 'pending', {
+                text: ticketText,
+                reason: confidenceAnalysis.reason,
+                margin: ruleResult.margin,
+                top_category: ruleResult.skill_group
+            });
+        }
 
         const topCandidates = getTopCandidates(ruleResult, 3); // Provide top 3 candidates for more context
 
@@ -159,7 +164,7 @@ export async function resolveClassification(ticketText: string): Promise<Resolve
                 ticket_id: 'pending',
                 source: 'resolver',
                 latency_ms: llmResponse.latencyMs,
-                reason: confidenceAnalysis.reason,
+                reason: confidenceAnalysis.needsLlm ? confidenceAnalysis.reason : 'Forced AI Policy',
                 result: llmResult
             });
         }

@@ -33,6 +33,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-liquid-gauge": "^1.2.4",
+    "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5",
     "zod": "^4.3.4"
