@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Fuel, Zap, Settings, Lock, CheckCircle,
+    Fuel, Zap, Settings, CheckCircle,
     AlertTriangle, History, BarChart3, Coins, ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,7 @@ import { createClient } from '@/frontend/utils/supabase/client';
 import DieselLoggerCard from './DieselLoggerCard';
 import LiquidDieselGauge from './LiquidDieselGauge';
 import GeneratorConfigModal from './GeneratorConfigModal';
-import DieselHistoryModal from './DieselHistoryModal';
+import DieselRegisterView from './DieselRegisterView';
 import DGTariffModal from './DGTariffModal';
 
 interface Generator {
@@ -46,6 +46,7 @@ interface DieselReading {
     tariff_id?: string;
     tariff_rate?: number;
     notes?: string;
+    reading_date?: string;
 }
 
 interface DieselStaffDashboardProps {
@@ -69,15 +70,12 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showConfigModal, setShowConfigModal] = useState(false);
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [showTariffModal, setShowTariffModal] = useState(false);
+    const [showRegisterView, setShowRegisterView] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    // Current date/time
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
 
     // Fetch data
     const fetchData = useCallback(async () => {
@@ -218,7 +216,7 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
         try {
             const readingToSubmit = {
                 generator_id: generatorId,
-                reading_date: new Date().toISOString().split('T')[0],
+                reading_date: r.reading_date || new Date().toISOString().split('T')[0],
                 ...r,
                 alert_status: averages[generatorId] && r.computed_consumed_litres &&
                     r.computed_consumed_litres > averages[generatorId] * 1.25 ? 'warning' : 'normal',
@@ -261,34 +259,20 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
 
     if (isLoading) return <div className="p-12 text-center text-slate-500">Loading...</div>;
 
+    // Render full-page Register View
+    if (showRegisterView) {
+        return (
+            <DieselRegisterView
+                propertyId={propertyId}
+                isDark={isDark}
+                onBack={() => setShowRegisterView(false)}
+            />
+        );
+    }
+
     return (
         <div className={`min-h-screen ${isDark ? 'bg-[#0d1117]' : 'bg-slate-50'} transition-colors duration-300`}>
-            {/* Top Navigation */}
-            <header className={`sticky top-0 z-30 w-full border-b ${isDark ? 'bg-[#161b22]/80 border-[#30363d]' : 'bg-white/80 border-slate-200'} backdrop-blur-md`}>
-                <div className="px-4 sm:px-6 lg:px-8 py-4 mx-auto max-w-7xl">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 bg-slate-100/50 border border-slate-200 px-3 py-1.5 rounded-full select-none">
-                                <Lock className="w-3 h-3 text-slate-500" />
-                                <span className="text-sm font-bold text-slate-700 tracking-tight">
-                                    {property?.name || 'Loading...'}
-                                </span>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className={`flex items-center gap-2 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
-                                <span>{dateStr}</span>
-                                <span className="text-slate-300">•</span>
-                                <span>{timeStr}</span>
-                            </div>
-                            <div className={`hidden sm:flex items-center gap-2 ${isDark ? 'text-emerald-500' : 'text-emerald-600'} text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded-full`}>
-                                <CheckCircle className="w-3 h-3" />
-                                <span>Auto-Sync</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
@@ -316,11 +300,11 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                             Fuel Costs
                         </button>
                         <button
-                            onClick={() => setShowHistoryModal(true)}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-lg border transition-all shadow-sm`}
+                            onClick={() => setShowRegisterView(true)}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' : 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10'} rounded-lg border transition-all shadow-sm`}
                         >
-                            <History className="w-4 h-4 text-primary" />
-                            View History
+                            <History className="w-4 h-4" />
+                            View Register
                         </button>
                         <button
                             onClick={() => setShowConfigModal(true)}
@@ -398,13 +382,6 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                     });
                     if (res.ok) fetchData();
                 }}
-                isDark={isDark}
-            />
-
-            <DieselHistoryModal
-                isOpen={showHistoryModal}
-                onClose={() => setShowHistoryModal(false)}
-                propertyId={propertyId}
                 isDark={isDark}
             />
 

@@ -95,7 +95,7 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
     return (
         <div className="flex min-h-screen bg-background text-foreground font-inter">
             {/* Sidebar */}
-            <aside className={`bg-sidebar border-r border-border flex flex-col transition-all duration-300 fixed top-0 h-screen z-20 ${isSidebarOpen ? 'w-80' : 'w-20'}`}>
+            <aside className={`bg-sidebar border-r border-slate-300 flex flex-col transition-all duration-300 fixed top-0 h-screen z-20 ${isSidebarOpen ? 'w-80' : 'w-20'}`}>
                 <div className="p-8 pb-12">
                     <div className="flex items-center gap-4 mb-10">
                         <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-text-inverse shadow-lg shadow-primary/20">
@@ -194,7 +194,7 @@ const OrgDashboard = ({ orgId }: { orgId: string }) => {
             />
 
             {/* Main Panel */}
-            <main className={`flex-1 flex flex-col bg-background relative transition-all duration-300 ${isSidebarOpen ? 'ml-80' : 'ml-20'}`}>
+            <main className={`flex-1 flex flex-col bg-background border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10 transition-all duration-300 ${isSidebarOpen ? 'ml-80' : 'ml-20'}`}>
                 {/* Subtle Ambience */}
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-orange/5 rounded-full blur-[120px] pointer-events-none" />
 

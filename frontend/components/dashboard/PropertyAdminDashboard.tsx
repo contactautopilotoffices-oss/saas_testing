@@ -219,7 +219,7 @@ const PropertyAdminDashboard = () => {
 
             {/* Sidebar */}
             <aside className={`
-                w-72 bg-white border-r border-border flex flex-col h-screen z-50 transition-all duration-300
+                w-72 bg-white border-r border-slate-300 flex flex-col h-screen z-50 transition-all duration-300
                 fixed top-0
                 ${sidebarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 lg:translate-y-0 lg:translate-x-0 lg:opacity-100'}
             `}>
@@ -443,7 +443,7 @@ const PropertyAdminDashboard = () => {
             }
 
             {/* Main Content */}
-            <main className="flex-1 lg:ml-72 flex flex-col bg-white">
+            <main className="flex-1 lg:ml-72 flex flex-col bg-white border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
                 {activeTab !== 'overview' && (
                     <header className="h-20 flex justify-between items-center px-4 md:px-8 lg:px-12 mb-2 md:mb-4 border-b border-border/10">
                         <div className="flex items-center gap-4">

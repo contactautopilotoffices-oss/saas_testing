@@ -201,7 +201,7 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
                     <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200 shadow-sm'}`}>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
-                                <thead className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'bg-[#0d1117] text-slate-500' : 'bg-slate-50 text-slate-500'}`}>
+                                <thead className={`text-[10px] font-black uppercase tracking-[0.2em] border-b ${isDark ? 'bg-[#0d1117] text-slate-500 border-[#30363d]' : 'bg-slate-50/50 text-slate-500 border-slate-200'}`}>
                                     <tr>
                                         <th className="px-6 py-4">Date</th>
                                         <th className="px-6 py-4">Meter Name</th>
@@ -229,9 +229,9 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
                                                 {log.closing_reading.toFixed(1)}
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${log.computed_units > 0
-                                                    ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-800')
-                                                    : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600')
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-black ${log.computed_units > 0
+                                                    ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                                                    : (isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')
                                                     }`}>
                                                     {log.computed_units.toFixed(1)} kVAh
                                                 </span>

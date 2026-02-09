@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Lock, History, Settings, CheckCircle, AlertTriangle, ArrowLeft, Zap } from 'lucide-react';
+import { History, Settings, CheckCircle, AlertTriangle, ArrowLeft, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -86,10 +86,7 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
     const [multipliersMap, setMultipliersMap] = useState<Record<string, MeterMultiplier[]>>({});
     const [activeTariff, setActiveTariff] = useState<GridTariff | null>(null);
 
-    // Current date/time
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
 
     // Fetch property and meters
     const fetchData = useCallback(async () => {
@@ -394,28 +391,7 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
 
     return (
         <div className="min-h-screen bg-background pb-24 transition-colors duration-300">
-            {/* Top Navigation */}
-            <header className="sticky top-0 z-30 w-full border-b border-border bg-surface/80 backdrop-blur-md">
-                <div className="px-4 sm:px-6 lg:px-8 py-3 mx-auto max-w-[1440px]">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 bg-surface-elevated border-border px-3 py-1.5 rounded-full border select-none">
-                                <Lock className="w-4 h-4 text-primary" />
-                                <span className="text-sm font-bold text-text-primary tracking-tight">{property?.name || 'Property'}</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 sm:gap-6">
-                            <div className={`hidden sm:flex items-center gap-2 ${isDark ? 'text-primary' : 'text-primary'} text-sm font-medium animate-pulse`}>
-                                <CheckCircle className="w-4 h-4" />
-                                <span>Auto-saved</span>
-                            </div>
-                            <div className={`flex items-center gap-2 ${isDark ? 'text-white bg-[#0d1117] border-[#21262d]' : 'text-slate-900 bg-white border-slate-100'} text-sm font-bold shadow-sm rounded-lg px-3 py-1.5 border`}>
-                                <span className="hidden sm:inline">{dateStr} ·</span> {timeStr}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+
 
             {/* Main Content */}
             <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -506,7 +482,7 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
             />
 
             {showHistory && (
-                <div className="fixed inset-0 z-[60] bg-background animate-in slide-in-from-right duration-300">
+                <div className="fixed inset-0 lg:ml-64 z-[60] bg-background animate-in slide-in-from-right duration-300 shadow-2xl border-l border-slate-300">
                     <ElectricityReadingHistory
                         propertyId={propertyId}
                         isDark={isDark}

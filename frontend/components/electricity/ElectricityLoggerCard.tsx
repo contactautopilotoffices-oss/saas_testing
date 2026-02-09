@@ -178,7 +178,7 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
     };
 
     return (
-        <div className="relative h-[520px]" style={{ perspective: '1000px' }}>
+        <div className="relative h-auto w-full" style={{ perspective: '1000px' }}>
             <motion.div
                 initial={false}
                 animate={{ rotateY: isFlipped ? 180 : 0 }}
@@ -188,7 +188,7 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
             >
                 {/* Front */}
                 <div
-                    className={`absolute inset-0 backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border overflow-y-auto`}
+                    className={`relative w-full h-full min-h-[520px] backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border`}
                     style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                 >
                     <div className="p-5 md:p-6 flex flex-col min-h-full justify-between relative">
@@ -290,7 +290,7 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
 
                 {/* Back */}
                 <div
-                    className={`absolute inset-0 backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border overflow-y-auto`}
+                    className={`absolute inset-0 backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border`}
                     style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
                     <div className="p-5 md:p-6 flex flex-col min-h-full bg-white">

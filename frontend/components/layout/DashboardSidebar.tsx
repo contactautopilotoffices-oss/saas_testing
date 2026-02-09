@@ -62,7 +62,7 @@ export default function DashboardSidebar({ isMobileOpen, onMobileClose }: Dashbo
 
             {/* Sidebar */}
             <aside className={`
-                bg-[var(--sidebar-bg)] border-r border-border h-screen flex flex-col transition-all duration-300 ease-out
+                bg-[var(--sidebar-bg)] border-r border-slate-300 h-screen flex flex-col transition-all duration-300 ease-out
                 
                 /* Mobile: Fixed position, slide in/out */
                 fixed lg:sticky top-0 z-50

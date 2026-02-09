@@ -71,7 +71,7 @@ export default function DashboardLayout({
             />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0 pt-[56px] lg:pt-0">
+            <div className="flex-1 flex flex-col min-w-0 pt-[56px] lg:pt-0 border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] bg-background relative z-10">
                 {/* Context Bar - Hidden on mobile, shown on desktop */}
                 <div className="hidden lg:block">
                     <ContextBar />

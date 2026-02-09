@@ -337,7 +337,7 @@ const StaffDashboard = () => {
 
             {/* Sidebar */}
             <aside className={`
-                w-64 bg-white border-r border-border flex flex-col h-screen z-50 transition-all duration-300
+                w-64 bg-white border-r border-slate-300 flex flex-col h-screen z-50 transition-all duration-300
                 fixed top-0
                 ${sidebarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 lg:translate-y-0 lg:translate-x-0 lg:opacity-100'}
             `}>
@@ -558,7 +558,7 @@ const StaffDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 lg:ml-64 flex flex-col bg-white">
+            <div className="flex-1 lg:ml-64 flex flex-col bg-white border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
                 {/* Top Header */}
                 <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
                     <div className="flex items-center gap-4">
