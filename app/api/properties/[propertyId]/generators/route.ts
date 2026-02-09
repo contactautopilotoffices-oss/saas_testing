@@ -39,8 +39,11 @@ export async function POST(
             make: body.make || null,
             capacity_kva: body.capacity_kva || null,
             tank_capacity_litres: body.tank_capacity_litres || 1000,
-            fuel_efficiency_lphr: body.fuel_efficiency_lphr || 15,
             status: body.status || 'active',
+            initial_kwh_reading: body.initial_kwh_reading || 0,
+            initial_run_hours: body.initial_run_hours || 0,
+            initial_diesel_level: body.initial_diesel_level || 0,
+            effective_from_date: body.effective_from_date || new Date().toISOString().split('T')[0],
         })
         .select()
         .single();

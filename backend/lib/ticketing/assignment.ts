@@ -1,4 +1,5 @@
 import { createClient } from '@/frontend/utils/supabase/server';
+import { NotificationService } from '@/backend/services/NotificationService';
 
 interface AssignmentResult {
     ticketId: string;
@@ -153,6 +154,11 @@ export async function processIntelligentAssignment(
                     .update({ last_assigned_at: new Date().toISOString() })
                     .eq('user_id', assignedTo)
                     .eq('property_id', propertyId);
+
+                // Trigger Notification
+                NotificationService.afterTicketAssigned(ticket.id, true).catch(err => {
+                    console.error('[Intelligent Assignment] Notification failed:', err);
+                });
             }
 
             results.push({ ticketId: ticket.id, assignedTo, status });

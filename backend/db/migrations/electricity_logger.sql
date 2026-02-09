@@ -92,7 +92,7 @@ CREATE POLICY electricity_readings_staff_insert ON electricity_readings FOR INSE
 
 DROP POLICY IF EXISTS electricity_readings_admin_update ON electricity_readings;
 CREATE POLICY electricity_readings_admin_update ON electricity_readings FOR UPDATE USING (
-  EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = electricity_readings.property_id AND pm.role IN ('property_admin', 'staff'))
+  EXISTS(SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = electricity_readings.property_id AND pm.role IN ('property_admin', 'staff', 'mst'))
   OR EXISTS(SELECT 1 FROM organization_memberships om 
             JOIN properties p ON p.organization_id = om.organization_id 
             WHERE om.user_id = auth.uid() AND p.id = electricity_readings.property_id AND om.role IN ('org_super_admin', 'master_admin'))

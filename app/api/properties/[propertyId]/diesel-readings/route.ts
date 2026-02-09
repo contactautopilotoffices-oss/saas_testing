@@ -28,8 +28,8 @@ export async function GET(
         .from('diesel_readings')
         .select(`
             *,
-            generator:generators(name, make, capacity_kva, tank_capacity_litres, fuel_efficiency_lphr),
-            tariff:dg_tariffs(id, cost_per_litre)
+            generators(name, make, capacity_kva, tank_capacity_litres, fuel_efficiency_lphr),
+            dg_tariffs(id, cost_per_litre)
         `)
         .eq('property_id', propertyId)
         .order('reading_date', { ascending: false });
@@ -110,14 +110,19 @@ export async function POST(
             generator_id: reading.generator_id,
             reading_date: readingDate,
             opening_hours: reading.opening_hours,
-            diesel_added_litres: reading.diesel_added_litres || 0,
             closing_hours: reading.closing_hours,
-            computed_run_hours: reading.closing_hours - reading.opening_hours,
+            // v2: kWh readings
+            opening_kwh: reading.opening_kwh || 0,
+            closing_kwh: reading.closing_kwh || 0,
+            // v2: Diesel level readings (for carry-forward)
+            opening_diesel_level: reading.opening_diesel_level || 0,
+            closing_diesel_level: reading.closing_diesel_level || 0,
+            diesel_added_litres: reading.diesel_added_litres || 0,
             computed_consumed_litres: consumedLitres,
             notes: reading.notes || null,
             alert_status: reading.alert_status || 'normal',
             created_by: user.id,
-            // New v2 fields
+            // v2 cost fields
             tariff_id: tariffId,
             tariff_rate_used: tariffRate,
             computed_cost: computedCost
@@ -161,7 +166,7 @@ export async function POST(
             ignoreDuplicates: false
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('[DieselReadings] Error submitting reading:', error.message);

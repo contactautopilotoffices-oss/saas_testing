@@ -184,8 +184,8 @@ export class NotificationService {
      * Triggered after a ticket is assigned.
      * Recipients: Assigned MST
      */
-    static async afterTicketAssigned(ticketId: string) {
-        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketAssigned entered for:', ticketId);
+    static async afterTicketAssigned(ticketId: string, isAutoAssigned: boolean = false) {
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketAssigned entered for:', ticketId, 'isAutoAssigned:', isAutoAssigned);
         try {
             const { data: ticket, error: ticketError } = await supabaseAdmin
                 .from('tickets')
@@ -205,6 +205,11 @@ export class NotificationService {
                 return;
             }
 
+            const title = isAutoAssigned ? 'New Ticket Created & Assigned' : 'Ticket Assigned to You';
+            const message = isAutoAssigned
+                ? `A new ticket "${ticket.title}" has been created and assigned to you.`
+                : `Ticket "${ticket.title}" has been reassigned to you.`;
+
             console.log('>>>>>>>>>> [NOTIFICATION TEST] Notifying Assignee...');
             await this.send({
                 userId: ticket.assigned_to,
@@ -212,8 +217,8 @@ export class NotificationService {
                 propertyId: ticket.property_id,
                 organizationId: ticket.organization_id,
                 type: 'TICKET_ASSIGNED',
-                title: 'Ticket Assigned to You',
-                message: `Ticket "${ticket.title}" has been assigned to you.`,
+                title: title,
+                message: message,
                 deepLink: `/tickets/${ticket.id}?via=notification`
             });
             console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketAssigned finished.');
@@ -398,19 +403,33 @@ export class NotificationService {
                     body: notification.message,
                 },
                 data: {
-                    deep_link: notification.deep_link,
-                    notification_id: notification.id
+                    deep_link: String(notification.deep_link || ''),
+                    notification_id: String(notification.id || '')
                 },
                 android: {
+                    priority: 'high',
                     notification: {
-                        icon: 'stock_ticker_update', // Placeholder for app icon resource
-                        color: '#2563eb'
+                        icon: 'stock_ticker_update',
+                        color: '#2563eb',
+                        sound: 'default'
                     }
                 },
                 webpush: {
+                    headers: {
+                        Urgency: 'high'
+                    },
                     notification: {
+                        title: `Autopilot FMS | ${notification.title}`,
+                        body: notification.message,
                         icon: '/autopilot-logo.png',
-                        badge: '/autopilot-logo.png'
+                        badge: '/autopilot-logo.png',
+                        requireInteraction: true,
+                        actions: [
+                            {
+                                action: 'view',
+                                title: 'View Request'
+                            }
+                        ]
                     }
                 }
             });
@@ -431,8 +450,12 @@ export class NotificationService {
             console.error('[FCM] Push dispatch failed:', error);
 
             // Handle stale/invalid tokens
-            if (error?.code === 'messaging/registration-token-not-registered' ||
-                error?.message?.includes('NotRegistered')) {
+            const isStale =
+                error?.code === 'messaging/registration-token-not-registered' ||
+                error?.message?.includes('NotRegistered') ||
+                error?.message?.includes('Requested entity was not found');
+
+            if (isStale) {
                 console.log('[FCM] Token is no longer valid. Deactivating:', token.substring(0, 10) + '...');
                 await supabaseAdmin
                     .from('push_tokens')

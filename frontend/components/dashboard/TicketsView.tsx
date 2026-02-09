@@ -104,20 +104,8 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                     fetchedTickets = fetchedTickets.filter((t: Ticket) => t.sla_paused);
                 }
 
-                // Define status order for sorting
-                const statusOrder = ['waitlist', 'open', 'assigned', 'in_progress', 'blocked', 'resolved', 'closed'];
-
-                // Sort tickets: by status order first, then by created_at descending
+                // Sort tickets: strictly by created_at descending (latest first)
                 const sorted = [...fetchedTickets].sort((a, b) => {
-                    const statusA = a.status || 'open';
-                    const statusB = b.status || 'open';
-                    const idxA = statusOrder.indexOf(statusA);
-                    const idxB = statusOrder.indexOf(statusB);
-
-                    if (idxA !== idxB && idxA !== -1 && idxB !== -1) {
-                        return idxA - idxB;
-                    }
-
                     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                 });
 

@@ -219,9 +219,14 @@ const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ pro
                         {property?.name && <span className="text-sm font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md uppercase tracking-wider">{property.name}</span>}
                     </h1>
                     <div className="flex items-center gap-3 mt-2">
-                        {activeTariff > 0 && (
+                        {activeTariff > 0 ? (
                             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
                                 Active Tariff: ₹{activeTariff}/L
+                            </span>
+                        ) : (
+                            <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-100 flex items-center gap-1.5 animate-pulse">
+                                <AlertTriangle className="w-3 h-3" />
+                                No Tariff Configured - Costs will show as ₹0
                             </span>
                         )}
                         <span className="text-xs font-medium text-slate-400">

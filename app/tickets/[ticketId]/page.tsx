@@ -35,6 +35,7 @@ import {
     Pencil,
     X,
     RefreshCw,
+    Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage } from '@/frontend/utils/image-compression';
@@ -125,6 +126,8 @@ export default function TicketDetailPage() {
     const [editTitle, setEditTitle] = useState('');
     const [editDescription, setEditDescription] = useState('');
     const [isUpdatingContent, setIsUpdatingContent] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [userSkills, setUserSkills] = useState<string[]>([]);
 
     // Initial Fetch
     useEffect(() => {
@@ -260,10 +263,17 @@ export default function TicketDetailPage() {
 
         if (propMember?.role === 'property_admin') {
             setUserRole('admin');
-        } else if (propMember?.role === 'mst') {
-            setUserRole('mst');
-        } else if (propMember?.role === 'staff') {
-            setUserRole('staff');
+        } else if (propMember?.role === 'mst' || propMember?.role === 'staff') {
+            const role = propMember.role === 'mst' ? 'mst' : 'staff';
+            setUserRole(role);
+            // Fetch skills for specialized permissions
+            const { data: skills } = await supabase
+                .from('mst_skills')
+                .select('skill_code')
+                .eq('user_id', uid);
+            if (skills) {
+                setUserSkills(skills.map(s => s.skill_code));
+            }
         } else {
             setUserRole('tenant');
         }
@@ -584,6 +594,31 @@ export default function TicketDetailPage() {
         }
     };
 
+    const handleDelete = async () => {
+        if (!window.confirm('Are you sure you want to permanently delete this request? This action cannot be undone.')) return;
+
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/tickets/${ticketId}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to delete request');
+            }
+
+            showToast('Request Deleted Successfully', 'success');
+            setTimeout(() => {
+                router.push(from || `/property/${ticket?.property_id}/${userRole === 'admin' ? 'dashboard' : userRole === 'mst' ? 'mst' : userRole === 'staff' ? 'staff' : 'tenant'}?tab=requests`);
+            }, 1000);
+        } catch (err: any) {
+            console.error(err);
+            showToast(err.message || 'Failed to delete request', 'error');
+            setIsDeleting(false);
+        }
+    };
+
     const handleBack = () => {
         const via = searchParams.get('via');
         const hasHistory = typeof window !== 'undefined' && window.history.length > 1;
@@ -616,9 +651,13 @@ export default function TicketDetailPage() {
     if (!ticket) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-bold">Ticket not found</div>;
 
     const isAssignedToMe = userId === ticket.assigned_to;
+    const isOwner = userId === ticket.raised_by;
     const canManage = userRole === 'admin';
-    const canWork = userRole === 'staff' && isAssignedToMe;
-    const canEditContent = userId === ticket.raised_by || userRole === 'admin' || userRole === 'staff' || userRole === 'mst';
+    const canWork = (userRole === 'staff' || userRole === 'mst') && isAssignedToMe;
+    const isSpecializedStaff = userRole === 'staff' && (userSkills.includes('soft_service') || userSkills.includes('technical') || userSkills.includes('bms'));
+    const canEditContent = isOwner || canManage;
+    const canDelete = (isOwner && (userRole === 'mst' || userRole === 'staff')) || canManage;
+    const canManagePhotos = canManage || userRole === 'mst' || isSpecializedStaff || (userRole === 'staff' && isAssignedToMe) || (userRole === 'tenant' && isOwner);
     const isDark = theme === 'dark';
 
     return (
@@ -702,6 +741,16 @@ export default function TicketDetailPage() {
                                         title="Edit Request"
                                     >
                                         <Pencil className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {canDelete && (
+                                    <button
+                                        onClick={handleDelete}
+                                        disabled={isDeleting}
+                                        className={`p-1.5 rounded-lg transition-all ${isDark ? 'hover:bg-[#21262d] text-rose-500/50 hover:text-rose-500' : 'hover:bg-rose-50 text-rose-400 hover:text-rose-600'}`}
+                                        title="Delete Request"
+                                    >
+                                        {isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                     </button>
                                 )}
                             </div>
@@ -907,13 +956,13 @@ export default function TicketDetailPage() {
                                 <Camera className="w-4 h-4 text-primary" />
                                 Site Documentation
                             </h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-4">
                                 {/* Before Photo */}
                                 <div className="space-y-3">
-                                    <div className={`text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest flex items-center justify-between`}>
-                                        Before Work
-                                        {ticket.photo_before_url && (canWork || canManage || userRole === 'tenant') && (
-                                            <span className="text-[10px] text-primary/60 italic font-medium">Click to change</span>
+                                    <div className={`text-[10px] sm:text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest flex items-center justify-between gap-4 flex-wrap`}>
+                                        <span className="whitespace-nowrap">Before Work</span>
+                                        {ticket.photo_before_url && canManagePhotos && (
+                                            <span className="text-[9px] sm:text-[10px] text-primary/60 italic font-medium whitespace-nowrap">Click to change</span>
                                         )}
                                     </div>
                                     {ticket.photo_before_url ? (
@@ -923,7 +972,7 @@ export default function TicketDetailPage() {
                                                 <a href={ticket.photo_before_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-lg hover:bg-primary transition-colors`}>
                                                     View Full
                                                 </a>
-                                                {(canWork || canManage || userRole === 'tenant') && (
+                                                {canManagePhotos && (
                                                     <label className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-lg cursor-pointer hover:bg-primary transition-colors flex items-center gap-2`}>
                                                         <Camera className="w-3 h-3" />
                                                         Change Photo
@@ -936,17 +985,17 @@ export default function TicketDetailPage() {
                                         <label className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117] hover:bg-[#161b22]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} cursor-pointer transition-all group`}>
                                             <Camera className={`w-8 h-8 ${isDark ? 'text-slate-700' : 'text-slate-300'} group-hover:text-primary mb-2`} />
                                             <span className={`text-[10px] font-black ${isDark ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest`}>Add Attachment</span>
-                                            <input type="file" accept="image/*" className="hidden" disabled={!canWork && !canManage && userRole !== 'tenant'} onChange={(e) => handleFileUpload(e, 'before')} />
+                                            <input type="file" accept="image/*" className="hidden" disabled={!canManagePhotos} onChange={(e) => handleFileUpload(e, 'before')} />
                                         </label>
                                     )}
                                 </div>
 
                                 {/* After Photo */}
                                 <div className="space-y-3">
-                                    <div className={`text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest flex items-center justify-between`}>
-                                        After Work
-                                        {ticket.photo_after_url && (canWork || canManage) && (
-                                            <span className="text-[10px] text-emerald-500/60 italic font-medium">Click to change</span>
+                                    <div className={`text-[10px] sm:text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest flex items-center justify-between gap-4 flex-wrap`}>
+                                        <span className="whitespace-nowrap">After Work</span>
+                                        {ticket.photo_after_url && canManagePhotos && (
+                                            <span className="text-[9px] sm:text-[10px] text-emerald-500/60 italic font-medium whitespace-nowrap">Click to change</span>
                                         )}
                                     </div>
                                     {ticket.photo_after_url ? (
@@ -956,7 +1005,7 @@ export default function TicketDetailPage() {
                                                 <a href={ticket.photo_after_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-lg hover:bg-emerald-500 transition-colors`}>
                                                     View Full
                                                 </a>
-                                                {(canWork || canManage) && (
+                                                {canManagePhotos && (
                                                     <label className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-lg cursor-pointer hover:bg-emerald-500 transition-colors flex items-center gap-2`}>
                                                         <Camera className="w-3 h-3" />
                                                         Change Photo
@@ -969,7 +1018,7 @@ export default function TicketDetailPage() {
                                         <label className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117] hover:bg-[#161b22]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} cursor-pointer transition-all group`}>
                                             <Camera className={`w-8 h-8 ${isDark ? 'text-slate-700' : 'text-slate-300'} group-hover:text-emerald-500 mb-2`} />
                                             <span className={`text-[10px] font-black ${isDark ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest`}>Add Attachment</span>
-                                            <input type="file" accept="image/*" className="hidden" disabled={!canWork && !canManage} onChange={(e) => handleFileUpload(e, 'after')} />
+                                            <input type="file" accept="image/*" className="hidden" disabled={!canManagePhotos} onChange={(e) => handleFileUpload(e, 'after')} />
                                         </label>
                                     )}
                                 </div>

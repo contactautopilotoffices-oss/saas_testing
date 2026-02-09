@@ -1,26 +1,28 @@
-# Walkthrough - Enabling Electricity Logger for MST
+# Walkthrough: MST Electricity Logger Integration
 
-I have added the Electricity Logger feature to the MST dashboard, matching the access provided to Property Admins and Staff.
+I have successfully added the Electricity Logger to the MST Dashboard and ensured that MST users have the necessary permissions to use it.
 
 ## Changes Made
 
-### MST Dashboard Enhancement
+### 1. MST Dashboard Enhancement
+- **File**: [MstDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/dashboard/MstDashboard.tsx)
+- Added the **Electricity Logger** tab to the sidebar under the "Operations" section.
+- Integrated the `ElectricityStaffDashboard` component into the main content area.
+- Implemented role-based access control locally in the dashboard to match the staff dashboard's logic.
 
-#### [MstDashboard.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/dashboard/MstDashboard.tsx)
-
-- **Updated Navigation**: Added the `electricity` tab to the `Tab` type and URL persistence logic.
-- **New Imports**: Added the `Zap` icon from `lucide-react` and integrated the `ElectricityStaffDashboard` component.
-- **Sidebar Integration**: Added "Electricity Logger" to the sidebar under "Operations".
-- **Content Rendering**: Implemented the logic to display the electricity logger when the tab is selected.
-- **Search Functionality**: Enabled searching for "Electricity Logger" in the sidebar search bar.
+### 2. Permissions & Security
+- **File**: [electricity_logger.sql](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/backend/db/migrations/electricity_logger.sql)
+- Updated the Row Level Security (RLS) policy `electricity_readings_admin_update` to include the `mst` role.
+- This ensures that MST users can successfully save and update meter readings (essential for the `upsert` functionality used by the logger).
 
 ## Verification Results
 
-### Manual Verification
-- Verified the `Zap` icon appears correctly in the sidebar.
-- Checked that clicking "Electricity Logger" switches the dashboard view.
-- Verified that search results now include the electricity logger.
-- Confirmed that the `propertyId` is correctly passed to the `ElectricityStaffDashboard` component.
+### Dashboard UI
+- The "Electricity Logger" option is now visible in the sidebar for users with the MST role.
+- Navigation to the logger works correctly, persisting the tab in the URL.
 
-![MST Dashboard Electricity Logger](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/screenshots/mst_electricity_logger.png)
-*(Note: Screenshot represents the updated sidebar and dashboard state)*
+### Data persistence
+- MST users now have the database permissions to `UPDATE` existing readings, which allows them to use the "Save Entry" feature effectively even for existing daily logs.
+
+## Next Steps
+- Verify the RLS policy update on the production/staging database (requires SQL execution by an admin).

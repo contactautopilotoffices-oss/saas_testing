@@ -15,15 +15,16 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Property ID required' }, { status: 400 });
         }
 
-        const { data, error } = await supabase
+        const { data: statsList, error } = await supabase
             .from('resolver_stats')
             .select('is_checked_in')
             .eq('user_id', user.id)
             .eq('property_id', propertyId)
-            .maybeSingle();
+            .limit(1);
 
         if (error) throw error;
 
+        const data = statsList && statsList.length > 0 ? statsList[0] : null;
         return NextResponse.json({ isCheckedIn: data?.is_checked_in || false });
     } catch (error) {
         console.error('Check-in status error:', error);
@@ -60,14 +61,15 @@ export async function POST(request: NextRequest) {
             if (shiftError) throw shiftError;
 
             // 2. Update/Create Resolver Stats
-            const { data: existingStats, error: fetchError } = await supabase
+            const { data: statsList, error: fetchError } = await supabase
                 .from('resolver_stats')
                 .select('id')
                 .eq('user_id', user.id)
                 .eq('property_id', propertyId)
-                .maybeSingle();
+                .limit(1);
 
             if (fetchError) throw fetchError;
+            const existingStats = statsList && statsList.length > 0 ? statsList[0] : null;
 
             if (existingStats) {
                 // Update existing

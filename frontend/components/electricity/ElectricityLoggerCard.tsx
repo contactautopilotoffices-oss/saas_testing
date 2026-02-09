@@ -65,7 +65,7 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
     isDark = false
 }) => {
     const [openingReading, setOpeningReading] = useState<number>(previousClosing || meter.last_reading || 0);
-    const [closingReading, setClosingReading] = useState<number | ''>('');
+    const [closingReading, setClosingReading] = useState<string>('');
     const [readingDate, setReadingDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [isFlipped, setIsFlipped] = useState(false);
 
@@ -80,8 +80,8 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
     const [isSavingMultiplier, setIsSavingMultiplier] = useState(false);
 
     // Derived state for input
-    const numericClosing = closingReading === '' ? 0 : closingReading;
-    const hasValidReading = closingReading !== '' && numericClosing > openingReading;
+    const numericClosing = closingReading === '' ? 0 : parseFloat(closingReading);
+    const hasValidReading = !isNaN(numericClosing) && closingReading !== '' && numericClosing > openingReading;
 
     // Set default multiplier
     useEffect(() => {
@@ -107,7 +107,7 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
     // Handle Date Change
     const handleDateChange = (date: string) => {
         setReadingDate(date);
-        const numVal = closingReading === '' ? 0 : closingReading;
+        const numVal = closingReading === '' ? 0 : parseFloat(closingReading);
 
         if (closingReading !== '' && !isNaN(numVal) && numVal > openingReading) {
             onReadingChange(meter.id, {
@@ -123,8 +123,8 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
 
     // Handle Closing Reading Change
     const handleClosingChange = (val: string) => {
+        setClosingReading(val);
         const numVal = parseFloat(val);
-        setClosingReading(val === '' ? '' : numVal);
 
         if (val !== '' && !isNaN(numVal) && numVal > openingReading) {
             onReadingChange(meter.id, {

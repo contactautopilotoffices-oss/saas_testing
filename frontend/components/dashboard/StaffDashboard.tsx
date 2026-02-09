@@ -87,6 +87,7 @@ const StaffDashboard = () => {
 
     // Shift Tracking State
     const [isCheckedIn, setIsCheckedIn] = useState(false);
+    const [isShiftInitialized, setIsShiftInitialized] = useState(false);
     const [isShiftLoading, setIsShiftLoading] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error', visible: boolean }>({
         message: '',
@@ -98,7 +99,11 @@ const StaffDashboard = () => {
 
     useEffect(() => {
         if (propertyId) {
-            fetchCheckInStatus();
+            // Restore shift status from localStorage if available
+            const savedShift = localStorage.getItem(`shift-status-${user?.id || 'unknown'}-${propertyId}`);
+            if (savedShift !== null && !isShiftInitialized) {
+                setIsCheckedIn(savedShift === 'true');
+            }
             fetchTickets();
         }
     }, [propertyId]);
@@ -121,11 +126,14 @@ const StaffDashboard = () => {
     };
 
     const fetchCheckInStatus = async () => {
+        if (!propertyId || !user?.id) return;
         try {
             const res = await fetch(`/api/staff/check-in?propertyId=${propertyId}`);
             if (res.ok) {
                 const data = await res.json();
                 setIsCheckedIn(data.isCheckedIn);
+                setIsShiftInitialized(true);
+                localStorage.setItem(`shift-status-${user.id}-${propertyId}`, String(data.isCheckedIn));
             }
         } catch (error) {
             console.error('Error fetching check-in status:', error);
@@ -145,6 +153,7 @@ const StaffDashboard = () => {
             if (res.ok) {
                 const data = await res.json();
                 setIsCheckedIn(data.isCheckedIn);
+                localStorage.setItem(`shift-status-${user?.id}-${propertyId}`, String(data.isCheckedIn));
                 showToast(data.message, 'success');
             } else {
                 const err = await res.json();
@@ -168,6 +177,7 @@ const StaffDashboard = () => {
             fetchPropertyDetails();
             fetchUserRole();
             if (user?.id) {
+                fetchCheckInStatus();
                 checkInResolver(user.id, propertyId);
             }
         }

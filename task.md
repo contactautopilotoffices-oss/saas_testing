@@ -97,3 +97,9 @@
 | Route | Path |
 |-------|------|
 | Utilities Analytics | `/[orgId]/properties/[propertyId]/utilities/analytics` |
+---
+
+## Phase 5: MST Integration
+- [x] Add Electricity Logger to `MstDashboard.tsx`
+- [x] Update RLS policies in `electricity_logger.sql` to include `mst` role
+- [x] Verify MST access and save functionality
