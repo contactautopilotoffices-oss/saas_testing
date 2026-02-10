@@ -968,7 +968,7 @@ export default function TicketDetailPage() {
                                     {ticket.photo_before_url ? (
                                         <div className={`relative aspect-video rounded-xl overflow-hidden ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-100'} border group`}>
                                             <img src={ticket.photo_before_url} alt="Before" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-2">
                                                 <a href={ticket.photo_before_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-lg hover:bg-primary transition-colors`}>
                                                     View Full
                                                 </a>
@@ -1001,7 +1001,7 @@ export default function TicketDetailPage() {
                                     {ticket.photo_after_url ? (
                                         <div className={`relative aspect-video rounded-xl overflow-hidden ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-100'} border group`}>
                                             <img src={ticket.photo_after_url} alt="After" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-2">
                                                 <a href={ticket.photo_after_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-lg hover:bg-emerald-500 transition-colors`}>
                                                     View Full
                                                 </a>

@@ -13,6 +13,7 @@ interface Notification {
     title: string;
     message: string;
     deep_link: string;
+    ticket_id?: string;
     is_read: boolean;
     created_at: string;
 }
@@ -112,7 +113,19 @@ export default function NotificationBell() {
             markAsRead(notif.id);
         }
         setIsOpen(false);
-        router.push(notif.deep_link);
+        // Use deep_link if available, otherwise fallback to ticket detail page
+        const link = notif.deep_link || (notif.ticket_id ? `/tickets/${notif.ticket_id}?via=notification` : '/notifications');
+        router.push(link);
+    };
+
+    // Parse created_at as UTC to avoid timezone offset issues
+    const parseUTCDate = (dateStr: string): Date => {
+        // Supabase returns UTC timestamps, but without 'Z' suffix
+        // JavaScript Date() treats strings without 'Z' as local time
+        if (dateStr && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+            return new Date(dateStr + 'Z');
+        }
+        return new Date(dateStr);
     };
 
     const getIcon = (type: string) => {
@@ -191,7 +204,7 @@ export default function NotificationBell() {
                                                 </p>
                                                 <p className="text-[9px] font-black text-text-tertiary/60 uppercase tracking-widest mt-2 flex items-center gap-1.5">
                                                     <Clock className="w-2.5 h-2.5" />
-                                                    {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                                                    {formatDistanceToNow(parseUTCDate(notif.created_at), { addSuffix: true })}
                                                 </p>
                                             </div>
                                         </div>

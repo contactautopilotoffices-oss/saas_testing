@@ -239,8 +239,7 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                 throw new Error(data.error || 'Failed to save reading');
             }
 
-            setSuccessMessage('Entry saved!');
-            setTimeout(() => setSuccessMessage(null), 2000);
+            setToast({ message: '✅ Daily log saved successfully!', type: 'success', visible: true });
 
             // Refresh data to update carry-forward values
             fetchData();
@@ -290,35 +289,41 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                             </div>
                             <span className="text-xs font-bold text-primary tracking-widest uppercase">Diesel Logger</span>
                         </div>
-                        <h1 className={`text-3xl md:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <h1 className={`text-2xl sm:text-3xl md:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                             Generator Readings
                         </h1>
-                        <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium max-w-2xl text-sm leading-relaxed`}>
+                        <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium max-w-2xl text-xs sm:text-sm leading-relaxed`}>
                             Enter closing hours and fuel added for each generator. Consumption is calculated automatically.
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setShowTariffModal(true)}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'} rounded-lg border transition-all shadow-sm`}
-                        >
-                            <Coins className="w-4 h-4 text-emerald-500" />
-                            Fuel Costs
-                        </button>
-                        <button
-                            onClick={() => setShowRegisterView(true)}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' : 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10'} rounded-lg border transition-all shadow-sm`}
-                        >
-                            <History className="w-4 h-4" />
-                            View Register
-                        </button>
-                        <button
-                            onClick={() => setShowConfigModal(true)}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-lg border transition-all shadow-sm`}
-                        >
-                            <Settings className="w-4 h-4" />
-                            Reference Config
-                        </button>
+                    <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
+                        <div className="col-span-1">
+                            <button
+                                onClick={() => setShowTariffModal(true)}
+                                className={`w-full h-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-3 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-bold leading-tight text-center ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'} rounded-xl sm:rounded-lg border transition-all shadow-sm min-h-[44px]`}
+                            >
+                                <Coins className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span>Fuel Costs</span>
+                            </button>
+                        </div>
+                        <div className="col-span-1">
+                            <button
+                                onClick={() => setShowRegisterView(true)}
+                                className={`w-full h-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-3 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-bold leading-tight text-center ${isDark ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' : 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10'} rounded-xl sm:rounded-lg border transition-all shadow-sm min-h-[44px]`}
+                            >
+                                <History className="w-4 h-4 shrink-0" />
+                                <span>View Register</span>
+                            </button>
+                        </div>
+                        <div className="col-span-1">
+                            <button
+                                onClick={() => setShowConfigModal(true)}
+                                className={`w-full h-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-3 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-bold leading-tight text-center ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-xl sm:rounded-lg border transition-all shadow-sm min-h-[44px]`}
+                            >
+                                <Settings className="w-4 h-4 shrink-0" />
+                                <span>Reference Config</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -354,18 +359,17 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                 </div>
             </main>
 
-            {/* Footer - Minimal */}
-            <footer className={`fixed bottom-0 left-0 w-full ${isDark ? 'bg-[#0d1117]/80 border-[#30363d]' : 'bg-white/90 border-slate-200'} backdrop-blur-xl border-t z-50`}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            {/* Footer - Minimal with padding for FAB */}
+            <footer className={`fixed bottom-0 left-0 w-full ${isDark ? 'bg-[#0d1117]/90 border-[#30363d]' : 'bg-white/95 border-slate-200'} backdrop-blur-xl border-t z-50 pl-16 pr-4 sm:px-6 lg:px-8 py-4`}>
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <button
                         onClick={() => router.back()}
-                        className={`flex items-center gap-2 text-sm font-bold ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'} transition-colors`}
+                        className={`flex items-center gap-2 text-xs sm:text-sm font-bold ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'} transition-colors pl-2`}
                     >
                         <ArrowLeft className="w-4 h-4" />
                         Back to Analytics
                     </button>
-                    {/* Only show simplified status here, no cost/units totals to avoid clutter/confusion */}
-                    <div className="text-xs font-bold text-slate-400">
+                    <div className="text-[10px] sm:text-xs font-bold text-slate-400">
                         {Object.keys(readings).length} active entries
                     </div>
                 </div>
