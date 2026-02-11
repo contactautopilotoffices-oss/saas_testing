@@ -81,6 +81,12 @@ export async function POST(request: NextRequest) {
                 });
             }
 
+            if (newStatus === 'waitlist') {
+                NotificationService.afterTicketWaitlisted(ticketId).catch(err => {
+                    console.error('[UpdateStatus API] Waitlist Notification error:', err);
+                });
+            }
+
             if (newStatus === 'resolved' || newStatus === 'closed') {
                 NotificationService.afterTicketCompleted(ticketId).catch(err => {
                     console.error('[UpdateStatus API] Completion Notification error:', err);

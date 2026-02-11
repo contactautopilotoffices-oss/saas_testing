@@ -9,51 +9,93 @@ interface CameraCaptureProps {
 }
 
 const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) => {
-    const [stream, setStream] = useState<MediaStream | null>(null);
+    const [isCameraActive, setIsCameraActive] = useState(false);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    // Start camera
-    const startCamera = useCallback(async () => {
-        try {
-            setError(null);
-            setIsLoading(true);
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: 640, height: 480 }
-            });
-            setStream(mediaStream);
-            if (videoRef.current) {
-                videoRef.current.srcObject = mediaStream;
-            }
-        } catch (err) {
-            console.error('Camera access error:', err);
-            setError('Unable to access camera. Please allow camera permissions.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+    const streamRef = useRef<MediaStream | null>(null);
+    const activeRequestId = useRef(0);
 
     // Stop camera
     const stopCamera = useCallback(() => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
         }
-    }, [stream]);
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+        setIsCameraActive(false);
+    }, []);
+
+    // Start camera
+    const startCamera = useCallback(async (isRetry = false) => {
+        const requestId = ++activeRequestId.current;
+        try {
+            setError(null);
+            setIsLoading(true);
+
+            if (isRetry) {
+                await new Promise(resolve => setTimeout(resolve, 800));
+            }
+
+            stopCamera();
+
+            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: isRetry ? true : { facingMode: 'user', width: 640, height: 480 }
+            });
+
+            if (requestId !== activeRequestId.current) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                return;
+            }
+
+            streamRef.current = mediaStream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = mediaStream;
+                videoRef.current.onloadedmetadata = async () => {
+                    if (requestId === activeRequestId.current) {
+                        try {
+                            await videoRef.current?.play();
+                            setIsCameraActive(true);
+                        } catch (e) {
+                            console.warn("Video play interrupted:", e);
+                        }
+                    }
+                };
+            }
+        } catch (err: any) {
+            if (requestId === activeRequestId.current) {
+                console.error('Camera access error:', err);
+
+                if (!isRetry && (err.name === 'AbortError' || err.name === 'NotReadableError')) {
+                    setError("Hardware busy, retrying...");
+                    setTimeout(() => startCamera(true), 500);
+                    return;
+                }
+
+                setError(err.name === 'AbortError'
+                    ? 'Camera hardware is busy. Please close other apps and try again.'
+                    : 'Unable to access camera. Please allow permissions.');
+            }
+        } finally {
+            if (requestId === activeRequestId.current) {
+                setIsLoading(false);
+            }
+        }
+    }, [stopCamera]);
 
     // Compress image to WebP format (< 50KB target)
     const compressImage = async (canvas: HTMLCanvasElement): Promise<Blob> => {
         return new Promise((resolve) => {
-            let quality = 0.8; // WebP handles quality better than JPEG
+            let quality = 0.8;
             const tryCompress = () => {
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            // If still too large and quality > 0.1, reduce quality
                             if (blob.size > 50000 && quality > 0.1) {
                                 quality -= 0.1;
                                 tryCompress();
@@ -62,14 +104,13 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
                             }
                         }
                     },
-                    'image/webp', // WebP: ~30% smaller than JPEG at same quality
+                    'image/webp',
                     quality
                 );
             };
             tryCompress();
         });
     };
-
 
     // Capture photo
     const capturePhoto = async () => {
@@ -79,13 +120,11 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
         const video = videoRef.current;
         const ctx = canvas.getContext('2d');
 
-        if (!ctx) return;
+        if (!ctx || video.videoWidth === 0) return;
 
-        // Set canvas size (passport photo ratio ~3:4)
         canvas.width = 400;
         canvas.height = 400;
 
-        // Draw video frame to canvas (center crop)
         const videoAspect = video.videoWidth / video.videoHeight;
         const canvasAspect = canvas.width / canvas.height;
 
@@ -101,7 +140,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
 
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-        // Compress and get blob (WebP format)
         const blob = await compressImage(canvas);
         const imageUrl = canvas.toDataURL('image/webp', 0.8);
 
@@ -110,51 +148,72 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
         stopCamera();
     };
 
-    // Retake photo
     const retakePhoto = () => {
         setCapturedImage(null);
         setCapturedBlob(null);
         startCamera();
     };
 
-    // Confirm photo
     const confirmPhoto = () => {
         if (capturedImage && capturedBlob) {
             onCapture(capturedImage, capturedBlob);
         }
     };
 
-    // Initialize camera on mount
+    // Cleanup only
     React.useEffect(() => {
-        startCamera();
         return () => stopCamera();
-    }, []);
+    }, [stopCamera]);
 
     return (
         <div className="w-full flex flex-col items-center">
-            {/* Camera/Preview Container */}
-            <div className="relative w-48 h-64 bg-slate-100 rounded-2xl overflow-hidden mb-4 border-2 border-slate-200">
-                {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+            <div className="relative w-48 h-64 bg-slate-900 rounded-2xl overflow-hidden mb-4 shadow-xl border border-white/10">
+                {isLoading && !error && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-slate-900/50 backdrop-blur-sm">
+                        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-black">Initializing...</span>
                     </div>
                 )}
 
                 {error && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                        <Camera className="w-10 h-10 text-slate-300 mb-2" />
-                        <p className="text-xs text-slate-500">{error}</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center z-20 bg-slate-900">
+                        <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center text-error mb-3">
+                            <RotateCcw className="w-5 h-5" />
+                        </div>
+                        <p className="text-[10px] uppercase font-bold text-white/70 leading-relaxed mb-4">{error}</p>
+                        <button
+                            onClick={() => startCamera()}
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors"
+                        >
+                            Retry
+                        </button>
                     </div>
                 )}
 
                 {!capturedImage && !error && (
-                    <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover scale-x-[-1]"
-                    />
+                    <>
+                        {!isCameraActive ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white/20">
+                                    <Camera className="w-6 h-6" />
+                                </div>
+                                <button
+                                    onClick={() => startCamera()}
+                                    className="px-4 py-2 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-lg hover:scale-105 transition-transform"
+                                >
+                                    Start Camera
+                                </button>
+                            </div>
+                        ) : (
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-cover scale-x-[-1]"
+                            />
+                        )}
+                    </>
                 )}
 
                 {capturedImage && (
@@ -166,43 +225,41 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
                 )}
             </div>
 
-            {/* Hidden canvas for processing */}
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* Controls */}
             <div className="flex gap-3">
                 {!capturedImage ? (
                     <button
                         onClick={capturePhoto}
-                        disabled={!stream || isLoading}
-                        className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all disabled:opacity-50"
+                        disabled={!isCameraActive || isLoading}
+                        className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all disabled:opacity-20 disabled:grayscale"
                     >
                         <Camera className="w-4 h-4" />
-                        Capture Photo
+                        Capture
                     </button>
                 ) : (
                     <>
                         <button
                             onClick={retakePhoto}
-                            className="flex items-center gap-2 px-4 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition-all"
+                            className="flex items-center gap-2 px-4 py-3 bg-white/10 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white/20 transition-all"
                         >
                             <RotateCcw className="w-4 h-4" />
                             Retake
                         </button>
                         <button
                             onClick={confirmPhoto}
-                            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all"
+                            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/40"
                         >
                             <Check className="w-4 h-4" />
-                            Use Photo
+                            Confirm
                         </button>
                     </>
                 )}
             </div>
 
             {capturedBlob && (
-                <p className="text-[10px] text-slate-400 mt-2">
-                    Size: {(capturedBlob.size / 1024).toFixed(1)} KB
+                <p className="text-[10px] text-white/30 uppercase tracking-widest font-black mt-4">
+                    Optimized: {(capturedBlob.size / 1024).toFixed(1)} KB
                 </p>
             )}
         </div>

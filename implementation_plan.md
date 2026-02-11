@@ -1,18 +1,29 @@
-# Implementation Plan - Make Photo Hover Mobile Responsive
+# Implementation Plan - Optimize Camera Initialization
 
-The user wants the "Before" and "After" photo hover controls (View Full, Change Photo) to be visible on mobile view without hovering. currently, they are hidden (`opacity-0`) and only shown on hover (`group-hover:opacity-100`).
+Enable automatic camera start when the `CameraCaptureModal` is opened, provided the user has already granted camera permissions. This improves the UX by removing the redundant "Initialize Camera" step while maintaining hardware stability.
 
 ## Proposed Changes
 
-### [Ticket Detail Page]
-#### [MODIFY] [page.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_testing/app/tickets/[ticketId]/page.tsx)
+### [Shared Components]
 
-- Update the opacity classes for the photo overlay to be visible by default on mobile screens (below `lg` breakpoint).
-- Change `opacity-0 group-hover:opacity-100` to `opacity-100 lg:opacity-0 lg:group-hover:opacity-100`.
-- Apply this change to both "Before" and "After" photo sections.
+#### [MODIFY] [CameraCaptureModal.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/shared/CameraCaptureModal.tsx)
+
+- Add `isStarting` state to track the initialization phase.
+- Update `useEffect` that handles `isOpen` to:
+    - Automatically check camera permission using `navigator.permissions.query`.
+    - If permission is already `granted`, call `startCamera()` after a short delay (300ms) to allow the modal animation to settle.
+- Update `startCamera()` to manage the `isStarting` state.
+- Update the UI to show a "Launching Camera..." loading state instead of the "Initialize Camera" button when `isStarting` is true.
+- Ensure the cleanup logic correctly resets all states when the modal closes.
 
 ## Verification Plan
 
+### Automated Tests
+- N/A (Camera hardware access is typically tested manually).
+
 ### Manual Verification
-- Verify the code changes to ensure the correct class names are applied.
-- The user can verify by checking the UI on mobile or resizing the window to mobile width.
+- Open a ticket detail page.
+- Grant camera permission if not already granted.
+- Close the camera modal.
+- Re-open the camera modal: The camera should now start automatically without clicking "Initialize Camera".
+- Reset permissions in the browser: The "Initialize Camera" button should reappear as the manual fallback.

@@ -17,17 +17,6 @@ BEGIN
     FROM property_memberships pm
     WHERE pm.property_id = p_property_id
     AND pm.role IN ('MST', 'PROPERTY_ADMIN', 'SECURITY', 'STAFF', 'mst', 'property_admin', 'security', 'staff')
-    AND pm.is_active = true
-    AND pm.user_id != p_creator_id
-    
-    UNION
-    
-    -- 2. Org Super Admins
-    SELECT om.user_id, om.role::TEXT
-    FROM organization_memberships om
-    WHERE om.organization_id = p_organization_id
-    AND om.role = 'ORG_SUPER_ADMIN'
-    AND om.is_active = true
-    AND om.user_id != p_creator_id;
+    AND pm.user_id != p_creator_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

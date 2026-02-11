@@ -275,19 +275,10 @@ export async function POST(request: NextRequest) {
             console.log('>>>>>>>>>> [NOTIFICATION TEST] Ticket API Notifications for:', finalTicket.id);
             const { NotificationService } = await import('@/backend/services/NotificationService');
 
-            // 1. Always notify that a ticket was created
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] Sending creation notification to all relevant staff.');
+            // Trigger unified notification (handles both creation broadcast and auto-assignment)
             NotificationService.afterTicketCreated(finalTicket.id).catch(err => {
-                console.error('>>>>>>>>>> [NOTIFICATION TEST] Notification error (Creation):', err);
+                console.error('>>>>>>>>>> [NOTIFICATION TEST] Notification error (Unified):', err);
             });
-
-            // 2. If it was auto-assigned, ALSO notify the assignee specifically
-            if (finalTicket.assigned_to) {
-                console.log('>>>>>>>>>> [NOTIFICATION TEST] Ticket AUTO-ASSIGNED. Sending assignment notification.');
-                NotificationService.afterTicketAssigned(finalTicket.id, true).catch(err => {
-                    console.error('>>>>>>>>>> [NOTIFICATION TEST] Notification error (Auto-Assign):', err);
-                });
-            }
         } catch (err) {
             console.error('>>>>>>>>>> [NOTIFICATION TEST] Failed to load NotificationService:', err);
         }

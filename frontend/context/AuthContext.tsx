@@ -26,7 +26,7 @@ interface AuthContextType {
     // Auth actions
     signIn: (email: string, password: string) => Promise<any>;
     signUp: (email: string, password: string, fullName: string) => Promise<any>;
-    signInWithGoogle: (propertyCode?: string) => Promise<void>;
+    signInWithGoogle: (propertyCode?: string, redirectPath?: string) => Promise<void>;
     signOut: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     // Cache helpers
@@ -160,11 +160,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return result;
     }, [supabase]);
 
-    const signInWithGoogle = useCallback(async (propertyCode?: string) => {
+    const signInWithGoogle = useCallback(async (propertyCode?: string, redirectPath?: string) => {
+        const url = new URL(`${window.location.origin}/api/auth/callback`);
+        if (redirectPath) {
+            url.searchParams.set('redirect', redirectPath);
+        }
+
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/api/auth/callback`,
+                redirectTo: url.toString(),
                 queryParams: propertyCode ? { state: propertyCode } : {}
             }
         });

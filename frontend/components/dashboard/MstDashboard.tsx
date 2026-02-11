@@ -16,7 +16,6 @@ import { checkInResolver } from '@/frontend/utils/resolver';
 import Skeleton from '@/frontend/components/ui/Skeleton';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import NotificationBell from './NotificationBell';
-import { usePushNotifications } from '@/frontend/hooks/usePushNotifications';
 import Image from 'next/image';
 import DieselStaffDashboard from '@/frontend/components/diesel/DieselStaffDashboard';
 import ElectricityStaffDashboard from '@/frontend/components/electricity/ElectricityStaffDashboard';
@@ -62,7 +61,6 @@ const MstDashboard = () => {
     const { user, signOut } = useAuth();
     const params = useParams();
     const router = useRouter();
-    const { token, notification: foregroundNotification } = usePushNotifications();
     const propertyId = params?.propertyId as string;
 
     // State

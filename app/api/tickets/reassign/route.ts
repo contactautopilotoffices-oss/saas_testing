@@ -89,15 +89,19 @@ export async function POST(request: NextRequest) {
         });
 
         // Trigger Notifications
-        if (newAssigneeId) {
-            try {
-                const { NotificationService } = await import('@/backend/services/NotificationService');
+        try {
+            const { NotificationService } = await import('@/backend/services/NotificationService');
+            if (newAssigneeId) {
                 NotificationService.afterTicketAssigned(ticketId).catch(err => {
-                    console.error('[Reassign API] Notification error:', err);
+                    console.error('[Reassign API] Assignment Notification error:', err);
                 });
-            } catch (err) {
-                console.error('[Reassign API] Failed to load NotificationService:', err);
+            } else {
+                NotificationService.afterTicketWaitlisted(ticketId).catch(err => {
+                    console.error('[Reassign API] Waitlist Notification error:', err);
+                });
             }
+        } catch (err) {
+            console.error('[Reassign API] Failed to load NotificationService:', err);
         }
 
         return NextResponse.json({

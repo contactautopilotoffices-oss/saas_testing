@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { compressImage } from '@/frontend/utils/image-compression';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import { playTickleSound } from '@/frontend/utils/sounds';
+import CameraCaptureModal from '@/frontend/components/shared/CameraCaptureModal';
 
 interface Ticket {
     id: string;
@@ -58,6 +59,7 @@ export default function TenantTicketingDashboard({
     const [loading, setLoading] = useState(true);
     const [showSuccess, setShowSuccess] = useState(false);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [showCameraModal, setShowCameraModal] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [ratingTicket, setRatingTicket] = useState<Ticket | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
@@ -89,19 +91,28 @@ export default function TenantTicketingDashboard({
     const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            try {
-                const compressedFile = await compressImage(file, { maxWidth: 1280, maxHeight: 1280 });
-                setPhotoFile(compressedFile);
+            await processPhoto(file);
+        }
+    };
 
-                // Create preview URL
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPhotoPreview(reader.result as string);
-                };
-                reader.readAsDataURL(compressedFile);
-            } catch (error) {
-                console.error('Compression failed:', error);
-            }
+    const handleCameraCapture = async (file: File) => {
+        await processPhoto(file);
+        setShowCameraModal(false);
+    };
+
+    const processPhoto = async (file: File) => {
+        try {
+            const compressedFile = await compressImage(file, { maxWidth: 1280, maxHeight: 1280 });
+            setPhotoFile(compressedFile);
+
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(compressedFile);
+        } catch (error) {
+            console.error('Compression failed:', error);
         }
     };
 
@@ -268,11 +279,20 @@ export default function TenantTicketingDashboard({
                             )}
 
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-6 md:mt-10 gap-4">
-                                <label className={`flex items-center justify-center gap-3 ${isDark ? 'text-slate-400 hover:text-white hover:bg-[#21262d]' : 'text-text-secondary hover:text-primary hover:bg-primary/5'} cursor-pointer transition-all text-xs font-bold uppercase tracking-widest px-4 py-3 md:py-2 rounded-xl border border-transparent hover:border-primary/10 bg-surface-elevated sm:bg-transparent`}>
-                                    <Paperclip className="w-5 h-5" />
-                                    <span>Attach File</span>
-                                    <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSelect} />
-                                </label>
+                                <div className="flex items-center gap-3">
+                                    <label className={`flex items-center justify-center gap-3 ${isDark ? 'text-slate-400 hover:text-white hover:bg-[#21262d]' : 'text-text-secondary hover:text-primary hover:bg-primary/5'} cursor-pointer transition-all text-xs font-bold uppercase tracking-widest px-4 py-3 md:py-2 rounded-xl border border-transparent hover:border-primary/10 bg-surface-elevated sm:bg-transparent`}>
+                                        <Paperclip className="w-5 h-5" />
+                                        <span>Attach File</span>
+                                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSelect} />
+                                    </label>
+                                    <button
+                                        onClick={() => setShowCameraModal(true)}
+                                        className={`flex items-center justify-center gap-3 ${isDark ? 'text-slate-400 hover:text-white hover:bg-[#21262d]' : 'text-text-secondary hover:text-primary hover:bg-primary/5'} cursor-pointer transition-all text-xs font-bold uppercase tracking-widest px-4 py-3 md:py-2 rounded-xl border border-transparent hover:border-primary/10 bg-surface-elevated sm:bg-transparent`}
+                                    >
+                                        <Camera className="w-5 h-5" />
+                                        <span>Camera</span>
+                                    </button>
+                                </div>
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting || !description.trim()}
@@ -475,6 +495,11 @@ export default function TenantTicketingDashboard({
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+            <CameraCaptureModal
+                isOpen={showCameraModal}
+                onClose={() => setShowCameraModal(false)}
+                onCapture={handleCameraCapture}
+            />
+        </div >
     );
 }

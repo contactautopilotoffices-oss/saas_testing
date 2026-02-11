@@ -18,7 +18,11 @@ interface Notification {
     created_at: string;
 }
 
-export default function NotificationBell() {
+interface NotificationBellProps {
+    align?: 'left' | 'right';
+}
+
+export default function NotificationBell({ align = 'right' }: NotificationBellProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
@@ -100,7 +104,7 @@ export default function NotificationBell() {
             .from('notifications')
             .update({ is_read: true })
             .eq('user_id', user.id)
-            .eq('is_read', false);
+            .neq('is_read', true);
 
         if (!error) {
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
@@ -109,13 +113,16 @@ export default function NotificationBell() {
     };
 
     const handleNotificationClick = (notif: Notification) => {
-        if (!notif.is_read) {
-            markAsRead(notif.id);
-        }
         setIsOpen(false);
-        // Use deep_link if available, otherwise fallback to ticket detail page
-        const link = notif.deep_link || (notif.ticket_id ? `/tickets/${notif.ticket_id}?via=notification` : '/notifications');
-        router.push(link);
+        if (!notif.is_read) {
+            markAsRead(notif.id).catch(err => console.error('Failed to mark read:', err));
+        }
+
+        if (notif.ticket_id) {
+            router.push(`/tickets/${notif.ticket_id}`);
+        } else if (notif.deep_link) {
+            router.push(notif.deep_link);
+        }
     };
 
     // Parse created_at as UTC to avoid timezone offset issues
@@ -157,21 +164,22 @@ export default function NotificationBell() {
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-3 w-80 bg-white border border-border rounded-2xl shadow-2xl z-[100] overflow-hidden"
+                        className={`fixed top-20 left-4 right-4 sm:absolute sm:top-full sm:mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-[100] overflow-hidden bg-white/95 backdrop-blur-sm ring-1 ring-black/5 
+                        ${align === 'left' ? 'sm:left-0 sm:right-auto origin-top-left' : 'sm:right-0 sm:left-auto origin-top-right'} sm:w-96`}
                     >
-                        <div className="p-4 border-b border-border bg-surface-elevated/50 flex justify-between items-center">
-                            <h3 className="text-[11px] font-black uppercase tracking-widest text-text-primary">Notifications</h3>
+                        <div className="p-5 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center">
+                            <h3 className="text-[15px] font-semibold text-gray-900 tracking-tight">Notifications</h3>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={markAllAsRead}
-                                    className="text-[10px] font-bold text-primary hover:underline"
+                                    className="text-[13px] font-medium text-primary hover:text-primary/80 transition-colors"
                                 >
                                     Mark all as read
                                 </button>
                             )}
                         </div>
 
-                        <div className="max-h-[400px] overflow-y-auto">
+                        <div className="max-h-[60vh] sm:max-h-[500px] overflow-y-auto overscroll-contain bg-white">
                             {isLoading ? (
                                 <div className="p-8 text-center text-[11px] font-medium text-text-tertiary">Loading notifications...</div>
                             ) : notifications.length === 0 ? (
@@ -186,24 +194,23 @@ export default function NotificationBell() {
                                     <div
                                         key={notif.id}
                                         onClick={() => handleNotificationClick(notif)}
-                                        className={`p-4 border-b border-border/50 hover:bg-surface-elevated cursor-pointer transition-colors relative group ${notif.is_read ? '' : 'bg-primary/5'}`}
+                                        className={`p-5 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all relative group ${notif.is_read ? 'bg-white' : 'bg-blue-50/30'}`}
                                     >
                                         {!notif.is_read && (
-                                            <div className="absolute top-4 right-4 w-1.5 h-1.5 bg-primary rounded-full" />
+                                            <div className="absolute top-6 right-5 w-2 h-2 bg-primary rounded-full shadow-sm ring-2 ring-white" />
                                         )}
-                                        <div className="flex gap-3">
-                                            <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${notif.is_read ? 'bg-slate-50 text-slate-400' : 'bg-primary/10 text-primary'}`}>
+                                        <div className="flex gap-4 items-start">
+                                            <div className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 border ${notif.is_read ? 'bg-gray-50 border-gray-100 text-gray-400' : 'bg-primary/10 border-primary/10 text-primary'}`}>
                                                 {getIcon(notif.notification_type)}
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h4 className={`text-[13px] font-bold leading-tight mb-1 truncate ${notif.is_read ? 'text-text-secondary' : 'text-text-primary'}`}>
+                                            <div className="min-w-0 flex-1 pr-4">
+                                                <h4 className={`text-[15px] font-semibold leading-snug mb-1 ${notif.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
                                                     {notif.title}
                                                 </h4>
-                                                <p className="text-[11px] text-text-tertiary line-clamp-2 leading-relaxed">
+                                                <p className="text-[13px] text-gray-500 line-clamp-2 leading-relaxed">
                                                     {notif.message}
                                                 </p>
-                                                <p className="text-[9px] font-black text-text-tertiary/60 uppercase tracking-widest mt-2 flex items-center gap-1.5">
-                                                    <Clock className="w-2.5 h-2.5" />
+                                                <p className="text-[12px] font-medium text-gray-400 mt-2 flex items-center gap-1.5">
                                                     {formatDistanceToNow(parseUTCDate(notif.created_at), { addSuffix: true })}
                                                 </p>
                                             </div>
@@ -213,10 +220,10 @@ export default function NotificationBell() {
                             )}
                         </div>
 
-                        <div className="p-3 border-t border-border bg-surface-elevated/20 text-center">
+                        <div className="p-4 border-t border-gray-100 bg-gray-50/50 text-center sticky bottom-0 backdrop-blur-sm">
                             <button
                                 onClick={() => { setIsOpen(false); router.push('/notifications'); }}
-                                className="text-[10px] font-black uppercase tracking-widest text-text-tertiary hover:text-primary transition-colors"
+                                className="text-[13px] font-semibold text-gray-500 hover:text-primary transition-colors hover:bg-gray-100 px-4 py-2 rounded-lg w-full"
                             >
                                 View All Activity
                             </button>

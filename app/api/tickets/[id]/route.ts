@@ -386,6 +386,14 @@ export async function PATCH(
                 console.log('[Ticket Update API] skipping assignment notification (assigned_to not in updates)');
             }
 
+            // Check for waitlist
+            if (updates.status === 'waitlist') {
+                console.log('[Ticket Update API] Triggering afterTicketWaitlisted...');
+                NotificationService.afterTicketWaitlisted(ticketId).catch(err => {
+                    console.error('[Ticket Update API] Notification trigger error (Waitlisted):', err);
+                });
+            }
+
             // Check for completion
             if (updates.status === 'closed' || updates.status === 'resolved') {
                 console.log('[Ticket Update API] Triggering afterTicketCompleted...');

@@ -6,6 +6,7 @@ export async function GET(request: Request) {
     const code = requestUrl.searchParams.get('code');
     const propertyCode = requestUrl.searchParams.get('state'); // Optional: for property-scoped signup
     const next = requestUrl.searchParams.get('next'); // For password reset redirect
+    const redirect = requestUrl.searchParams.get('redirect');
 
     if (code) {
         const supabase = await createClient();
@@ -40,6 +41,9 @@ export async function GET(request: Request) {
 
             // STEP 1: Check if Master Admin
             if (dbUser?.is_master_admin || user.user_metadata?.is_master_admin) {
+                if (redirect && redirect !== '/') {
+                    return NextResponse.redirect(`${requestUrl.origin}${redirect}`);
+                }
                 return NextResponse.redirect(`${requestUrl.origin}/master`);
             }
 
@@ -53,6 +57,9 @@ export async function GET(request: Request) {
                 .maybeSingle();
 
             if (orgMembership) {
+                if (redirect && redirect !== '/') {
+                    return NextResponse.redirect(`${requestUrl.origin}${redirect}`);
+                }
                 return NextResponse.redirect(`${requestUrl.origin}/org/${orgMembership.organization_id}/dashboard`);
             }
 
@@ -85,6 +92,10 @@ export async function GET(request: Request) {
                 .maybeSingle();
 
             if (propMembership) {
+                if (redirect && redirect !== '/') {
+                    return NextResponse.redirect(`${requestUrl.origin}${redirect}`);
+                }
+
                 const role = propMembership.role;
                 const pId = propMembership.property_id;
 

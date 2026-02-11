@@ -19,7 +19,6 @@ import DieselAnalyticsDashboard from '../diesel/DieselAnalyticsDashboard';
 import ElectricityAnalyticsDashboard from '../electricity/ElectricityAnalyticsDashboard';
 import InviteMemberModal from './InviteMemberModal';
 import NotificationBell from './NotificationBell';
-import { usePushNotifications } from '@/frontend/hooks/usePushNotifications';
 import Image from 'next/image';
 import { ImportReportsView } from '@/frontend/components/snags';
 
@@ -62,7 +61,6 @@ const OrgAdminDashboard = () => {
     const { user, signOut } = useAuth();
     const params = useParams();
     const router = useRouter();
-    const { token, notification: foregroundNotification } = usePushNotifications();
     const orgSlugOrId = params?.orgId as string;
 
     // State
@@ -660,7 +658,7 @@ const OrgAdminDashboard = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <NotificationBell />
+
                             {/* Property Selector for Requests/Other tabs */}
                             {properties.length > 0 && (
                                 <div className="relative">
@@ -1233,7 +1231,7 @@ const OverviewTab = memo(function OverviewTab({
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <NotificationBell />
+
                         {/* Property Selector for Requests/Other tabs */}
                         {properties.length > 0 && (
                             <div className="relative">
@@ -1265,7 +1263,7 @@ const OverviewTab = memo(function OverviewTab({
                                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className="absolute left-0 mt-2 w-80 bg-[#5A737A] rounded-2xl shadow-2xl border border-white/10 z-[120] overflow-hidden"
+                                                className="absolute right-0 mt-2 w-80 bg-[#5A737A] rounded-2xl shadow-2xl border border-white/10 z-[120] overflow-hidden"
                                             >
                                                 <div className="p-2 border-b border-white/10">
                                                     <button

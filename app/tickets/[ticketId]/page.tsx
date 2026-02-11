@@ -40,6 +40,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage } from '@/frontend/utils/image-compression';
 import { useTheme } from '@/frontend/context/ThemeContext';
+import CameraCaptureModal from '@/frontend/components/shared/CameraCaptureModal';
 
 // Types
 interface Ticket {
@@ -128,6 +129,10 @@ export default function TicketDetailPage() {
     const [isUpdatingContent, setIsUpdatingContent] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [userSkills, setUserSkills] = useState<string[]>([]);
+
+    // Camera Modal State
+    const [showCameraModal, setShowCameraModal] = useState(false);
+    const [activeCameraType, setActiveCameraType] = useState<'before' | 'after' | null>(null);
 
     // Initial Fetch
     useEffect(() => {
@@ -263,8 +268,8 @@ export default function TicketDetailPage() {
 
         if (propMember?.role === 'property_admin') {
             setUserRole('admin');
-        } else if (propMember?.role === 'mst' || propMember?.role === 'staff') {
-            const role = propMember.role === 'mst' ? 'mst' : 'staff';
+        } else if (propMember && ['mst', 'staff', 'technician', 'fe', 'se', 'bms_operator', 'security', 'concierge'].includes(propMember.role)) {
+            const role = (propMember.role as string) === 'mst' ? 'mst' : 'staff';
             setUserRole(role);
             // Fetch skills for specialized permissions
             const { data: skills } = await supabase
@@ -301,8 +306,7 @@ export default function TicketDetailPage() {
         const { data } = await supabase
             .from('resolver_stats')
             .select('*, user:user_id(full_name)')
-            .eq('property_id', propId)
-            .eq('is_available', true);
+            .eq('property_id', propId);
 
         if (data) {
             const unique = [];
@@ -507,7 +511,10 @@ export default function TicketDetailPage() {
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
         if (!event.target.files || event.target.files.length === 0) return;
         const file = event.target.files[0];
+        await processFile(file, type);
+    };
 
+    const processFile = async (file: File, type: 'before' | 'after') => {
         setUploading(true);
         try {
             // COMPRESSION STEP: Max 1280px, WebP, < 500KB
@@ -548,6 +555,19 @@ export default function TicketDetailPage() {
         } finally {
             setUploading(false);
         }
+    };
+
+    const openCamera = (type: 'before' | 'after') => {
+        setActiveCameraType(type);
+        setShowCameraModal(true);
+    };
+
+    const handleCameraCapture = async (file: File) => {
+        if (activeCameraType) {
+            await processFile(file, activeCameraType);
+        }
+        setShowCameraModal(false);
+        setActiveCameraType(null);
     };
 
     const handlePostComment = async () => {
@@ -657,7 +677,7 @@ export default function TicketDetailPage() {
     const isSpecializedStaff = userRole === 'staff' && (userSkills.includes('soft_service') || userSkills.includes('technical') || userSkills.includes('bms'));
     const canEditContent = isOwner || canManage;
     const canDelete = (isOwner && (userRole === 'mst' || userRole === 'staff')) || canManage;
-    const canManagePhotos = canManage || userRole === 'mst' || isSpecializedStaff || (userRole === 'staff' && isAssignedToMe) || (userRole === 'tenant' && isOwner);
+    const canManagePhotos = canManage || userRole === 'mst' || userRole === 'staff' || (userRole === 'tenant' && isOwner);
     const isDark = theme === 'dark';
 
     return (
@@ -968,25 +988,51 @@ export default function TicketDetailPage() {
                                     {ticket.photo_before_url ? (
                                         <div className={`relative aspect-video rounded-xl overflow-hidden ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-100'} border group`}>
                                             <img src={ticket.photo_before_url} alt="Before" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-2">
-                                                <a href={ticket.photo_before_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-lg hover:bg-primary transition-colors`}>
+                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-3">
+                                                <a href={ticket.photo_before_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-2xl hover:bg-primary transition-colors shadow-lg`}>
                                                     View Full
                                                 </a>
                                                 {canManagePhotos && (
-                                                    <label className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-lg cursor-pointer hover:bg-primary transition-colors flex items-center gap-2`}>
-                                                        <Camera className="w-3 h-3" />
-                                                        Change Photo
-                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'before')} />
-                                                    </label>
+                                                    <div className="flex items-center gap-4">
+                                                        <label className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-primary text-white transition-all shadow-lg`}>
+                                                            <Paperclip className="w-5 h-5" />
+                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'before')} />
+                                                        </label>
+                                                        <button
+                                                            onClick={() => openCamera('before')}
+                                                            className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-primary text-white transition-all shadow-lg`}
+                                                        >
+                                                            <Camera className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
                                     ) : (
-                                        <label className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117] hover:bg-[#161b22]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} cursor-pointer transition-all group`}>
-                                            <Camera className={`w-8 h-8 ${isDark ? 'text-slate-700' : 'text-slate-300'} group-hover:text-primary mb-2`} />
-                                            <span className={`text-[10px] font-black ${isDark ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest`}>Add Attachment</span>
-                                            <input type="file" accept="image/*" className="hidden" disabled={!canManagePhotos} onChange={(e) => handleFileUpload(e, 'before')} />
-                                        </label>
+                                        <div className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'} transition-all gap-2 p-4`}>
+                                            <span className={`text-[10px] font-black ${isDark ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest mb-2`}>Add Attachment</span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center justify-center gap-6">
+                                                    <label className={`cursor-pointer flex flex-col items-center gap-2 group`}>
+                                                        <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${isDark ? 'bg-[#161b22] group-hover:bg-[#21262d] border-[#30363d]' : 'bg-white group-hover:bg-slate-50 border-slate-200'} border-2 shadow-sm transition-all group-hover:scale-105`}>
+                                                            <Paperclip className={`w-6 h-6 ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-primary transition-colors`} />
+                                                        </div>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-primary transition-colors`}>Gallery</span>
+                                                        <input type="file" accept="image/*" className="hidden" disabled={!canManagePhotos} onChange={(e) => handleFileUpload(e, 'before')} />
+                                                    </label>
+
+                                                    <button
+                                                        onClick={() => openCamera('before')}
+                                                        className={`cursor-pointer flex flex-col items-center gap-2 group`}
+                                                    >
+                                                        <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${isDark ? 'bg-[#161b22] group-hover:bg-[#21262d] border-[#30363d]' : 'bg-white group-hover:bg-slate-50 border-slate-200'} border-2 shadow-sm transition-all group-hover:scale-105`}>
+                                                            <Camera className={`w-6 h-6 ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-primary transition-colors`} />
+                                                        </div>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-primary transition-colors`}>Camera</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
 
@@ -1001,25 +1047,51 @@ export default function TicketDetailPage() {
                                     {ticket.photo_after_url ? (
                                         <div className={`relative aspect-video rounded-xl overflow-hidden ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-100'} border group`}>
                                             <img src={ticket.photo_after_url} alt="After" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-2">
-                                                <a href={ticket.photo_after_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-lg hover:bg-emerald-500 transition-colors`}>
+                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-3">
+                                                <a href={ticket.photo_after_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-2xl hover:bg-emerald-500 transition-colors shadow-lg`}>
                                                     View Full
                                                 </a>
                                                 {canManagePhotos && (
-                                                    <label className={`text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-lg cursor-pointer hover:bg-emerald-500 transition-colors flex items-center gap-2`}>
-                                                        <Camera className="w-3 h-3" />
-                                                        Change Photo
-                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'after')} />
-                                                    </label>
+                                                    <div className="flex items-center gap-4">
+                                                        <label className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-emerald-500 text-white transition-all shadow-lg`}>
+                                                            <Paperclip className="w-5 h-5" />
+                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'after')} />
+                                                        </label>
+                                                        <button
+                                                            onClick={() => openCamera('after')}
+                                                            className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-emerald-500 text-white transition-all shadow-lg`}
+                                                        >
+                                                            <Camera className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
                                     ) : (
-                                        <label className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117] hover:bg-[#161b22]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} cursor-pointer transition-all group`}>
-                                            <Camera className={`w-8 h-8 ${isDark ? 'text-slate-700' : 'text-slate-300'} group-hover:text-emerald-500 mb-2`} />
-                                            <span className={`text-[10px] font-black ${isDark ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest`}>Add Attachment</span>
-                                            <input type="file" accept="image/*" className="hidden" disabled={!canManagePhotos} onChange={(e) => handleFileUpload(e, 'after')} />
-                                        </label>
+                                        <div className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'} transition-all gap-2 p-4`}>
+                                            <span className={`text-[10px] font-black ${isDark ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-widest mb-2`}>Add Attachment</span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center justify-center gap-6">
+                                                    <label className={`cursor-pointer flex flex-col items-center gap-2 group`}>
+                                                        <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${isDark ? 'bg-[#161b22] group-hover:bg-[#21262d] border-[#30363d]' : 'bg-white group-hover:bg-slate-50 border-slate-200'} border-2 shadow-sm transition-all group-hover:scale-105`}>
+                                                            <Paperclip className={`w-6 h-6 ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-emerald-500 transition-colors`} />
+                                                        </div>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-emerald-500 transition-colors`}>Gallery</span>
+                                                        <input type="file" accept="image/*" className="hidden" disabled={!canManagePhotos} onChange={(e) => handleFileUpload(e, 'after')} />
+                                                    </label>
+
+                                                    <button
+                                                        onClick={() => openCamera('after')}
+                                                        className={`cursor-pointer flex flex-col items-center gap-2 group`}
+                                                    >
+                                                        <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${isDark ? 'bg-[#161b22] group-hover:bg-[#21262d] border-[#30363d]' : 'bg-white group-hover:bg-slate-50 border-slate-200'} border-2 shadow-sm transition-all group-hover:scale-105`}>
+                                                            <Camera className={`w-6 h-6 ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-emerald-500 transition-colors`} />
+                                                        </div>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'} group-hover:text-emerald-500 transition-colors`}>Camera</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1297,6 +1369,14 @@ export default function TicketDetailPage() {
                         </div>
                     )}
                 </AnimatePresence>
+
+                {/* Camera Modal */}
+                <CameraCaptureModal
+                    isOpen={showCameraModal}
+                    onClose={() => setShowCameraModal(false)}
+                    onCapture={handleCameraCapture}
+                    title={activeCameraType === 'before' ? 'Capture Before Site' : 'Capture After Site'}
+                />
             </div>
         </div>
     );

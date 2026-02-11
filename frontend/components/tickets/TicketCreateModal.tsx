@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Paperclip, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Paperclip, Send, Loader2, CheckCircle, AlertCircle, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { playTickleSound } from '@/frontend/utils/sounds';
+import CameraCaptureModal from '@/frontend/components/shared/CameraCaptureModal';
 
 interface TicketCreateModalProps {
     isOpen: boolean;
@@ -35,6 +36,7 @@ export default function TicketCreateModal({
     const [description, setDescription] = useState('');
     const [isInternal, setIsInternal] = useState(false);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [showCameraModal, setShowCameraModal] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [classification, setClassification] = useState<Classification | null>(null);
@@ -66,39 +68,48 @@ export default function TicketCreateModal({
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const maxSize = 800;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height && width > maxSize) {
-                    height = (height * maxSize) / width;
-                    width = maxSize;
-                } else if (height > maxSize) {
-                    width = (width * maxSize) / height;
-                    height = maxSize;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) {
-                            setPhotoFile(new File([blob], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' }));
-                            setPhotoPreview(canvas.toDataURL('image/webp', 0.8));
-                        }
-                    },
-                    'image/webp',
-                    0.8
-                );
-            };
-            img.src = URL.createObjectURL(file);
+            processFile(file);
         }
+    };
+
+    const handleCameraCapture = (file: File) => {
+        processFile(file);
+        setShowCameraModal(false);
+    };
+
+    const processFile = (file: File) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxSize = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height && width > maxSize) {
+                height = (height * maxSize) / width;
+                width = maxSize;
+            } else if (height > maxSize) {
+                width = (width * maxSize) / height;
+                height = maxSize;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) {
+                        setPhotoFile(new File([blob], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' }));
+                        setPhotoPreview(canvas.toDataURL('image/webp', 0.8));
+                    }
+                },
+                'image/webp',
+                0.8
+            );
+        };
+        img.src = URL.createObjectURL(file);
     };
 
     const handleSubmit = async () => {
@@ -196,19 +207,19 @@ export default function TicketCreateModal({
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-200"
+                    className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-200 flex flex-col max-h-[90vh] overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-slate-200">
-                        <h2 className="text-xl font-black text-slate-900">Raise a New Request</h2>
+                    <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-200">
+                        <h2 className="text-lg sm:text-xl font-black text-slate-900">Raise a New Request</h2>
                         <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors p-1 hover:bg-slate-100 rounded-lg">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
 
                     {/* Content */}
-                    <div className="p-6 space-y-4">
+                    <div className="p-4 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar">
                         {success ? (
                             <div className="text-center py-8">
                                 <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
@@ -305,33 +316,40 @@ export default function TicketCreateModal({
                                 )}
 
                                 {/* Actions Row */}
-                                <div className="flex items-center justify-between pt-4">
-                                    <div className="flex items-center gap-3">
-                                        {/* Photo Upload */}
-                                        <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors">
-                                            <Paperclip className="w-4 h-4 text-slate-600" />
-                                            <span className="text-sm font-bold text-slate-700">Photo</span>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={handlePhotoSelect}
-                                            />
-                                        </label>
-                                    </div>
+                                <div className="flex items-center gap-3 pt-4">
+                                    {/* Gallery Upload */}
+                                    <label className="flex-1 flex flex-col items-center justify-center gap-1 px-2 py-3 bg-slate-100 border border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors active:scale-95 text-center h-20">
+                                        <Paperclip className="w-6 h-6 sm:w-5 sm:h-5 text-slate-600" />
+                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide hidden sm:block">Gallery</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handlePhotoSelect}
+                                        />
+                                    </label>
+
+                                    {/* Camera Button */}
+                                    <button
+                                        onClick={() => setShowCameraModal(true)}
+                                        className="flex-1 flex flex-col items-center justify-center gap-1 px-2 py-3 bg-slate-100 border border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors active:scale-95 text-center h-20"
+                                    >
+                                        <Camera className="w-6 h-6 sm:w-5 sm:h-5 text-slate-600" />
+                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide hidden sm:block">Camera</span>
+                                    </button>
 
                                     {/* Submit */}
                                     <button
                                         onClick={handleSubmit}
                                         disabled={isSubmitting || !description.trim()}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-colors shadow-lg shadow-primary/30"
+                                        className="flex-[1.5] flex flex-col items-center justify-center gap-1 px-2 py-3 bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-primary/30 active:scale-95 h-20"
                                     >
                                         {isSubmitting ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <Loader2 className="w-5 h-5 animate-spin mb-1" />
                                         ) : (
-                                            <Send className="w-4 h-4" />
+                                            <Send className="w-5 h-5 mb-1" />
                                         )}
-                                        Submit
+                                        <span className="font-black uppercase tracking-widest text-xs">Submit</span>
                                     </button>
                                 </div>
 
@@ -345,6 +363,12 @@ export default function TicketCreateModal({
                             </>
                         )}
                     </div>
+
+                    <CameraCaptureModal
+                        isOpen={showCameraModal}
+                        onClose={() => setShowCameraModal(false)}
+                        onCapture={handleCameraCapture}
+                    />
                 </motion.div>
             </motion.div>
         </AnimatePresence>

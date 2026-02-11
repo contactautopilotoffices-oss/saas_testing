@@ -17,7 +17,6 @@ import DieselAnalyticsDashboard from '@/frontend/components/diesel/DieselAnalyti
 import ElectricityStaffDashboard from '@/frontend/components/electricity/ElectricityStaffDashboard';
 import ElectricityAnalyticsDashboard from '@/frontend/components/electricity/ElectricityAnalyticsDashboard';
 import NotificationBell from './NotificationBell';
-import { usePushNotifications } from '@/frontend/hooks/usePushNotifications';
 import Image from 'next/image';
 import Skeleton from '@/frontend/components/ui/Skeleton';
 import VendorExportModal from '@/frontend/components/vendor/VendorExportModal';
@@ -56,7 +55,6 @@ const PropertyAdminDashboard = () => {
     const { theme, toggleTheme } = useTheme();
     const params = useParams();
     const router = useRouter();
-    const { token, notification: foregroundNotification } = usePushNotifications();
     const orgSlug = params?.orgId as string;
     const propertyId = params?.propertyId as string;
 

@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
     LogOut, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, RefreshCw, Cog, X,
-    AlertOctagon, BarChart3, FileText, Camera, Menu, Pencil, Loader2, Zap, Activity
+    AlertOctagon, BarChart3, FileText, Camera, Menu, Pencil, Loader2, Zap, Activity, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -24,6 +24,7 @@ import { checkInResolver } from '@/frontend/utils/resolver';
 import NavbarShiftStatus from '@/frontend/components/mst/NavbarShiftStatus';
 import TicketFlowMap from '@/frontend/components/ops/TicketFlowMap';
 import TicketCard from '@/frontend/components/shared/TicketCard';
+import NotificationBell from './NotificationBell';
 
 // Types
 type Tab = 'dashboard' | 'tasks' | 'projects' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'electricity' | 'settings' | 'profile' | 'flow-map';
@@ -323,7 +324,7 @@ const StaffDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-white flex font-inter text-text-primary">
+        <div className="min-h-screen bg-background flex font-inter text-text-primary">
             {/* Mobile Overlay */}
             <AnimatePresence>
                 {sidebarOpen && (
@@ -560,9 +561,9 @@ const StaffDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 lg:ml-64 flex flex-col bg-white border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
+            <div className="flex-1 lg:ml-64 flex flex-col bg-background border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
                 {/* Top Header */}
-                <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
+                <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
                     <div className="flex items-center gap-4">
                         {/* Mobile Menu Toggle */}
                         <button
@@ -571,25 +572,11 @@ const StaffDashboard = () => {
                         >
                             <Menu className="w-6 h-6" />
                         </button>
-
-                        <button
-                            onClick={fetchTickets}
-                            className="hidden sm:flex text-xs text-muted-foreground hover:text-foreground border border-border px-3 py-1.5 rounded-md bg-muted transition-colors items-center">
-                            <RefreshCw className="w-3 h-3 mr-1.5" />
-                            Refresh
-                        </button>
-                        <div className="relative hidden md:block">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-48 lg:w-64 pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-orange"
-                            />
-                        </div>
                     </div>
-                    <div className="flex items-center gap-2 md:gap-3">
+                    <div className="flex items-center gap-3">
+                        {/* Notification Bell (Placeholder or Real if available) */}
+                        <NotificationBell />
+
                         {/* Shift Status */}
                         <NavbarShiftStatus
                             isCheckedIn={isCheckedIn}
@@ -597,21 +584,16 @@ const StaffDashboard = () => {
                             onToggle={handleShiftToggle}
                         />
 
-
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors">
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
                         <div className="flex items-center gap-2 pl-3 border-l border-border">
-                            <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center text-primary text-xs font-medium border border-primary/20">
-                                {user?.email?.[0].toUpperCase() || 'U'}
-                            </div>
-                            <span className="text-xs text-text-tertiary font-medium">{user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+                            <span className="text-xs text-text-secondary font-medium">
+                                {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+                            </span>
                         </div>
                     </div>
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 p-2 sm:p-4 md:p-6">
+                <main className="flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-6 bg-slate-50/50">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -671,7 +653,19 @@ const StaffDashboard = () => {
                                     onFilterChange={setRequestFilter}
                                 />
                             )}
-                            {activeTab === 'tasks' && <TasksTab />}
+                            {activeTab === 'tasks' && (
+                                <TasksTab
+                                    tickets={[...incomingTickets, ...completedTickets].filter(t =>
+                                        t.assigned_to === user?.id &&
+                                        (t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                            t.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                            t.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    )}
+                                    onTicketClick={(id) => router.push(`/tickets/${id}?from=${activeTab}`)}
+                                    onEditClick={handleEditClick}
+                                    onDeleteClick={handleDelete}
+                                />
+                            )}
                             {activeTab === 'projects' && <ProjectsTab />}
                             {activeTab === 'create_request' && property && user && (
                                 <TenantTicketingDashboard
@@ -878,6 +872,7 @@ const canAccessElectricityLogger = (role: string): boolean => {
 // Helper Sub-component for Ticket Row - DEPRECATED - Use shared/TicketCard
 
 // Dashboard Tab
+// Dashboard Tab
 const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName, onSettingsClick, onEditClick, onDeleteClick, userRole = '', onFilterClick }: { tickets: any[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string, onSettingsClick?: () => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void, userRole?: string, onFilterClick?: (filter: 'all' | 'active' | 'completed') => void }) => {
     const total = tickets.length + completedCount;
     const active = tickets.filter(t => t.status === 'in_progress' || t.status === 'assigned' || t.status === 'open').length;
@@ -887,80 +882,73 @@ const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoadin
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-text-primary">Staff Dashboard</h1>
-                <p className="text-text-tertiary text-xs sm:text-sm mt-1">{propertyName || 'Property'} • Staff: {userName}</p>
+                <h1 className="text-2xl font-bold text-text-primary">Staff Overview</h1>
+                <p className="text-text-tertiary text-sm mt-1">{propertyName || 'Property'} • Staff: {userName}</p>
             </div>
 
             {/* Dashboard Section */}
-            <div className="bg-card border border-border rounded-xl p-3 sm:p-5 shadow-sm">
+            <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-sm sm:text-base font-bold text-text-primary">Dashboard</h2>
+                    <h2 className="text-base font-bold text-text-primary">Dashboard</h2>
                     <button
                         onClick={onSettingsClick}
-                        className="flex items-center gap-1.5 text-[10px] sm:text-xs text-text-secondary hover:text-text-primary border border-border px-3 py-1.5 rounded-lg bg-surface-elevated transition-colors">
+                        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary border border-border px-3 py-1.5 rounded-lg bg-surface-elevated transition-colors">
                         <Settings className="w-3 h-3" />
                         Customize
                     </button>
                 </div>
 
                 {/* Work Orders Overview */}
-                <div className="bg-surface-elevated border border-border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-text-primary">Work Orders Overview</h3>
-                        <button className="text-text-tertiary hover:text-text-primary">
-                            <ChevronRight className="w-4 h-4 rotate-[-45deg]" />
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-6">
-                        <button
-                            onClick={() => onFilterClick?.('all')}
-                            className="text-center p-4 rounded-2xl hover:bg-surface-elevated transition-colors group"
-                        >
-                            <p className="text-3xl font-bold text-text-primary group-hover:scale-110 transition-transform">{total}</p>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary mt-1">Total</p>
-                        </button>
-                        <button
-                            onClick={() => onFilterClick?.('active')}
-                            className="text-center p-4 rounded-2xl hover:bg-surface-elevated transition-colors group"
-                        >
-                            <p className="text-3xl font-bold text-info group-hover:scale-110 transition-transform">{active}</p>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary mt-1">Active</p>
-                        </button>
-                        <button
-                            onClick={() => onFilterClick?.('completed')}
-                            className="text-center p-4 rounded-2xl hover:bg-surface-elevated transition-colors group"
-                        >
-                            <p className="text-3xl font-bold text-success group-hover:scale-110 transition-transform">{completed}</p>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary mt-1">Completed</p>
-                        </button>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <button
+                        onClick={() => onFilterClick?.('all')}
+                        className="bg-surface-elevated border border-border rounded-xl p-4 text-center hover:bg-muted transition-colors group"
+                    >
+                        <p className="text-3xl font-black text-text-primary group-hover:scale-110 transition-transform">{total}</p>
+                        <p className="text-xs font-bold text-text-tertiary uppercase tracking-wider mt-1">Total</p>
+                    </button>
+                    <button
+                        onClick={() => onFilterClick?.('active')}
+                        className="bg-surface-elevated border border-border rounded-xl p-4 text-center hover:bg-muted transition-colors group"
+                    >
+                        <p className="text-3xl font-black text-info group-hover:scale-110 transition-transform">{active}</p>
+                        <p className="text-xs font-bold text-text-tertiary uppercase tracking-wider mt-1">Active</p>
+                    </button>
+                    <button
+                        onClick={() => onFilterClick?.('completed')}
+                        className="bg-surface-elevated border border-border rounded-xl p-4 text-center hover:bg-muted transition-colors group"
+                    >
+                        <p className="text-3xl font-black text-success group-hover:scale-110 transition-transform">{completed}</p>
+                        <p className="text-xs font-bold text-text-tertiary uppercase tracking-wider mt-1">Completed</p>
+                    </button>
                 </div>
             </div>
 
             {/* Property Requests */}
-            <div className="bg-card border border-border rounded-xl p-3 sm:p-5 shadow-sm">
-                <div className="mb-4">
-                    <h2 className="text-sm sm:text-base font-bold text-text-primary">Property Requests</h2>
-                    <p className="text-[10px] sm:text-xs text-text-tertiary">All requests for this property</p>
+            <div className="space-y-4">
+                <div className="mb-2">
+                    <h2 className="text-base font-bold text-text-primary">Property Requests</h2>
+                    <p className="text-xs text-text-tertiary">All requests for this property</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {isLoading ? (
-                        <div className="flex flex-col gap-2 py-4 col-span-full">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="h-16 bg-surface-elevated border border-border rounded-lg animate-pulse" />
-                            ))}
-                        </div>
+                        [1, 2, 3].map(i => (
+                            <div key={i} className="h-48 bg-surface-elevated border border-border rounded-2xl animate-pulse" />
+                        ))
                     ) : tickets.length === 0 ? (
-                        <div className="flex items-center justify-center py-12 text-text-tertiary text-sm col-span-full">
-                            No requests found
+                        <div className="col-span-full py-12 flex flex-col items-center justify-center text-text-tertiary border-2 border-dashed border-border rounded-3xl">
+                            <p className="font-bold text-sm">No requests found</p>
                         </div>
                     ) : (
                         [...tickets]
                             .sort((a, b) => {
+                                // Priority sorting: My assignments first
                                 if (a.assigned_to === userId && b.assigned_to !== userId) return -1;
                                 if (a.assigned_to !== userId && b.assigned_to === userId) return 1;
-                                return 0;
+                                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                             })
+                            .slice(0, 9) // Show only top 9 recent
                             .map((ticket) => (
                                 <TicketCard
                                     key={ticket.id}
@@ -970,7 +958,8 @@ const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoadin
                                     status={
                                         ['closed', 'resolved'].includes(ticket.status) ? 'COMPLETED' :
                                             ticket.status === 'in_progress' ? 'IN_PROGRESS' :
-                                                ticket.assigned_to ? 'ASSIGNED' : 'OPEN'
+                                                ticket.assigned_to === userId ? 'ASSIGNED' : // Explicit check for my assignment
+                                                    ticket.assigned_to ? 'ASSIGNED' : 'OPEN'
                                     }
                                     ticketNumber={ticket.ticket_number}
                                     createdAt={ticket.created_at}
@@ -989,16 +978,7 @@ const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoadin
     );
 };
 
-// Tasks Tab
-const TasksTab = () => (
-    <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-text-primary">My Tasks</h1>
-        <div className="bg-card border border-border rounded-xl p-12 text-center shadow-sm">
-            <ClipboardList className="w-12 h-12 text-text-tertiary/40 mx-auto mb-3" />
-            <p className="text-text-tertiary text-sm">No tasks assigned to you</p>
-        </div>
-    </div>
-);
+
 
 // Projects Tab
 const ProjectsTab = () => (
@@ -1012,67 +992,93 @@ const ProjectsTab = () => (
 );
 
 // Requests Tab
-const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick, onDeleteClick, userRole = '', propertyId, onTabChange, filter = 'all', onFilterChange }: { activeTickets?: any[], completedTickets?: any[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void, userRole?: string, propertyId?: string, onTabChange?: (tab: Tab) => void, filter?: 'all' | 'active' | 'completed', onFilterChange?: (filter: 'all' | 'active' | 'completed') => void }) => (
-    <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-2xl font-bold text-text-primary">Requests</h1>
-            <div className="flex items-center gap-2">
-                <div className="flex bg-surface-elevated p-1 rounded-xl border border-border">
-                    <button
-                        onClick={() => onFilterChange?.('all')}
-                        className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filter === 'all' ? 'bg-primary text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
-                    >
-                        All
-                    </button>
-                    <button
-                        onClick={() => onFilterChange?.('active')}
-                        className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filter === 'active' ? 'bg-primary text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
-                    >
-                        Active
-                    </button>
-                    <button
-                        onClick={() => onFilterChange?.('completed')}
-                        className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filter === 'completed' ? 'bg-primary text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
-                    >
-                        Completed
-                    </button>
-                </div>
-                {propertyName && <span className="hidden sm:inline-block text-[10px] sm:text-xs text-text-tertiary font-bold uppercase tracking-widest bg-surface-elevated px-3 py-1 rounded-full border border-border truncate max-w-[150px]">{propertyName}</span>}
-                {propertyId && onTabChange && (
-                    <button
-                        onClick={() => onTabChange('flow-map')}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary/10 text-primary text-[10px] sm:text-xs font-bold rounded-xl border border-primary/20 hover:bg-primary/20 transition-all active:scale-[0.98]"
-                    >
-                        <Activity className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="whitespace-nowrap">Live Flow Map</span>
-                    </button>
-                )}
-            </div>
-        </div>
+const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick, onDeleteClick, userRole = '', propertyId, onTabChange, filter = 'all', onFilterChange }: { activeTickets?: any[], completedTickets?: any[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void, userRole?: string, propertyId?: string, onTabChange?: (tab: Tab) => void, filter?: 'all' | 'active' | 'completed', onFilterChange?: (filter: any) => void }) => {
 
-        {/* Active Requests */}
-        {(filter === 'all' || filter === 'active') && (
-            <div className="bg-card border border-border rounded-xl p-3 sm:p-5 shadow-sm">
-                <h2 className="text-xs sm:text-sm font-bold text-text-secondary mb-4 px-2 uppercase tracking-wider flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-success" />
-                    Active Requests ({activeTickets.length})
-                </h2>
+    const getFilteredTickets = () => {
+        const uId = userId || '';
+        switch (filter) {
+            case 'completed':
+                return completedTickets;
+            case 'active':
+                return activeTickets;
+            case 'all':
+            default:
+                // Shows all activity for the property
+                return [...activeTickets, ...completedTickets];
+        }
+    };
+
+    const filtered = getFilteredTickets();
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-text-primary">Requests</h1>
+                    <p className="text-text-tertiary text-xs mt-1">Manage and track service requests</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row shadow-sm sm:shadow-none items-stretch sm:items-center gap-2 sm:gap-3 p-1 sm:p-0 bg-white sm:bg-transparent rounded-2xl border border-gray-100 sm:border-none">
+                    <div className="flex items-center gap-2 bg-surface-elevated border border-border px-3 py-2 sm:py-1.5 rounded-xl">
+                        <Filter className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                        <select
+                            value={filter}
+                            onChange={(e) => onFilterChange?.(e.target.value as any)}
+                            className="bg-transparent text-xs font-bold text-text-secondary focus:outline-none cursor-pointer w-full"
+                        >
+                            <option value="all">All Property Requests</option>
+                            <option value="active">All Active Requests</option>
+                            <option value="completed">All Completed Requests</option>
+                        </select>
+                    </div>
+                    {propertyId && onTabChange && (
+                        <button
+                            onClick={() => onTabChange('flow-map')}
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 text-primary text-xs font-bold rounded-xl border border-primary/20 hover:bg-primary/20 transition-all active:scale-[0.98]"
+                        >
+                            <Activity className="w-4 h-4" /> <span>Live Flow Map</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="bg-card border border-border rounded-xl p-3 sm:p-5 shadow-sm min-h-[400px]">
+                <div className="flex items-center justify-between mb-6 px-2">
+                    <h2 className="text-sm font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                        {filter === 'completed' ? <CheckCircle2 className="w-4 h-4 text-success" /> :
+                            filter === 'active' ? <Clock className="w-4 h-4 text-info" /> :
+                                <FolderKanban className="w-4 h-4 text-info" />
+                        }
+                        {filter === 'all' ? 'All Property Activity' :
+                            filter === 'active' ? 'All Active Requests' : 'All Completed Requests'}
+                        <span className="ml-2 text-[10px] bg-muted px-2 py-0.5 rounded-full text-text-tertiary">{filtered.length}</span>
+                    </h2>
+                </div>
+
                 {isLoading ? (
-                    <div className="flex flex-col gap-2 py-4">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="h-20 bg-surface-elevated border border-border rounded-lg animate-pulse" />
+                    <div className="flex flex-col gap-3 py-4">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="h-24 bg-surface-elevated border border-border rounded-xl animate-pulse" />
                         ))}
                     </div>
-                ) : activeTickets.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center bg-muted/50 rounded-xl border border-dashed border-border">
-                        <p className="text-text-tertiary text-xs sm:text-sm">No active requests</p>
+                ) : filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/30 rounded-[2rem] border border-dashed border-border group">
+                        <div className="w-16 h-16 bg-surface-elevated rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            {filter === 'completed' ? <CheckCircle2 className="w-8 h-8 text-text-tertiary/20" /> :
+                                <Ticket className="w-8 h-8 text-text-tertiary/20" />
+                            }
+                        </div>
+                        <p className="text-text-secondary font-bold">No matching records found</p>
+                        <p className="text-text-tertiary text-xs mt-1">Try switching the filter to see more data.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                        {[...activeTickets]
+                        {filtered
                             .sort((a, b) => {
                                 if (a.assigned_to === userId && b.assigned_to !== userId) return -1;
                                 if (a.assigned_to !== userId && b.assigned_to === userId) return 1;
-                                return 0;
+                                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                             })
                             .map((ticket) => (
                                 <TicketCard
@@ -1098,38 +1104,65 @@ const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick,
                     </div>
                 )}
             </div>
-        )}
+        </div>
+    );
+};
 
-        {/* Completed Requests */}
-        {(filter === 'all' || filter === 'completed') && (
-            <div className="bg-muted border border-border rounded-xl p-5 opacity-90">
-                <h2 className="text-sm font-bold text-text-tertiary mb-4 px-2 uppercase tracking-wider flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-success/50" />
-                    Recently Completed ({completedTickets.length})
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {completedTickets.slice(0, 10).map((ticket) => (
-                        <TicketCard
-                            key={ticket.id}
-                            id={ticket.id}
-                            title={ticket.title}
-                            priority={ticket.priority?.toUpperCase() as any || 'MEDIUM'}
-                            status="COMPLETED"
-                            ticketNumber={ticket.ticket_number}
-                            createdAt={ticket.created_at}
-                            assignedTo={ticket.assignee?.full_name}
-                            photoUrl={ticket.photo_before_url}
-                            isSlaPaused={ticket.sla_paused}
-                            onClick={() => onTicketClick?.(ticket.id)}
-                            onEdit={onEditClick ? (e) => onEditClick(e, ticket) : undefined}
-                            onDelete={onDeleteClick ? (e) => onDeleteClick(e, ticket.id) : undefined}
-                        />
-                    ))}
+// Tasks Tab (My Assignments)
+const TasksTab = ({ tickets = [], onTicketClick, onEditClick, onDeleteClick }: { tickets: any[], onTicketClick: (id: string) => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void }) => {
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-text-primary">My Tasks</h1>
+                    <p className="text-text-tertiary text-xs mt-1">Work orders assigned to you</p>
                 </div>
             </div>
-        )}
-    </div>
-);
+
+            <div className="bg-card border border-border rounded-xl p-3 sm:p-5 shadow-sm min-h-[400px]">
+                <div className="flex items-center justify-between mb-6 px-2">
+                    <h2 className="text-sm font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4 text-primary" />
+                        My Active Tasks
+                        <span className="ml-2 text-[10px] bg-muted px-2 py-0.5 rounded-full text-text-tertiary">{tickets.length}</span>
+                    </h2>
+                </div>
+
+                {tickets.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/30 rounded-[2rem] border border-dashed border-border group">
+                        <div className="w-16 h-16 bg-surface-elevated rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <CheckCircle2 className="w-8 h-8 text-text-tertiary/20" />
+                        </div>
+                        <p className="text-text-secondary font-bold">No tasks assigned</p>
+                        <p className="text-text-tertiary text-xs mt-1">You're all caught up!</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                        {[...tickets]
+                            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Oldest first for tasks
+                            .map((ticket) => (
+                                <TicketCard
+                                    key={ticket.id}
+                                    id={ticket.id}
+                                    title={ticket.title}
+                                    priority={ticket.priority?.toUpperCase() as any || 'MEDIUM'}
+                                    status={ticket.status === 'in_progress' ? 'IN_PROGRESS' : 'ASSIGNED'}
+                                    ticketNumber={ticket.ticket_number}
+                                    createdAt={ticket.created_at}
+                                    assignedTo="You"
+                                    photoUrl={ticket.photo_before_url}
+                                    isSlaPaused={ticket.sla_paused}
+                                    onClick={() => onTicketClick?.(ticket.id)}
+                                    onEdit={onEditClick ? (e) => onEditClick(e, ticket) : undefined}
+                                    onDelete={onDeleteClick ? (e) => onDeleteClick(e, ticket.id) : undefined}
+                                />
+                            ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 // Visitors Tab
 const VisitorsTab = () => (

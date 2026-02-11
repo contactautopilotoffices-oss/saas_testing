@@ -13,43 +13,39 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
-    const notificationTitle = payload.notification.title.includes('Autopilot FMS')
-        ? payload.notification.title
-        : `Autopilot FMS | ${payload.notification.title}`;
-
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/autopilot-logo.png',
-        badge: '/autopilot-logo.png', // Small icon for mobile status bar
-        data: payload.data,
-        vibrate: [100, 50, 100],
-        tag: payload.data?.notification_id || 'autopilot-fms-notification'
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    // Note: We do NOT call showNotification here because the browser automatically
+    // shows the notification when 'webpush.notification' is present in the FCM payload.
 });
 
 self.addEventListener('notificationclick', function (event) {
+    console.log('[firebase-messaging-sw.js] Notification clicked', event);
+
     event.notification.close();
-    const url = event.notification.data?.deep_link || event.notification.data?.url || '/';
-    const targetUrl = new URL(url, self.location.origin).href;
+
+    // Prioritize deep_link from data, fallback to root
+    const data = event.notification.data || {};
+    const relativeUrl = data.deep_link || data.url || '/';
+
+    // Ensure we have a valid absolute URL
+    const targetUrl = new URL(relativeUrl, self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-            // 1. Check if any window is already open at the target URL
+            // 1. Try to find an existing tab with this exact URL and focus it
             for (let client of windowClients) {
                 if (client.url === targetUrl && 'focus' in client) {
                     return client.focus();
                 }
             }
-            // 2. Check if any window is open at the same origin
+
+            // 2. If no exact match, find any tab on same origin and navigate it
             for (let client of windowClients) {
                 if ('navigate' in client && 'focus' in client) {
                     return client.navigate(targetUrl).then(c => c.focus());
                 }
             }
-            // 3. Otherwise, open a new window
+
+            // 3. Last resort: open a brand new window
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }

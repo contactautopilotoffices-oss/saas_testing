@@ -174,7 +174,11 @@ function AuthContent() {
 
                 // ✅ Step 2: HARD SHORT-CIRCUIT for master admin
                 if (userProfile.is_master_admin) {
-                    router.replace('/master');
+                    if (redirectPath && redirectPath !== '/') {
+                        router.replace(redirectPath);
+                    } else {
+                        router.replace('/master');
+                    }
                     return;
                 }
 
@@ -188,7 +192,11 @@ function AuthContent() {
                     .maybeSingle(); // Changed to maybeSingle to avoid errors if not found
 
                 if (orgMembership) {
-                    router.replace(`/org/${orgMembership.organization_id}/dashboard`);
+                    if (redirectPath && redirectPath !== '/') {
+                        router.replace(redirectPath);
+                    } else {
+                        router.replace(`/org/${orgMembership.organization_id}/dashboard`);
+                    }
                     return;
                 }
 
@@ -201,6 +209,11 @@ function AuthContent() {
                     .maybeSingle();
 
                 if (propMembership) {
+                    if (redirectPath && redirectPath !== '/') {
+                        router.replace(redirectPath);
+                        return;
+                    }
+
                     const role = propMembership.role;
                     const pId = propMembership.property_id;
 
@@ -279,7 +292,7 @@ function AuthContent() {
 
     const handleGoogleAuth = async () => {
         try {
-            await signInWithGoogle();
+            await signInWithGoogle(undefined, redirectPath || undefined);
         } catch (err: any) {
             setError(err.message || 'Google sign-in failed.');
         }

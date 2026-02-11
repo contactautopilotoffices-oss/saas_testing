@@ -242,8 +242,8 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
                                 <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide block mb-1`}>
                                     Opening Reading (Auto)
                                 </span>
-                                <div className={`text-2xl font-mono font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                    {openingReading.toFixed(2)} <span className="text-sm">kVAh</span>
+                                <div className={`text-lg md:text-xl font-mono font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'} break-all`}>
+                                    {openingReading.toFixed(2)} <span className="text-xs">kVAh</span>
                                 </div>
                             </div>
 
@@ -257,10 +257,10 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
                                         type="number"
                                         value={closingReading}
                                         onChange={(e) => handleClosingChange(e.target.value)}
-                                        className={`w-full ${isDark ? 'bg-[#0d1117] border-primary/50 text-white placeholder-slate-600' : 'bg-white border-primary/30 text-slate-900 placeholder-slate-300'} border-2 focus:ring-4 ${isDark ? 'focus:ring-primary/10' : 'focus:ring-primary/10'} text-3xl font-bold rounded-xl py-4 px-5 shadow-sm transition-all outline-none`}
+                                        className={`w-full ${isDark ? 'bg-[#0d1117] border-primary/50 text-white placeholder-slate-600' : 'bg-white border-primary/30 text-slate-900 placeholder-slate-300'} border-2 focus:ring-4 ${isDark ? 'focus:ring-primary/10' : 'focus:ring-primary/10'} text-lg md:text-xl font-bold rounded-xl py-4 pl-5 pr-16 shadow-sm transition-all outline-none`}
                                         placeholder="Reading"
                                     />
-                                    <span className={`absolute right-5 top-6 ${isDark ? 'text-slate-600' : 'text-slate-400'} font-bold`}>kVAh</span>
+                                    <span className={`absolute right-5 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-600' : 'text-slate-400'} font-bold pointer-events-none`}>kVAh</span>
                                 </div>
                             </div>
                         </div>

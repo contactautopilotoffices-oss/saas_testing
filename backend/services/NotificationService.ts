@@ -12,157 +12,105 @@ export interface NotificationPayload {
     deepLink: string;
 }
 
+export interface Recipient {
+    user_id: string;
+    role: string;
+}
+
 export class NotificationService {
-    /**
-     * Triggered after a ticket is created.
-     * Recipients: MST, PROPERTY_ADMIN, SECURITY, STAFF, ORG_SUPER_ADMIN (filtered by property)
-     */
     static async afterTicketCreated(ticketId: string) {
-        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketCreated entered for:', ticketId);
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketCreated starting for:', ticketId);
         try {
             const { data: ticket, error: ticketError } = await supabaseAdmin
                 .from('tickets')
-                .select('*, properties(name), users!raised_by(full_name)')
+                .select('*, properties(name), creator:users!raised_by(id), assignee:users!assigned_to(full_name)')
                 .eq('id', ticketId)
                 .single();
 
             if (ticketError || !ticket) {
-                console.error('[NotificationService] Error fetching ticket for creation event:', ticketError);
+                console.error('[NotificationService] Error fetching ticket:', ticketError);
                 return;
             }
 
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] Ticket Creator (raised_by):', ticket.raised_by);
+            const assigneeId = ticket.assigned_to ? String(ticket.assigned_to) : null;
+            const assigneeName = ticket.assignee?.full_name || 'a team member';
+            const creatorId = ticket.raised_by ? String(ticket.raised_by) : null;
 
-            // Resolve recipients based on PRD Rule 8
-            const { data: recipients, error: recError } = await supabaseAdmin.rpc('get_ticket_created_recipients', {
-                p_property_id: ticket.property_id,
-                p_organization_id: ticket.organization_id,
-                p_creator_id: ticket.raised_by
+            // Determine if the creator is a tenant
+            const { data: creatorMembership } = await supabaseAdmin
+                .from('property_memberships')
+                .select('role')
+                .eq('property_id', ticket.property_id)
+                .eq('user_id', creatorId)
+                .single();
+
+            const isCreatorTenant = creatorMembership?.role?.toUpperCase() === 'TENANT';
+
+            console.log('>>>>>>>>>> [NOTIFICATION TEST] Ticket Detail:', {
+                id: ticket.id,
+                title: ticket.title,
+                assigneeId,
+                creatorId,
+                creatorRole: creatorMembership?.role || 'NONE',
+                isCreatorTenant,
+                propertyId: ticket.property_id
             });
 
-            if (recError) {
-                // Fallback to manual query if RPC doesn't exist yet
-                console.warn('[NotificationService] RPC get_ticket_created_recipients not found, falling back to query');
-                console.log(`[NotificationService] DEBUG: Searching for members in Property: ${ticket.property_id}`);
+            // 1. Resolve recipients with roles
+            const prospectiveRecipients = await this.getRelevantRecipientsWithRoles(ticket.property_id);
+            console.log('>>>>>>>>>> [NOTIFICATION TEST] Total prospective recipients found:', prospectiveRecipients.length);
+            console.log('>>>>>>>>>> [NOTIFICATION TEST] Members Raw:', JSON.stringify(prospectiveRecipients));
 
-                // Debug: Check if ANY membership exists for this property
-                const { count } = await supabaseAdmin
-                    .from('property_memberships')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('property_id', ticket.property_id);
-                console.log(`[NotificationService] DEBUG: Total members in this property: ${count}`);
-
-                const { data: members } = await supabaseAdmin
-                    .from('property_memberships')
-                    .select('user_id, role') // Select role to see what we found
-                    .eq('property_id', ticket.property_id)
-                    .in('role', ['MST', 'PROPERTY_ADMIN', 'SECURITY', 'STAFF', 'mst', 'property_admin', 'security', 'staff']); // Case insensitive check
-
-                // Recipient list for fallback
-                const fallbackRecipientIds = new Set<string>();
-
-                // USER REFINEMENT: Do NOT send TICKET_CREATED to creator
-                // if (ticket.raised_by) fallbackRecipientIds.add(ticket.raised_by);
-
-                if (!members || members.length === 0) {
-                    console.log('>>>>>>>>>> [NOTIFICATION TEST] 0 members found with filter. Fetching ALL for fallback...');
-                    try {
-                        const { data: allMembers, error: allMemError } = await supabaseAdmin
-                            .from('property_memberships')
-                            .select('user_id, role')
-                            .eq('property_id', ticket.property_id);
-
-                        if (!allMemError && allMembers) {
-                            const validRoles = ['MST', 'PROPERTY_ADMIN', 'SECURITY', 'STAFF'];
-                            const manualMatches = allMembers.filter(m =>
-                                validRoles.includes(m.role?.toUpperCase())
-                            );
-                            manualMatches.forEach(m => {
-                                // Exclude creator from staff notifications
-                                if (m.user_id !== ticket.raised_by) {
-                                    fallbackRecipientIds.add(m.user_id);
-                                }
-                            });
-                        }
-                    } catch (err) {
-                        console.error('>>>>>>>>>> [NOTIFICATION TEST] Crash in fallback block:', err);
-                    }
-                } else {
-                    members.forEach(m => {
-                        const mid = String(m.user_id);
-                        const cid = String(ticket.raised_by);
-                        if (mid !== cid) {
-                            fallbackRecipientIds.add(mid);
-                        } else {
-                            console.log(`>>>>>>>>>> [NOTIFICATION TEST] Fallback: Excluding creator ${mid}`);
-                        }
-                    });
+            // Filter recipients based on user requirements:
+            // "Tenant only receive the notification about the ticket created by himself and other tenant, not created by others"
+            const recipients = prospectiveRecipients.filter((r: { userId: string; role: string }) => {
+                const isRecipientTenant = r.role.toUpperCase() === 'TENANT';
+                if (isRecipientTenant) {
+                    const shouldNotify = isCreatorTenant;
+                    console.log(`>>>>>>>>>> [NOTIFICATION TEST] Tenant recipient check for ${r.userId}: ${shouldNotify} (Creator is Tenant: ${isCreatorTenant})`);
+                    return shouldNotify;
                 }
+                return true; // Staff/Admin/MST see everything
+            }).map((r: { userId: string; role: string }) => r.userId);
 
-                console.log(`>>>>>>>>>> [NOTIFICATION TEST] Creation fallback: notifying ${fallbackRecipientIds.size} staff members (Creator excluded)`);
-                for (const userId of fallbackRecipientIds) {
+            console.log('>>>>>>>>>> [NOTIFICATION TEST] Final recipients after filtering:', recipients);
+
+            // 2. Broadcast Logic
+            if (assigneeId) {
+                console.log('>>>>>>>>>> [NOTIFICATION TEST] Flow: Created & Assigned');
+                // Notify assignee
+                console.log('>>>>>>>>>> [NOTIFICATION TEST] Dispatching ASSIGNED to assignee:', assigneeId);
+                await this.send({
+                    userId: assigneeId,
+                    ticketId: ticket.id,
+                    propertyId: ticket.property_id,
+                    organizationId: ticket.organization_id,
+                    type: 'TICKET_ASSIGNED',
+                    title: 'New Ticket Created & Assigned',
+                    message: `A new ticket "${ticket.title}" has been created and assigned to you.`,
+                    deepLink: `/tickets/${ticket.id}?via=notification`
+                });
+
+                // Notify others
+                const others = recipients.filter((id: string) => id !== assigneeId);
+                console.log(`>>>>>>>>>> [NOTIFICATION TEST] Dispatching CREATED to ${others.length} others.`);
+                for (const userId of others) {
                     await this.send({
                         userId,
                         ticketId: ticket.id,
                         propertyId: ticket.property_id,
                         organizationId: ticket.organization_id,
                         type: 'TICKET_CREATED',
-                        title: 'New Ticket Created',
-                        message: `A new ticket "${ticket.title}" has been raised by ${ticket.users?.full_name || 'a user'}.`,
+                        title: 'New Ticket Created & Assigned',
+                        message: `A new ticket "${ticket.title}" has been created and assigned to ${assigneeName}.`,
                         deepLink: `/tickets/${ticket.id}?via=notification`
                     });
                 }
-
-                // Also send to ORG_SUPER_ADMIN (if not the creator)
-                const { data: orgAdmins } = await supabaseAdmin
-                    .from('organization_memberships')
-                    .select('user_id')
-                    .eq('organization_id', ticket.organization_id)
-                    .eq('role', 'ORG_SUPER_ADMIN');
-
-                if (orgAdmins) {
-                    console.log(`>>>>>>>>>> [NOTIFICATION TEST] Found ${orgAdmins.length} Org Admins. Filtering out creator.`);
-                    for (const oa of orgAdmins) {
-                        const oaid = String(oa.user_id);
-                        const cid = String(ticket.raised_by);
-                        if (oaid !== cid) {
-                            await this.send({
-                                userId: oaid,
-                                ticketId: ticket.id,
-                                propertyId: ticket.property_id,
-                                organizationId: ticket.organization_id,
-                                type: 'TICKET_CREATED',
-                                title: 'New Ticket Created',
-                                message: `A new ticket "${ticket.title}" has been raised.`,
-                                deepLink: `/tickets/${ticket.id}?via=notification`
-                            });
-                        } else {
-                            console.log(`>>>>>>>>>> [NOTIFICATION TEST] Org Admin ${oaid} is creator, skipping.`);
-                        }
-                    }
-                }
             } else {
-                console.log('>>>>>>>>>> [NOTIFICATION TEST] RPC found recipients:', recipients?.length || 0);
-                // Exclude creator from RPC results
-                const finalRecipients = new Set<string>();
-                const creatorId = ticket.raised_by;
-
-                recipients.forEach((r: any) => {
-                    const rid = String(r.user_id);
-                    const creatorIdStr = String(creatorId);
-                    const matches = rid === creatorIdStr;
-
-                    console.log(`>>>>>>>>>> [NOTIFICATION TEST] Comparing: ${rid} === ${creatorIdStr} -> ${matches}`);
-
-                    if (rid && !matches) {
-                        finalRecipients.add(rid);
-                    } else {
-                        console.log(`>>>>>>>>>> [NOTIFICATION TEST] Strictly excluding creator from RPC list: ${rid}`);
-                    }
-                });
-
-                console.log(`>>>>>>>>>> [NOTIFICATION TEST] Notifying ${finalRecipients.size} staff members via RPC (Creator excluded)`);
-                for (const userId of finalRecipients) {
+                console.log('>>>>>>>>>> [NOTIFICATION TEST] Flow: Created (Unassigned)');
+                // Notify all
+                console.log(`>>>>>>>>>> [NOTIFICATION TEST] Dispatching CREATED to all ${recipients.length} recipients.`);
+                for (const userId of recipients) {
                     await this.send({
                         userId,
                         ticketId: ticket.id,
@@ -176,20 +124,50 @@ export class NotificationService {
                 }
             }
         } catch (error) {
-            console.error('[NotificationService] afterTicketCreated error:', error);
+            console.error('[NotificationService] afterTicketCreated CRASH:', error);
         }
     }
 
     /**
-     * Triggered after a ticket is assigned.
-     * Recipients: Assigned MST
+     * Triggered after a ticket is added to waitlist.
      */
-    static async afterTicketAssigned(ticketId: string, isAutoAssigned: boolean = false) {
-        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketAssigned entered for:', ticketId, 'isAutoAssigned:', isAutoAssigned);
+    static async afterTicketWaitlisted(ticketId: string) {
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketWaitlisted for:', ticketId);
         try {
             const { data: ticket, error: ticketError } = await supabaseAdmin
                 .from('tickets')
                 .select('*, properties(name)')
+                .eq('id', ticketId)
+                .single();
+
+            if (ticketError || !ticket) return;
+
+            const recipients = await this.getRelevantRecipients(ticket.property_id, ticket.organization_id);
+
+            console.log(`>>>>>>>>>> [NOTIFICATION TEST] Sending WAITLISTED notification to ${recipients.length} recipients.`);
+            for (const userId of recipients) {
+                await this.send({
+                    userId,
+                    ticketId: ticket.id,
+                    propertyId: ticket.property_id,
+                    organizationId: ticket.organization_id,
+                    type: 'TICKET_WAITLISTED',
+                    title: 'Ticket Waitlisted',
+                    message: `Ticket "${ticket.title}" has been added to the waitlist at ${ticket.properties?.name}.`,
+                    deepLink: `/tickets/${ticket.id}?via=notification`
+                });
+            }
+        } catch (error) {
+            console.error('[NotificationService] afterTicketWaitlisted error:', error);
+        }
+    }
+
+    static async afterTicketAssigned(ticketId: string, isAutoAssigned: boolean = false) {
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketAssigned for:', ticketId);
+        try {
+            const { data: ticket, error: ticketError } = await supabaseAdmin
+                .from('tickets')
+                .select('*, properties(name), assignee:users!assigned_to(full_name)')
                 .eq('id', ticketId)
                 .single();
 
@@ -198,71 +176,92 @@ export class NotificationService {
                 return;
             }
 
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] Assignee ID:', ticket.assigned_to, 'Raised By:', ticket.raised_by);
+            const assigneeId = String(ticket.assigned_to);
+            const assigneeName = ticket.assignee?.full_name || 'a team member';
+            const recipients = await this.getRelevantRecipients(ticket.property_id, ticket.organization_id);
 
-            if (String(ticket.assigned_to) === String(ticket.raised_by)) {
-                console.log('>>>>>>>>>> [NOTIFICATION TEST] Skipping assignment notification for creator.');
-                return;
-            }
-
-            const title = isAutoAssigned ? 'New Ticket Created & Assigned' : 'Ticket Assigned to You';
-            const message = isAutoAssigned
-                ? `A new ticket "${ticket.title}" has been created and assigned to you.`
-                : `Ticket "${ticket.title}" has been reassigned to you.`;
-
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] Notifying Assignee...');
+            // 1. Notify Assignee
             await this.send({
-                userId: ticket.assigned_to,
+                userId: assigneeId,
                 ticketId: ticket.id,
                 propertyId: ticket.property_id,
                 organizationId: ticket.organization_id,
                 type: 'TICKET_ASSIGNED',
-                title: title,
-                message: message,
+                title: 'Ticket Assigned to You',
+                message: isAutoAssigned
+                    ? `A new ticket "${ticket.title}" has been created and auto-assigned to you.`
+                    : `Ticket "${ticket.title}" has been assigned to you.`,
                 deepLink: `/tickets/${ticket.id}?via=notification`
             });
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketAssigned finished.');
+
+            // 2. Notify Others
+            const others = recipients.filter(id => id !== assigneeId);
+            console.log(`>>>>>>>>>> [NOTIFICATION TEST] Sending ASSIGNED notification to ${others.length} others.`);
+            for (const userId of others) {
+                await this.send({
+                    userId,
+                    ticketId: ticket.id,
+                    propertyId: ticket.property_id,
+                    organizationId: ticket.organization_id,
+                    type: 'TICKET_ASSIGNED',
+                    title: 'Ticket Assigned',
+                    message: `Ticket "${ticket.title}" has been assigned to ${assigneeName}.`,
+                    deepLink: `/tickets/${ticket.id}?via=notification`
+                });
+            }
         } catch (error) {
             console.error('[NotificationService] afterTicketAssigned error:', error);
         }
     }
 
-    /**
-     * Triggered after a ticket is completed.
-     * Recipients: TENANT, PROPERTY_ADMIN, ORG_SUPER_ADMIN, Creator
-     */
     static async afterTicketCompleted(ticketId: string) {
-        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketCompleted entered for:', ticketId);
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterTicketCompleted for:', ticketId);
         try {
             const { data: ticket, error: ticketError } = await supabaseAdmin
                 .from('tickets')
-                .select('id, title, property_id, organization_id, raised_by, status')
+                .select('id, title, property_id, organization_id, raised_by')
                 .eq('id', ticketId)
                 .single();
 
-            if (ticketError || !ticket) {
-                console.error('[NotificationService] afterTicketCompleted: Ticket not found or error:', ticketError);
-                return;
-            }
-
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] Ticket Detail for Completion:', {
-                id: ticket.id,
-                raised_by: ticket.raised_by
-            });
+            if (ticketError || !ticket) return;
 
             const recipientIds = new Set<string>();
-            const creatorId = ticket.raised_by;
 
-            if (creatorId) {
-                recipientIds.add(creatorId);
-                console.log('>>>>>>>>>> [NOTIFICATION TEST] Adding creator ONLY to completion notification:', creatorId);
-            } else {
-                console.log('>>>>>>>>>> [NOTIFICATION TEST] WARNING: Ticket has NO raised_by creator field. No completion notification will be sent.');
+            // 1. Fetch Property Team
+            const { data: team } = await supabaseAdmin
+                .from('property_memberships')
+                .select('user_id, role')
+                .eq('property_id', ticket.property_id);
+
+            if (team) {
+                console.log(`>>>>>>>>>> [NOTIFICATION TEST] Total property members: ${team.length}`);
+                console.log(`>>>>>>>>>> [NOTIFICATION TEST] Roles:`, team.map(t => `${t.user_id}(${t.role})`));
+
+                // Only notify Admins for Completion
+                team.filter(t => t.role?.toLowerCase() === 'property_admin')
+                    .forEach(t => recipientIds.add(String(t.user_id)));
             }
 
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] Recipients for completion:', Array.from(recipientIds));
+            // 2. Fetch Creator if they are a Tenant
+            // "tenant only receiver notification of completed request of his own created request"
+            if (ticket.raised_by) {
+                const { data: creatorMembership } = await supabaseAdmin
+                    .from('property_memberships')
+                    .select('role')
+                    .eq('property_id', ticket.property_id)
+                    .eq('user_id', ticket.raised_by)
+                    .single();
 
-            for (const userId of recipientIds) {
+                console.log('>>>>>>>>>> [NOTIFICATION TEST] Completion Creator Membership:', JSON.stringify(creatorMembership));
+                if (creatorMembership?.role?.toUpperCase() === 'TENANT') {
+                    console.log('>>>>>>>>>> [NOTIFICATION TEST] Completion: Adding Tenant creator to recipients:', ticket.raised_by);
+                    recipientIds.add(String(ticket.raised_by));
+                }
+            }
+
+            const recips = Array.from(recipientIds);
+            console.log(`>>>>>>>>>> [NOTIFICATION TEST] Final COMPLETED recipients (${recips.length}):`, recips);
+            for (const userId of recips) {
                 await this.send({
                     userId,
                     ticketId: ticket.id,
@@ -275,8 +274,46 @@ export class NotificationService {
                 });
             }
         } catch (error) {
-            console.error('>>>>>>>>>> [NOTIFICATION TEST] afterTicketCompleted CRASH:', error);
+            console.error('[NotificationService] afterTicketCompleted error:', error);
         }
+    }
+
+    private static async getRelevantRecipientsWithRoles(propertyId: string) {
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] getRelevantRecipientsWithRoles for:', propertyId);
+
+        // 1. Log ALL roles for this property to see what's actually in DB
+        const { data: allMembers } = await supabaseAdmin
+            .from('property_memberships')
+            .select('role')
+            .eq('property_id', propertyId);
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] ALL roles in property:', allMembers?.map(m => m.role) || 'NONE');
+
+        // 2. Fetch target roles
+        const { data: members, error } = await supabaseAdmin
+            .from('property_memberships')
+            .select('user_id, role')
+            .eq('property_id', propertyId)
+            .in('role', ['mst', 'property_admin', 'security', 'staff', 'tenant']);
+
+        if (error) console.error('[NotificationService] Recipients query error:', error);
+
+        const results = (members || []).map((m: { user_id: string; role: string }) => ({
+            userId: String(m.user_id),
+            role: String(m.role)
+        }));
+
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] Filtered Query Result:', JSON.stringify(results));
+        return results;
+    }
+
+    private static async getRelevantRecipients(propertyId: string, organizationId?: string, excludeUserId?: string) {
+        const members = await this.getRelevantRecipientsWithRoles(propertyId);
+        const ids = new Set(members.map(m => m.userId));
+        if (excludeUserId) {
+            console.log('>>>>>>>>>> [NOTIFICATION TEST] getRelevantRecipients excluding:', excludeUserId);
+            ids.delete(excludeUserId);
+        }
+        return Array.from(ids);
     }
 
     private static async resolveAndSend({ ticket, type, title, message, recipientsQuery }: any) {
@@ -298,36 +335,13 @@ export class NotificationService {
         }
     }
 
-    private static async sendToOrgAdmins(ticket: any, type: string, title: string, message: string) {
-        const { data: orgAdmins } = await supabaseAdmin
-            .from('organization_memberships')
-            .select('user_id')
-            .eq('organization_id', ticket.organization_id)
-            .eq('role', 'ORG_SUPER_ADMIN');
-
-        if (orgAdmins) {
-            console.log(`[NotificationService] Sending '${type}' to ${orgAdmins.length} Org Admins`);
-            for (const oa of orgAdmins) {
-                await this.send({
-                    userId: oa.user_id,
-                    ticketId: ticket.id,
-                    propertyId: ticket.property_id,
-                    organizationId: ticket.organization_id,
-                    type,
-                    title,
-                    message,
-                    deepLink: `/tickets/${ticket.id}?via=notification`
-                });
-            }
-        }
-    }
 
     /**
      * Core send logic: DB insert + Push dispatch
      */
     static async send(payload: NotificationPayload) {
         try {
-            console.log('>>>>>>>>>> [NOTIFICATION TEST] send() Payload:', JSON.stringify(payload));
+            console.log('>>>>>>>>>> [NOTIFICATION TEST] send() executing for user:', payload.userId);
 
             // 1. Insert into notifications table
             const { data: notification, error: notifError } = await supabaseAdmin
@@ -344,31 +358,56 @@ export class NotificationService {
                     is_read: false
                 })
                 .select()
-                .maybeSingle();
+                .single();
 
             if (notifError) {
-                console.error('>>>>>>>>>> [NOTIFICATION TEST] DB INSERT ERROR:', JSON.stringify(notifError));
+                console.error('>>>>>>>>>> [NOTIFICATION TEST] !!! DATABASE INSERT FAILED !!!');
+                console.error('>>>>>>>>>> Error Details:', JSON.stringify(notifError));
+                console.error('>>>>>>>>>> Payload tried:', JSON.stringify(payload));
                 return;
             }
 
-            if (!notification) {
-                console.error('>>>>>>>>>> [NOTIFICATION TEST] DB INSERT FAILED: No record returned.');
-                return;
-            }
             console.log('>>>>>>>>>> [NOTIFICATION TEST] DB Insert Success. Notification ID:', notification.id);
+            console.log('>>>>>>>>>> Verification: Checking if notification exists in DB...');
+
+            const { data: verif } = await supabaseAdmin
+                .from('notifications')
+                .select('id')
+                .eq('id', notification.id)
+                .single();
+
+            if (verif) {
+                console.log('>>>>>>>>>> [NOTIFICATION TEST] Verification CONFIRMED. Row exists.');
+            } else {
+                console.error('>>>>>>>>>> [NOTIFICATION TEST] Verification FAILED. Row not found immediately after insert!');
+            }
 
             // 2. Fetch push tokens for user
-            const { data: tokens } = await supabaseAdmin
+            const { data: allTokens } = await supabaseAdmin
                 .from('push_tokens')
-                .select('token')
+                .select('token, browser, updated_at, is_active')
                 .eq('user_id', payload.userId)
-                .eq('is_active', true);
+                .order('updated_at', { ascending: false });
 
-            console.log('[NotificationService] Found active tokens:', tokens?.length || 0);
+            const activeTokens = allTokens?.filter(t => t.is_active) || [];
+            const inactiveCount = (allTokens?.length || 0) - activeTokens.length;
 
-            if (tokens && tokens.length > 0) {
-                for (const { token } of tokens) {
-                    await this.dispatchPushNotification(token, notification);
+            console.log(`[NotificationService] Tokens for ${payload.userId}: ${activeTokens.length} active, ${inactiveCount} inactive.`);
+
+            if (activeTokens.length > 0) {
+                const seenBrowsers = new Set<string>();
+                for (const t of activeTokens) {
+                    // Deduplicate by browser instance to prevent double notifications on the same device
+                    // if browse is null, we treat it as unique (likely from a legacy or non-browser client)
+                    if (t.browser) {
+                        if (seenBrowsers.has(t.browser)) {
+                            console.log(`[NotificationService] Skipping duplicate token for browser: ${t.browser.substring(0, 30)}...`);
+                            continue;
+                        }
+                        seenBrowsers.add(t.browser);
+                    }
+
+                    await this.dispatchPushNotification(t.token, notification);
                 }
             } else {
                 console.log('[NotificationService] No active tokens for user, skipping push.');
@@ -398,12 +437,11 @@ export class NotificationService {
             // Integrate with FCM Admin SDK
             await firebaseAdmin.messaging().send({
                 token: token,
-                notification: {
-                    title: `Autopilot FMS | ${notification.title}`,
-                    body: notification.message,
-                },
                 data: {
+                    title: String(notification.title || ''),
+                    message: String(notification.message || ''),
                     deep_link: String(notification.deep_link || ''),
+                    url: String(notification.deep_link || ''),
                     notification_id: String(notification.id || '')
                 },
                 android: {
@@ -424,6 +462,8 @@ export class NotificationService {
                         icon: '/autopilot-logo.png',
                         badge: '/autopilot-logo.png',
                         requireInteraction: true,
+                        tag: String(notification.id || 'autopilot-fms'),
+                        renotify: true,
                         actions: [
                             {
                                 action: 'view',

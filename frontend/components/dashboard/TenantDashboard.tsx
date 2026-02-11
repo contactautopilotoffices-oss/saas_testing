@@ -16,7 +16,6 @@ import { useDataCache } from '@/frontend/context/DataCacheContext';
 import Skeleton from '@/frontend/components/ui/Skeleton';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import NotificationBell from './NotificationBell';
-import { usePushNotifications } from '@/frontend/hooks/usePushNotifications';
 import DieselStaffDashboard from '@/frontend/components/diesel/DieselStaffDashboard';
 import VMSAdminDashboard from '@/frontend/components/vms/VMSAdminDashboard';
 import TenantTicketingDashboard from '@/frontend/components/tickets/TenantTicketingDashboard';
@@ -54,7 +53,6 @@ const TenantDashboard = () => {
     const { theme, toggleTheme } = useTheme();
     const params = useParams();
     const router = useRouter();
-    const { token, notification: foregroundNotification } = usePushNotifications();
     const propertyId = params?.propertyId as string;
 
     // State
@@ -264,7 +262,7 @@ const TenantDashboard = () => {
                 >
                     <Menu className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                 </button>
-                <NotificationBell />
+                <NotificationBell align="left" />
             </div>
 
             {/* Overlay when sidebar is open */}

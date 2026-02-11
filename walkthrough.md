@@ -1,26 +1,22 @@
-# Walkthrough - Make Photo Hover Mobile Responsive
+# Walkthrough - Camera Auto-Initialization
 
-I have updated the ticket detail page to ensure that the "Before" and "After" photo actions (View Full, Change Photo) are always visible on mobile/tablet screens.
+I have optimized the camera initialization flow in the ticket details page. The camera will now automatically start when the capture modal is opened if the user has already granted camera permissions to the site.
 
 ## Changes
 
-### app/tickets/[ticketId]/page.tsx
+### [CameraCaptureModal.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/shared/CameraCaptureModal.tsx)
 
-I modified the opacity classes for the photo overlay to be visible by default on screens smaller than `lg` (1024px).
-
-#### Before Photo
-```tsx
-<div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-2">
-```
-
-#### After Photo
-```tsx
-<div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-2">
-```
+- **Permission Detection**: Added an effect that uses the browser's Permissions API to check for `granted` camera access upon opening the modal.
+- **Auto-Start**: If permission is already granted, it triggers `startCamera()` automatically after a 300ms delay (to ensure smooth transition after modal animation).
+- **Loading State**: Added an `isStarting` state that shows a "Launching Camera..." pulse and a rotating icon. This provides clear feedback that the hardware is being engaged, even if the stream hasn't started yet.
+- **Fallback Integrity**: Maintained the manual "Initialize Camera" button as a fallback if permissions are not yet granted or if the Permissions API is not supported in the user's browser (e.g., Safari).
 
 ## Verification Results
 
-### Automated Tests
-- The changes are purely CSS class updates.
-- Verified that on mobile view (width < 1024px), the overlay will be visible (`opacity-100`).
-- Verified that on desktop view (width >= 1024px), the overlay will be hidden (`lg:opacity-0`) and only visible on hover (`lg:group-hover:opacity-100`).
+### Automated Verification
+- Ran TypeScript compilation check (`tsc`). No new errors were introduced in the modified files.
+
+### Manual Verification Path
+1.  **Grant Permission**: Open the camera modal once and allow camera access.
+2.  **Verify Auto-Start**: Close and re-open the modal. The camera should now start automatically, showing the "Launching Camera..." state briefly followed by the live video feed.
+3.  **Verify Fallback**: Reset browser permissions. Re-opening the modal should show the manual "Initialize Camera" button again.
