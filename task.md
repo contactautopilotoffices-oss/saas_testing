@@ -1,19 +1,11 @@
-# Task: Fix Diesel & Electricity Analytics for Super Admin
+# Task: Fix Ticket Deletion Permissions
 
-- [x] Planning
-    - [x] Research current implementation
-    - [x] Identify missing endpoints
+- [ ] Planning
+    - [x] Analyze codebase and identify permission gap
     - [x] Create implementation plan
-- [x] Backend Implementation
-    - [x] Create `/api/organizations/[orgId]/generators`
-    - [x] Create `/api/organizations/[orgId]/electricity-meters`
-    - [x] Create `/api/organizations/[orgId]/diesel-readings`
-    - [x] Create `/api/organizations/[orgId]/electricity-readings`
-- [x] Frontend Implementation
-    - [x] Update `DieselAnalyticsDashboard.tsx`
-    - [x] Update `ElectricityAnalyticsDashboard.tsx`
-- [ ] Verification
-    - [ ] Verify Diesel Analytics (All Properties)
-    - [ ] Verify Diesel Analytics (Specific Property)
-    - [ ] Verify Electricity Analytics (All Properties)
-    - [ ] Verify Electricity Analytics (Specific Property)
+- [x] Execution
+    - [x] Modify `app/api/tickets/[id]/route.ts` to include Master Admin check
+    - [x] Make role checks case-insensitive
+- [x] Verification
+    - [x] Verify fix with Master Admin check logic
+    - [x] Create walkthrough

@@ -24,8 +24,10 @@ import TicketCreateModal from '@/frontend/components/tickets/TicketCreateModal';
 import AIInsightsDashboard from './AIInsightsDashboard';
 import IssueCategoryKanban from '@/frontend/components/admin/IssueCategoryKanban';
 import AnalyticsTab from './AnalyticsTab';
+import MasterAdminChatbot from './MasterAdminChatbot';
+import { MessageSquareCode } from 'lucide-react';
 
-type Tab = 'overview' | 'analytics' | 'organizations' | 'tickets' | 'users' | 'visitors' | 'invite-links' | 'ai-insights' | 'issue-config' | 'modules' | 'settings';
+type Tab = 'overview' | 'analytics' | 'organizations' | 'tickets' | 'users' | 'visitors' | 'invite-links' | 'ai-insights' | 'ai-assistant' | 'issue-config' | 'modules' | 'settings';
 
 interface Organization {
     id: string;
@@ -105,7 +107,7 @@ const MasterAdminDashboard = () => {
     // Restore tab from URL
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['overview', 'analytics', 'organizations', 'tickets', 'users', 'visitors', 'invite-links', 'ai-insights', 'issue-config', 'modules', 'settings'].includes(tab)) {
+        if (tab && ['overview', 'analytics', 'organizations', 'tickets', 'users', 'visitors', 'invite-links', 'ai-insights', 'ai-assistant', 'issue-config', 'modules', 'settings'].includes(tab)) {
             setActiveTab(tab as Tab);
         }
     }, [searchParams]);
@@ -272,6 +274,7 @@ const MasterAdminDashboard = () => {
         { id: 'visitors', label: 'Visitors', icon: UserCircle },
         { id: 'invite-links', label: 'Invite Links', icon: LinkIcon },
         { id: 'ai-insights', label: 'AI Intelligence', icon: Brain },
+        { id: 'ai-assistant', label: 'AI Assistant', icon: MessageSquareCode },
         { id: 'issue-config', label: 'Issue Mapping', icon: LayoutGrid },
         { id: 'modules', label: 'Module Control', icon: LayoutGrid },
         { id: 'settings', label: 'System', icon: Settings },
@@ -347,48 +350,50 @@ const MasterAdminDashboard = () => {
             />
 
             {/* Main Content */}
-            <main className="flex-1 p-12 lg:ml-72">
-                <header className="flex justify-between items-center mb-12">
-                    <div>
-                        <h2 className="text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab.replace('-', ' ')}</h2>
-                        <p className="text-text-tertiary text-sm font-medium mt-1">Real-time system oversight and governance.</p>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                            <input
-                                type="text"
-                                placeholder="Search master data..."
-                                className="pl-10 pr-4 py-2.5 bg-surface-elevated border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+            <main className={`flex-1 ${activeTab === 'ai-assistant' ? 'p-0' : 'p-12'} lg:ml-72 transition-all duration-500`}>
+                {activeTab !== 'ai-assistant' && (
+                    <header className="flex justify-between items-center mb-12">
+                        <div>
+                            <h2 className="text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab.replace('-', ' ')}</h2>
+                            <p className="text-text-tertiary text-sm font-medium mt-1">Real-time system oversight and governance.</p>
                         </div>
-                        {activeTab === 'organizations' && (
+
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                                <input
+                                    type="text"
+                                    placeholder="Search master data..."
+                                    className="pl-10 pr-4 py-2.5 bg-surface-elevated border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            {activeTab === 'organizations' && (
+                                <button
+                                    onClick={() => setShowCreateOrgModal(true)}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+                                >
+                                    <Plus className="w-4 h-4" /> New Org
+                                </button>
+                            )}
+                            {activeTab === 'users' && (
+                                <button
+                                    onClick={() => setShowCreateUserModal(true)}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+                                >
+                                    <Plus className="w-4 h-4" /> New User
+                                </button>
+                            )}
                             <button
-                                onClick={() => setShowCreateOrgModal(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+                                onClick={() => setShowSignOutModal(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-rose-500 text-white font-bold text-xs rounded-xl uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-100"
                             >
-                                <Plus className="w-4 h-4" /> New Org
+                                <LogOut className="w-4 h-4" /> Sign Out
                             </button>
-                        )}
-                        {activeTab === 'users' && (
-                            <button
-                                onClick={() => setShowCreateUserModal(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse font-bold text-xs rounded-xl uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-primary/20"
-                            >
-                                <Plus className="w-4 h-4" /> New User
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setShowSignOutModal(true)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-rose-500 text-white font-bold text-xs rounded-xl uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-100"
-                        >
-                            <LogOut className="w-4 h-4" /> Sign Out
-                        </button>
-                    </div>
-                </header>
+                        </div>
+                    </header>
+                )}
 
                 <AnimatePresence mode="wait">
                     <motion.div
@@ -444,6 +449,9 @@ const MasterAdminDashboard = () => {
                         )}
                         {activeTab === 'ai-insights' && (
                             <AIInsightsDashboard isDark={theme === 'dark'} />
+                        )}
+                        {activeTab === 'ai-assistant' && (
+                            <MasterAdminChatbot />
                         )}
                         {activeTab === 'modules' && (
                             <ModuleConfig

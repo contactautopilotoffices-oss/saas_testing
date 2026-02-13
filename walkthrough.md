@@ -1,22 +1,23 @@
-# Walkthrough - Camera Auto-Initialization
+# Walkthrough - Fix Ticket Deletion Permissions
 
-I have optimized the camera initialization flow in the ticket details page. The camera will now automatically start when the capture modal is opened if the user has already granted camera permissions to the site.
+I have fixed the issue where some tickets could not be deleted by Master Admins or Org Super Admins due to restrictive permission checks.
 
-## Changes
+## Changes Made
 
-### [CameraCaptureModal.tsx](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/frontend/components/shared/CameraCaptureModal.tsx)
+### backend
+#### [route.ts](file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/app/api/tickets/[id]/route.ts)
+- Introduced a check for `is_master_admin` from the `users` table to allow global deletion of tickets by Master Admins.
+- Updated `organization_memberships` role check to be case-insensitive, supporting both `ORG_SUPER_ADMIN` and `org_super_admin`.
+- Refactored the permission logic to handle Master Admin status as the primary override.
 
-- **Permission Detection**: Added an effect that uses the browser's Permissions API to check for `granted` camera access upon opening the modal.
-- **Auto-Start**: If permission is already granted, it triggers `startCamera()` automatically after a 300ms delay (to ensure smooth transition after modal animation).
-- **Loading State**: Added an `isStarting` state that shows a "Launching Camera..." pulse and a rotating icon. This provides clear feedback that the hardware is being engaged, even if the stream hasn't started yet.
-- **Fallback Integrity**: Maintained the manual "Initialize Camera" button as a fallback if permissions are not yet granted or if the Permissions API is not supported in the user's browser (e.g., Safari).
+render_diffs(file:///c:/Users/harsh/OneDrive/Desktop/autopilot/saas_one/app/api/tickets/[id]/route.ts)
 
 ## Verification Results
 
-### Automated Verification
-- Ran TypeScript compilation check (`tsc`). No new errors were introduced in the modified files.
+### Permission Logic Test
+- **Creator**: Can still delete their own tickets.
+- **Property Admin**: Can delete any ticket in their property (verified `PROPERTY_ADMIN` and `property_admin` roles).
+- **Org Super Admin**: Can delete any ticket in their organization (verified `ORG_SUPER_ADMIN` and `org_super_admin` roles).
+- **Master Admin**: Can delete any ticket in the system regardless of membership.
 
-### Manual Verification Path
-1.  **Grant Permission**: Open the camera modal once and allow camera access.
-2.  **Verify Auto-Start**: Close and re-open the modal. The camera should now start automatically, showing the "Launching Camera..." state briefly followed by the live video feed.
-3.  **Verify Fallback**: Reset browser permissions. Re-opening the modal should show the manual "Initialize Camera" button again.
+The 403 Forbidden error seen in the console logs should now be resolved for users with administrative roles.

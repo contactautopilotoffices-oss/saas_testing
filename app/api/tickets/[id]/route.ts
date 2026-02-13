@@ -441,35 +441,49 @@ export async function DELETE(
         // 1. Creator can delete
         // 2. Property Admin can delete
         // 3. Org Super Admin can delete
+        // 4. Master Admin can delete
         let canDelete = false;
 
-        if (ticket.raised_by === user.id) {
+        // 0. Check Master Admin status first (most powerful)
+        const { data: userProfile } = await supabase
+            .from('users')
+            .select('is_master_admin')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (userProfile?.is_master_admin === true) {
             canDelete = true;
-        } else {
-            // Check Property Admin
-            const { data: pm } = await supabase
-                .from('property_memberships')
-                .select('role')
-                .eq('user_id', user.id)
-                .eq('property_id', ticket.property_id)
-                .eq('is_active', true) // improved security
-                .in('role', ['PROPERTY_ADMIN', 'property_admin'])
-                .maybeSingle();
+        }
 
-            if (pm) canDelete = true;
-
-            // Check Org Super Admin (if not already found)
-            if (!canDelete && ticket.organization_id) {
-                const { data: om } = await supabase
-                    .from('organization_memberships')
+        if (!canDelete) {
+            if (ticket.raised_by === user.id) {
+                canDelete = true;
+            } else {
+                // Check Property Admin
+                const { data: pm } = await supabase
+                    .from('property_memberships')
                     .select('role')
                     .eq('user_id', user.id)
-                    .eq('organization_id', ticket.organization_id)
-                    .eq('is_active', true)
-                    .eq('role', 'ORG_SUPER_ADMIN')
+                    .eq('property_id', ticket.property_id)
+                    .eq('is_active', true) // improved security
+                    .in('role', ['PROPERTY_ADMIN', 'property_admin'])
                     .maybeSingle();
 
-                if (om) canDelete = true;
+                if (pm) canDelete = true;
+
+                // Check Org Super Admin (if not already found)
+                if (!canDelete && ticket.organization_id) {
+                    const { data: om } = await supabase
+                        .from('organization_memberships')
+                        .select('role')
+                        .eq('user_id', user.id)
+                        .eq('organization_id', ticket.organization_id)
+                        .eq('is_active', true)
+                        .in('role', ['ORG_SUPER_ADMIN', 'org_super_admin'])
+                        .maybeSingle();
+
+                    if (om) canDelete = true;
+                }
             }
         }
 
