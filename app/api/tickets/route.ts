@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
         const isInternal = searchParams.get('isInternal');
         const assignedTo = searchParams.get('assignedTo');
         const raisedBy = searchParams.get('raisedBy') || searchParams.get('raised_by');
+        const raisedByRole = searchParams.get('raisedByRole');
 
         let query = supabase
             .from('tickets')
@@ -107,6 +108,48 @@ export async function GET(request: NextRequest) {
         }
         if (assignedTo) query = query.eq('assigned_to', assignedTo);
         if (raisedBy) query = query.eq('raised_by', raisedBy);
+
+        // Filter by the role of the user who raised the ticket
+        if (raisedByRole) {
+            // Get user IDs with the specified role from memberships
+            let membershipQuery;
+            if (propertyId) {
+                // Scoped: only tenants of this specific property
+                membershipQuery = supabase
+                    .from('property_memberships')
+                    .select('user_id')
+                    .eq('property_id', propertyId)
+                    .eq('role', raisedByRole)
+                    .eq('is_active', true);
+            } else if (organizationId) {
+                // Scoped: tenants across all properties in this org
+                membershipQuery = supabase
+                    .from('organization_memberships')
+                    .select('user_id')
+                    .eq('organization_id', organizationId)
+                    .eq('role', raisedByRole)
+                    .eq('is_active', true);
+            } else {
+                // Global fallback: all users with this role across all properties
+                membershipQuery = supabase
+                    .from('property_memberships')
+                    .select('user_id')
+                    .eq('role', raisedByRole)
+                    .eq('is_active', true);
+            }
+
+            const { data: members, error: memberError } = await membershipQuery;
+            if (memberError) {
+                console.error('Error fetching members by role:', memberError);
+            } else if (members && members.length > 0) {
+                // Deduplicate user IDs
+                const userIds = [...new Set(members.map((m: any) => m.user_id))];
+                query = query.in('raised_by', userIds);
+            } else {
+                // No users with this role found – return empty result
+                return NextResponse.json({ tickets: [] });
+            }
+        }
 
         const { data: tickets, error: fetchError } = await query;
 

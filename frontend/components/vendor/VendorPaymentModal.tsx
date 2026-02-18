@@ -65,7 +65,7 @@ const VendorPaymentModal = ({ isOpen, onClose, amountDue, vendorName, onPaymentC
                     initial={{ scale: 0.9, opacity: 0, y: 20 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden"
+                    className="relative w-full max-w-md max-h-[90vh] bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col"
                 >
                     {/* Header */}
                     <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -81,7 +81,7 @@ const VendorPaymentModal = ({ isOpen, onClose, amountDue, vendorName, onPaymentC
                         </button>
                     </div>
 
-                    <div className="p-8">
+                    <div className="p-6 sm:p-8 overflow-y-auto flex-1">
                         {step === 'method' && (
                             <div className="space-y-6">
                                 <div className="bg-indigo-600 rounded-2xl p-6 text-white text-center shadow-lg shadow-indigo-100">

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Fuel, Zap, Settings, CheckCircle,
+    Fuel, Zap, Settings, CheckCircle, Plus,
     AlertTriangle, History, BarChart3, Coins, ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,19 +115,28 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                 );
                 if (readingsRes.ok) {
                     const readingsData = await readingsRes.json();
+
+                    // Sort readings by date and then by creation time to find the newest for each generator
+                    const sortedReadings = [...readingsData].sort((a, b) => {
+                        const dateDiff = new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime();
+                        if (dateDiff !== 0) return dateDiff;
+                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                    });
+
                     // 1. First, populate from Initial Readings (Starting Truth)
                     const initialTruth: Record<string, any> = {};
                     generatorsData.forEach((gen: any) => {
                         initialTruth[gen.id] = {
                             hours: gen.initial_run_hours || 0,
                             kwh: gen.initial_kwh_reading || 0,
-                            diesel: gen.initial_diesel_level || 0
+                            diesel: gen.initial_diesel_level || 0,
+                            hasActual: false
                         };
                     });
 
                     // 2. Override with latest actual reading if it exists
-                    readingsData.forEach((r: any) => {
-                        if (!initialTruth[r.generator_id].hasActual) {
+                    sortedReadings.forEach((r: any) => {
+                        if (!initialTruth[r.generator_id]?.hasActual) {
                             initialTruth[r.generator_id] = {
                                 hours: r.closing_hours,
                                 kwh: r.closing_kwh,
@@ -271,6 +280,7 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                 propertyId={propertyId}
                 isDark={isDark}
                 onBack={() => setShowRegisterView(false)}
+                onDataChange={fetchData}
             />
         );
     }
@@ -296,32 +306,32 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                             Enter closing hours and fuel added for each generator. Consumption is calculated automatically.
                         </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
-                        <div className="col-span-1">
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <div>
                             <button
                                 onClick={() => setShowTariffModal(true)}
-                                className={`w-full h-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-3 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-bold leading-tight text-center ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'} rounded-xl sm:rounded-lg border transition-all shadow-sm min-h-[44px]`}
+                                className={`flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'} rounded-xl border transition-all shadow-sm`}
                             >
                                 <Coins className="w-4 h-4 text-emerald-500 shrink-0" />
                                 <span>Fuel Costs</span>
                             </button>
                         </div>
-                        <div className="col-span-1">
+                        <div>
                             <button
                                 onClick={() => setShowRegisterView(true)}
-                                className={`w-full h-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-3 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-bold leading-tight text-center ${isDark ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' : 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10'} rounded-xl sm:rounded-lg border transition-all shadow-sm min-h-[44px]`}
+                                className={`flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold ${isDark ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' : 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10'} rounded-xl border transition-all shadow-sm`}
                             >
                                 <History className="w-4 h-4 shrink-0" />
                                 <span>View Register</span>
                             </button>
                         </div>
-                        <div className="col-span-1">
+                        <div>
                             <button
                                 onClick={() => setShowConfigModal(true)}
-                                className={`w-full h-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 py-3 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-bold leading-tight text-center ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-xl sm:rounded-lg border transition-all shadow-sm min-h-[44px]`}
+                                className={`flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-xl border transition-all shadow-sm`}
                             >
-                                <Settings className="w-4 h-4 shrink-0" />
-                                <span>Reference Config</span>
+                                <Plus className="w-4 h-4 shrink-0" />
+                                <span>Add Generator</span>
                             </button>
                         </div>
                     </div>
@@ -335,7 +345,7 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                 />
 
                 {/* Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {generators.map(gen => (
                         <DieselLoggerCard
                             key={gen.id}

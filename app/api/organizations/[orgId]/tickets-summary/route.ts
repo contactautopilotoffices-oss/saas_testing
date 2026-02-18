@@ -67,6 +67,7 @@ export async function GET(
 
         // Open/In Progress combined should equal all non-resolved
         const openTickets = tickets?.filter(t => t.status === 'open' || t.status === 'waitlist' || t.status === 'blocked').length || 0;
+        const waitlist = tickets?.filter(t => t.status === 'waitlist').length || 0;
         const inProgress = tickets?.filter(t => t.status === 'assigned' || t.status === 'in_progress' || t.status === 'paused' || t.status === 'work_started').length || 0;
         const resolved = tickets?.filter(t => resolvedStatuses.includes(t.status || '')).length || 0;
         const slaBreached = tickets?.filter(t => t.sla_breached).length || 0;
@@ -92,6 +93,7 @@ export async function GET(
                 property_code: prop.code,
                 total: propTickets.length,
                 open: propTickets.filter(t => t.status === 'open' || t.status === 'waitlist' || t.status === 'blocked').length,
+                waitlist: propTickets.filter(t => t.status === 'waitlist').length,
                 in_progress: propTickets.filter(t => t.status === 'assigned' || t.status === 'in_progress' || t.status === 'paused' || t.status === 'work_started').length,
                 resolved: propTickets.filter(t => resolvedStatuses.includes(t.status || '')).length,
                 sla_breached: propTickets.filter(t => t.sla_breached).length,
@@ -106,6 +108,7 @@ export async function GET(
             period,
             total_tickets: totalTickets,
             open_tickets: openTickets,
+            waitlist,
             in_progress: inProgress,
             resolved,
             sla_breached: slaBreached,

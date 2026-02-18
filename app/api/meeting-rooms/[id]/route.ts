@@ -37,9 +37,30 @@ export async function PATCH(
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
+        const {
+            name,
+            photo_url,
+            location,
+            capacity,
+            size,
+            amenities,
+            status,
+            propertyId
+        } = body;
+
+        const updateData: any = {};
+        if (name !== undefined) updateData.name = name;
+        if (photo_url !== undefined) updateData.photo_url = photo_url;
+        if (location !== undefined) updateData.location = location;
+        if (capacity !== undefined) updateData.capacity = parseInt(capacity.toString());
+        if (size !== undefined) updateData.size = size ? parseInt(size.toString()) : null;
+        if (amenities !== undefined) updateData.amenities = amenities;
+        if (status !== undefined) updateData.status = status;
+        if (propertyId !== undefined) updateData.property_id = propertyId;
+
         const { data: updated, error: updateError } = await supabase
             .from('meeting_rooms')
-            .update(body)
+            .update(updateData)
             .eq('id', id)
             .select('*')
             .single();

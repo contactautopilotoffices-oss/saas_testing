@@ -53,7 +53,7 @@ const UserManagement = ({ orgId }: { orgId: string }) => {
                 role: item.role,
                 is_active: item.is_active,
                 joined_at: item.created_at
-            }));
+            })).sort((a, b) => a.full_name.localeCompare(b.full_name));
             setUsers(formattedUsers);
         }
         setIsLoading(false);
@@ -166,8 +166,8 @@ const UserManagement = ({ orgId }: { orgId: string }) => {
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${user.is_active
-                                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                                : 'bg-rose-500/10 text-rose-500 border-rose-500/20 animate-pulse'
+                                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                            : 'bg-rose-500/10 text-rose-500 border-rose-500/20 animate-pulse'
                                             }`}>
                                             {user.is_active ? 'Active' : 'Suspended'}
                                         </div>
@@ -182,8 +182,8 @@ const UserManagement = ({ orgId }: { orgId: string }) => {
                                             <button
                                                 onClick={() => handleToggleStatus(user.id, user.is_active)}
                                                 className={`p-2 rounded-lg border transition-all ${user.is_active
-                                                        ? 'text-rose-400 border-rose-400/20 hover:bg-rose-400/10'
-                                                        : 'text-emerald-400 border-emerald-400/20 hover:bg-emerald-400/10'
+                                                    ? 'text-rose-400 border-rose-400/20 hover:bg-rose-400/10'
+                                                    : 'text-emerald-400 border-emerald-400/20 hover:bg-emerald-400/10'
                                                     }`}
                                                 title={user.is_active ? 'Suspend' : 'Activate'}
                                             >

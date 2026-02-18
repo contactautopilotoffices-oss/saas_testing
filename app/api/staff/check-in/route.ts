@@ -60,40 +60,75 @@ export async function POST(request: NextRequest) {
 
             if (shiftError) throw shiftError;
 
-            // 2. Update/Create Resolver Stats
-            const { data: statsList, error: fetchError } = await supabase
-                .from('resolver_stats')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('property_id', propertyId)
-                .limit(1);
+            // 2. Update/Create Resolver Stats (if eligible)
+            // Strict Filter based on User Request:
+            // MST -> technical, plumbing, vendor
+            // Staff -> soft_services
+            const { data: userData } = await supabase
+                .from('users')
+                .select('id, property_memberships(role), mst_skills(skill_code)')
+                .eq('id', user.id)
+                .single();
 
-            if (fetchError) throw fetchError;
-            const existingStats = statsList && statsList.length > 0 ? statsList[0] : null;
+            const role = userData?.property_memberships?.find((pm: any) => pm.property_id === propertyId)?.role;
+            const skills = userData?.mst_skills?.map((s: any) => s.skill_code) || [];
 
-            if (existingStats) {
-                // Update existing
-                const { error: updateError } = await supabase
+            const VALID_MST_SKILLS = ['technical', 'plumbing', 'vendor'];
+            const VALID_STAFF_SKILLS = ['soft_services'];
+
+            const isEligibleAsResolver = role === 'mst'
+                ? skills.some(s => VALID_MST_SKILLS.includes(s))
+                : (role === 'staff' ? skills.some(s => VALID_STAFF_SKILLS.includes(s)) : false);
+
+            if (isEligibleAsResolver) {
+                const { data: statsList, error: fetchError } = await supabase
                     .from('resolver_stats')
-                    .update({
-                        is_checked_in: true,
-                        is_available: true
-                    })
-                    .eq('id', existingStats.id);
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('property_id', propertyId)
+                    .limit(1);
 
-                if (updateError) throw updateError;
+                if (fetchError) throw fetchError;
+                const existingStats = statsList && statsList.length > 0 ? statsList[0] : null;
+
+                if (existingStats) {
+                    // Update existing
+                    const { error: updateError } = await supabase
+                        .from('resolver_stats')
+                        .update({
+                            is_checked_in: true,
+                            is_available: true
+                        })
+                        .eq('id', existingStats.id);
+
+                    if (updateError) throw updateError;
+                } else {
+                    // Insert new (Note: This is a simplified insert, usually handled by role assignment)
+                    // We'll at least set the first available valid skill group
+                    const { data: skillGroup } = await supabase
+                        .from('skill_groups')
+                        .select('id')
+                        .in('code', role === 'mst' ? VALID_MST_SKILLS : VALID_STAFF_SKILLS)
+                        .eq('is_active', true)
+                        .limit(1)
+                        .single();
+
+                    if (skillGroup) {
+                        const { error: insertError } = await supabase
+                            .from('resolver_stats')
+                            .insert({
+                                user_id: user.id,
+                                property_id: propertyId,
+                                skill_group_id: skillGroup.id,
+                                is_checked_in: true,
+                                is_available: true
+                            });
+
+                        if (insertError) throw insertError;
+                    }
+                }
             } else {
-                // Insert new
-                const { error: insertError } = await supabase
-                    .from('resolver_stats')
-                    .insert({
-                        user_id: user.id,
-                        property_id: propertyId,
-                        is_checked_in: true,
-                        is_available: true
-                    });
-
-                if (insertError) throw insertError;
+                console.log(`User ${user.id} (Role: ${role}) not eligible for resolver status. Skipping resolver_stats update.`);
             }
 
             return NextResponse.json({ isCheckedIn: true, message: 'Shift started successfully' });

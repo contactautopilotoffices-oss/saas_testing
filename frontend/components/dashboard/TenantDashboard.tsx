@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from '
 import {
     LayoutDashboard, Ticket as TicketIcon, Settings, LogOut, Plus,
     CheckCircle2, Clock, MessageSquare, UsersRound, Coffee, UserCircle,
-    Calendar, Building2, Shield, ChevronRight, Sun, Moon, Menu, X, Camera, Pencil, Loader2, Filter
+    Calendar, Building2, Shield, ChevronRight, Sun, Moon, Menu, X, Camera, Pencil, Loader2, Filter, ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -74,6 +74,17 @@ const TenantDashboard = () => {
     const [editTitle, setEditTitle] = useState('');
     const [editDescription, setEditDescription] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    // Tab Mapping for Header
+    const tabInfo: Record<Tab, { title: string; subtitle: string }> = {
+        overview: { title: 'Dashboard', subtitle: 'Welcome back' },
+        requests: { title: 'My Requests', subtitle: 'Track your issues' },
+        create_request: { title: 'New Request', subtitle: 'Quick report' },
+        visitors: { title: 'Visitors', subtitle: 'Manage guests' },
+        room_booking: { title: 'Meeting Rooms', subtitle: 'Book your workspace' },
+        settings: { title: 'Settings', subtitle: 'App preferences' },
+        profile: { title: 'Profile', subtitle: 'Your account' },
+    };
+
     const searchParams = useSearchParams();
 
     // Sync activeTab with URL
@@ -252,7 +263,7 @@ const TenantDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-white font-inter text-text-primary flex">
+        <div className="min-h-screen w-full bg-background text-foreground flex overflow-x-hidden">
 
 
             {/* Overlay when sidebar is open */}
@@ -262,7 +273,7 @@ const TenantDashboard = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/20 z-40"
+                        className="fixed inset-0 bg-black/20 z-[60]"
                         onClick={() => setSidebarOpen(false)}
                     />
                 )}
@@ -276,7 +287,7 @@ const TenantDashboard = () => {
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: '-100%', opacity: 0 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed left-0 top-0 h-screen w-72 bg-white border-r border-border flex flex-col z-50 shadow-2xl"
+                        className="fixed left-0 top-0 h-screen w-72 bg-white border-r border-border flex flex-col z-[70] shadow-2xl"
                     >
                         {/* Close Button */}
                         <button
@@ -435,27 +446,27 @@ const TenantDashboard = () => {
             <motion.main
                 animate={{ marginLeft: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth >= 1024 ? 288 : 0) : 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="flex-1 flex flex-col bg-[#fafafa] relative"
+                className="flex-1 flex flex-col bg-background relative min-w-0 overflow-x-hidden"
             >
                 {/* Static Header Section */}
-                <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 md:px-12 lg:px-20 sticky top-0 z-40 backdrop-blur-md bg-white/80">
-                    <div className="flex items-center gap-4">
+                <header className="h-16 bg-background/80 border-b border-border flex items-center justify-between px-4 md:px-12 lg:px-20 sticky top-0 z-50 backdrop-blur-md">
+                    <div className="flex items-center gap-2">
                         {!sidebarOpen && (
                             <button
                                 onClick={() => setSidebarOpen(true)}
-                                className="p-2.5 -ml-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all shadow-sm group"
+                                className="p-2 hover:bg-slate-50 text-slate-600 rounded-xl transition-all group"
                             >
                                 <Menu className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             </button>
                         )}
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 pr-2 flex-shrink-0">
                         <NotificationBell />
                     </div>
                 </header>
 
-                <div className={`${activeTab === 'room_booking' ? 'w-full' : 'max-w-7xl mx-auto px-6 md:px-12 lg:px-20'} w-full pt-8 pb-12`}>
+                <div className="max-w-7xl mx-auto w-full min-w-0 px-4 md:px-12 lg:px-20 pt-8 pb-12">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -734,7 +745,7 @@ const OverviewTab = ({ onNavigate, property, onMenuToggle }: { onNavigate: (tab:
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-100/50">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
                 <div className="flex items-center gap-4">
                     {/* Desktop Menu Toggle (Optional but fits the pattern) */}
                     <div className="space-y-1">

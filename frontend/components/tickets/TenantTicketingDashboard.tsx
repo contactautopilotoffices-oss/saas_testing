@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquare, Loader2, CheckCircle, Camera, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { compressImage } from '@/frontend/utils/image-compression';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import { playTickleSound } from '@/frontend/utils/sounds';
@@ -52,6 +52,7 @@ export default function TenantTicketingDashboard({
     onSuccess
 }: TenantTicketingDashboardProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { theme } = useTheme();
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +66,9 @@ export default function TenantTicketingDashboard({
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [ratingTicket, setRatingTicket] = useState<Ticket | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
-    const [filter, setFilter] = useState<'all' | 'in_progress' | 'completed'>('all');
+    const [filter, setFilter] = useState<'all' | 'in_progress' | 'completed'>(
+        (searchParams.get('filter') as any) || 'all'
+    );
 
     useEffect(() => {
         fetchTickets();
@@ -351,7 +354,13 @@ export default function TenantTicketingDashboard({
                                     <Filter className={`w-3.5 h-3.5 ${isDark ? 'text-slate-500' : 'text-text-tertiary'}`} />
                                     <select
                                         value={filter}
-                                        onChange={(e) => setFilter(e.target.value as any)}
+                                        onChange={(e) => {
+                                            const newFilter = e.target.value as any;
+                                            setFilter(newFilter);
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.set('filter', newFilter);
+                                            window.history.pushState({}, '', url.toString());
+                                        }}
                                         className={`bg-transparent text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-primary'} focus:outline-none cursor-pointer`}
                                     >
                                         <option value="all">All</option>

@@ -27,10 +27,9 @@ import TicketFlowMap from '@/frontend/components/ops/TicketFlowMap';
 import { ShiftToast } from '@/frontend/components/mst/ShiftStatus';
 import NavbarShiftStatus from '@/frontend/components/mst/NavbarShiftStatus';
 import TicketCard from '@/frontend/components/shared/TicketCard';
-import AdminRoomManager from '@/frontend/components/meeting-rooms/AdminRoomManager';
 
 // Types
-type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'rooms' | 'diesel' | 'electricity' | 'settings' | 'profile' | 'flow-map';
+type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'electricity' | 'settings' | 'profile' | 'flow-map';
 
 interface Property {
     id: string;
@@ -97,7 +96,9 @@ const MstDashboard = () => {
         type: 'success',
         visible: false
     });
-    const [requestFilter, setRequestFilter] = useState<'all' | 'active' | 'completed'>('all');
+    const [requestFilter, setRequestFilter] = useState<'all' | 'active' | 'completed'>(
+        (searchParams.get('filter') as any) || 'all'
+    );
 
     const supabase = createClient();
 
@@ -138,7 +139,7 @@ const MstDashboard = () => {
     // Restore tab from URL
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['dashboard', 'requests', 'create_request', 'visitors', 'rooms', 'diesel', 'electricity', 'settings', 'profile', 'flow-map'].includes(tab)) {
+        if (tab && ['dashboard', 'requests', 'create_request', 'visitors', 'diesel', 'electricity', 'settings', 'profile', 'flow-map'].includes(tab)) {
             setActiveTab(tab as Tab);
         }
     }, [searchParams]);
@@ -146,10 +147,23 @@ const MstDashboard = () => {
     // Helper to change tab with URL persistence
     const handleTabChange = (tab: Tab, filter?: 'all' | 'active' | 'completed') => {
         setActiveTab(tab);
-        if (filter) setRequestFilter(filter);
+        if (filter) {
+            setRequestFilter(filter);
+        }
         setSidebarOpen(false);
         const url = new URL(window.location.href);
         url.searchParams.set('tab', tab);
+        if (filter) {
+            url.searchParams.set('filter', filter);
+        } else {
+            // Keep existing filter if it's there, or delete if coming from a non-request tab
+            const currentFilter = searchParams.get('filter');
+            if (currentFilter && tab === 'requests') {
+                url.searchParams.set('filter', currentFilter);
+            } else if (tab !== 'requests') {
+                url.searchParams.delete('filter');
+            }
+        }
         window.history.pushState({}, '', url.toString());
     };
 
@@ -345,23 +359,6 @@ const MstDashboard = () => {
         }
     };
 
-    const handleDelete = async (e: React.MouseEvent, ticketId: string) => {
-        e.stopPropagation();
-        if (!confirm('Are you sure you want to delete this request?')) return;
-        try {
-            const res = await fetch(`/api/tickets/${ticketId}`, {
-                method: 'DELETE'
-            });
-            if (res.ok) {
-                fetchTickets();
-            } else {
-                const data = await res.json();
-                alert(data.error || 'Failed to delete ticket');
-            }
-        } catch (error) {
-            console.error('Delete ticket error:', error);
-        }
-    };
 
     return (
         <div className="min-h-screen bg-background flex font-inter text-text-primary">
@@ -415,7 +412,6 @@ const MstDashboard = () => {
                                         { label: 'Overview', tab: 'dashboard' },
                                         { label: 'Requests', tab: 'requests' },
                                         { label: 'Visitors', tab: 'visitors' },
-                                        { label: 'Meeting Rooms', tab: 'rooms' },
                                         { label: 'Diesel Logger', tab: 'diesel' },
                                         { label: 'Electricity Logger', tab: 'electricity' },
                                         { label: 'Settings', tab: 'settings' },
@@ -556,16 +552,6 @@ const MstDashboard = () => {
                                 Visitors
                             </button>
                             <button
-                                onClick={() => handleTabChange('rooms')}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'rooms'
-                                    ? 'bg-primary text-text-inverse shadow-sm'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                    }`}
-                            >
-                                <Calendar className="w-4 h-4" />
-                                Meeting Rooms
-                            </button>
-                            <button
                                 onClick={() => handleTabChange('diesel')}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'diesel'
                                     ? 'bg-primary text-text-inverse shadow-sm'
@@ -691,7 +677,6 @@ const MstDashboard = () => {
                                     userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'MST'}
                                     onSettingsClick={() => handleTabChange('settings')}
                                     onEditClick={handleEditClick}
-                                    onDeleteClick={handleDelete}
                                     onFilterClick={(filter) => handleTabChange('requests', filter)}
                                 />
                             )}
@@ -713,11 +698,15 @@ const MstDashboard = () => {
                                     propertyName={property?.name}
                                     userName={user.user_metadata?.full_name || user.email?.split('@')[0] || 'MST'}
                                     onEditClick={handleEditClick}
-                                    onDeleteClick={handleDelete}
                                     propertyId={propertyId}
                                     onTabChange={handleTabChange}
                                     filter={requestFilter}
-                                    onFilterChange={setRequestFilter}
+                                    onFilterChange={(newFilter) => {
+                                        setRequestFilter(newFilter);
+                                        const url = new URL(window.location.href);
+                                        url.searchParams.set('filter', newFilter);
+                                        window.history.pushState({}, '', url.toString());
+                                    }}
                                 />
                             )}
                             {activeTab === 'create_request' && property && user && (
@@ -735,7 +724,6 @@ const MstDashboard = () => {
                             {activeTab === 'visitors' && propertyId && (
                                 <VMSAdminDashboard propertyId={propertyId} />
                             )}
-                            {activeTab === 'rooms' && property && <AdminRoomManager propertyId={property.id} />}
                             {activeTab === 'diesel' && <DieselStaffDashboard isDark={isDarkMode} />}
                             {activeTab === 'electricity' && property && <ElectricityStaffDashboard propertyId={property.id} isDark={isDarkMode} />}
                             {activeTab === 'settings' && <SettingsView />}
@@ -913,7 +901,7 @@ const MstDashboard = () => {
 // Helper Sub-component for Ticket Row - DEPRECATED - Use shared/TicketCard
 
 // Dashboard Tab
-const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName, onSettingsClick, onEditClick, onDeleteClick, onFilterClick }: { tickets: Ticket[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string, onSettingsClick?: () => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void, onFilterClick?: (filter: 'all' | 'active' | 'completed') => void }) => {
+const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName, onSettingsClick, onEditClick, onFilterClick }: { tickets: Ticket[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string, onSettingsClick?: () => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onFilterClick?: (filter: 'all' | 'active' | 'completed') => void }) => {
     const total = tickets.length + completedCount;
     const active = tickets.filter(t => t.status === 'in_progress' || t.status === 'assigned' || t.status === 'open').length;
     const completed = completedCount;
@@ -1007,7 +995,6 @@ const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoadin
                                     isSlaPaused={ticket.sla_paused}
                                     onClick={() => onTicketClick?.(ticket.id)}
                                     onEdit={onEditClick ? (e) => onEditClick(e, ticket) : undefined}
-                                    onDelete={onDeleteClick ? (e) => onDeleteClick(e, ticket.id) : undefined}
                                 />
                             ))
                     )}
@@ -1040,7 +1027,7 @@ const ProjectsTab = () => (
 );
 
 // Requests Tab
-const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick, onDeleteClick, propertyId, onTabChange, filter = 'all', onFilterChange }: { activeTickets?: Ticket[], completedTickets?: Ticket[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void, propertyId?: string, onTabChange?: (tab: Tab) => void, filter?: 'all' | 'active' | 'completed' | 'tasks' | 'completed_by_me' | 'waitlist', onFilterChange?: (filter: any) => void }) => {
+const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick, userId, isLoading, propertyName, userName, onEditClick, propertyId, onTabChange, filter = 'all', onFilterChange }: { activeTickets?: Ticket[], completedTickets?: Ticket[], onTicketClick?: (id: string) => void, userId: string, isLoading: boolean, propertyName?: string, userName?: string, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, propertyId?: string, onTabChange?: (tab: Tab) => void, filter?: 'all' | 'active' | 'completed' | 'tasks' | 'completed_by_me' | 'waitlist', onFilterChange?: (filter: any) => void }) => {
     // Local state for MST-specific filters, but parent can override via props
     // Using a more flexible type for filter to support both property-wide and MST-specific views
 
@@ -1168,7 +1155,6 @@ const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick,
                                     isSlaPaused={ticket.sla_paused}
                                     onClick={() => onTicketClick?.(ticket.id)}
                                     onEdit={onEditClick ? (e) => onEditClick(e, ticket) : undefined}
-                                    onDelete={onDeleteClick ? (e) => onDeleteClick(e, ticket.id) : undefined}
                                 />
                             ))}
                     </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Clock, RefreshCw, ChevronDown, User, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useDataCache } from '@/frontend/context/DataCacheContext';
 
 interface Ticket {
     id: string;
@@ -63,17 +64,21 @@ export default function AdminSPOCDashboard({
     initialStatusFilter = 'all',
 }: AdminSPOCDashboardProps) {
     const router = useRouter();
-    const [tickets, setTickets] = useState<Ticket[]>([]);
-    const [resolvers, setResolvers] = useState<Resolver[]>([]);
-    const [activities, setActivities] = useState<Activity[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const [assignTo, setAssignTo] = useState('');
     const [showOverrideModal, setShowOverrideModal] = useState(false);
     const [overrideCategory, setOverrideCategory] = useState('');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all');
+
+    const { getCachedData, setCachedData } = useDataCache();
+    const cacheKey = `spoc-dashboard-${propertyId}-${statusFilter}`;
+
+    const [tickets, setTickets] = useState<Ticket[]>(() => getCachedData(cacheKey)?.tickets || []);
+    const [resolvers, setResolvers] = useState<Resolver[]>(() => getCachedData(cacheKey)?.resolvers || []);
+    const [activities, setActivities] = useState<Activity[]>(() => getCachedData(cacheKey)?.activities || []);
+    const [categories, setCategories] = useState<Category[]>(() => getCachedData(cacheKey)?.categories || []);
+    const [loading, setLoading] = useState(!getCachedData(cacheKey));
 
     useEffect(() => {
         if (initialStatusFilter) {
@@ -89,11 +94,20 @@ export default function AdminSPOCDashboard({
 
     const fetchData = useCallback(async () => {
         if (!loading && !tickets.length) setLoading(true);
+        let fetchedTickets: Ticket[] = [];
+        let fetchedActivities: Activity[] = [];
+        let currentResolvers: Resolver[] = [];
+        let currentCategories: Category[] = [];
+
         try {
             const params = new URLSearchParams();
             if (propertyId) params.append('propertyId', propertyId);
             if (organizationId && organizationId !== '') params.append('organizationId', organizationId);
-            if (statusFilter !== 'all') params.append('status', statusFilter);
+            if (statusFilter === 'tenant_raised') {
+                params.append('raisedByRole', 'tenant');
+            } else if (statusFilter !== 'all') {
+                params.append('status', statusFilter);
+            }
 
             console.log('Fetching tickets with params:', params.toString()); // Debug
 
@@ -108,37 +122,50 @@ export default function AdminSPOCDashboard({
 
             if (ticketsRes.ok) {
                 const data = await ticketsRes.json();
-                console.log('Received tickets:', data.tickets?.length || 0); // Debug
-                setTickets(data.tickets || []);
+                fetchedTickets = data.tickets || [];
+                setTickets(fetchedTickets);
 
                 // Fetch activity for the first ticket if available
-                if (data.tickets?.length > 0) {
-                    const actRes = await fetch(`/api/tickets/${data.tickets[0].id}/activity`);
+                if (fetchedTickets.length > 0) {
+                    const actRes = await fetch(`/api/tickets/${fetchedTickets[0].id}/activity`);
                     if (actRes.ok) {
                         const actData = await actRes.json();
-                        setActivities(actData.activities?.slice(0, 5) || []);
+                        fetchedActivities = actData.activities?.slice(0, 5) || [];
+                        setActivities(fetchedActivities);
                     }
                 }
             }
 
             if (resolversRes.ok) {
                 const data = await resolversRes.json();
-                setResolvers(data.resolvers || []);
+                currentResolvers = (data.resolvers || []).sort((a: any, b: any) =>
+                    (a.user?.full_name || '').localeCompare(b.user?.full_name || '')
+                );
+                setResolvers(currentResolvers);
             }
 
             if (configRes && configRes.ok) {
                 const data = await configRes.json();
-                setCategories(data.categories || []);
+                currentCategories = data.categories || [];
+                setCategories(currentCategories);
             } else if (!propertyId) {
                 setCategories([]);
             }
+
+            // Final cache update with everything
+            setCachedData(cacheKey, {
+                tickets: fetchedTickets,
+                resolvers: currentResolvers,
+                activities: fetchedActivities,
+                categories: currentCategories
+            });
 
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
             setLoading(false);
         }
-    }, [propertyId, organizationId]);
+    }, [propertyId, organizationId, statusFilter]);
 
     useEffect(() => {
         fetchData();
@@ -248,7 +275,7 @@ export default function AdminSPOCDashboard({
         }
     };
 
-    const waitlistTickets = tickets.filter(t => t.status === 'waitlist' || t.is_vague);
+    const waitlistTickets = tickets.filter(t => t.status === 'waitlist');
     const slaRiskTickets = tickets.filter(t => {
         if (!t.sla_deadline || t.sla_paused) return false;
         const diffMs = new Date(t.sla_deadline).getTime() - Date.now();
@@ -282,17 +309,26 @@ export default function AdminSPOCDashboard({
                 <div className="flex items-center gap-3">
                     <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        onChange={(e) => {
+                            const newFilter = e.target.value;
+                            setStatusFilter(newFilter);
+                            // Update URL with new filter
+                            const url = new URL(window.location.href);
+                            if (newFilter !== 'all') {
+                                url.searchParams.set('filter', newFilter);
+                            } else {
+                                url.searchParams.delete('filter');
+                            }
+                            window.history.pushState({}, '', url.toString());
+                        }}
                         className="h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                     >
                         <option value="all">All Status</option>
                         <option value="open,assigned,in_progress,blocked">Open</option>
                         <option value="resolved,closed">Completed</option>
                         <option value="waitlist">Waitlist</option>
+                        <option value="tenant_raised">Tenant Raised</option>
                     </select>
-                    <button onClick={fetchData} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <RefreshCw className={`w-5 h-5 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
                 </div>
             </div>
 
@@ -329,7 +365,7 @@ export default function AdminSPOCDashboard({
                                                 key={ticket.id}
                                                 className={`hover:bg-slate-50 cursor-pointer transition-colors ${selectedTicket?.id === ticket.id ? 'bg-emerald-50' : ''
                                                     }`}
-                                                onClick={() => router.push(`/tickets/${ticket.id}`)}
+                                                onClick={() => router.push(`/tickets/${ticket.id}?from=requests`)}
                                             >
                                                 <td className="py-3 text-slate-500 font-bold">{ticket.ticket_number?.slice(-5)}</td>
                                                 <td className="py-3 text-slate-900 font-medium truncate max-w-[120px] pl-2">{ticket.title}</td>

@@ -35,8 +35,7 @@ CREATE TABLE IF NOT EXISTS electricity_readings (
   alert_status text DEFAULT 'normal',      -- 'normal' | 'warning' | 'critical'
   created_by uuid REFERENCES users(id),
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE(meter_id, reading_date)           -- One entry per meter per day
+  updated_at timestamptz DEFAULT now()
 );
 
 -- ---------------------------------------------------------

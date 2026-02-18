@@ -3,7 +3,8 @@ import { firebaseAdmin } from '@/backend/lib/firebase';
 
 export interface NotificationPayload {
     userId: string;
-    ticketId: string;
+    ticketId?: string;
+    bookingId?: string;
     propertyId: string;
     organizationId?: string;
     type: string;
@@ -66,8 +67,9 @@ export class NotificationService {
             const recipients = prospectiveRecipients.filter((r: { userId: string; role: string }) => {
                 const isRecipientTenant = r.role.toUpperCase() === 'TENANT';
                 if (isRecipientTenant) {
-                    const shouldNotify = isCreatorTenant;
-                    console.log(`>>>>>>>>>> [NOTIFICATION TEST] Tenant recipient check for ${r.userId}: ${shouldNotify} (Creator is Tenant: ${isCreatorTenant})`);
+                    // "Tenant only receive the notification about the ticket created by himself"
+                    const shouldNotify = r.userId === creatorId;
+                    console.log(`>>>>>>>>>> [NOTIFICATION TEST] Tenant recipient check for ${r.userId}: ${shouldNotify} (Is Creator: ${r.userId === creatorId})`);
                     return shouldNotify;
                 }
                 return true; // Staff/Admin/MST see everything
@@ -142,7 +144,17 @@ export class NotificationService {
 
             if (ticketError || !ticket) return;
 
-            const recipients = await this.getRelevantRecipients(ticket.property_id, ticket.organization_id);
+            const creatorId = ticket.raised_by ? String(ticket.raised_by) : null;
+            const prospectiveRecipients = await this.getRelevantRecipientsWithRoles(ticket.property_id);
+
+            // Filter recipients: Tenants only get notified if they raised the ticket
+            const recipients = prospectiveRecipients.filter((r: { userId: string; role: string }) => {
+                const isRecipientTenant = r.role.toUpperCase() === 'TENANT';
+                if (isRecipientTenant) {
+                    return r.userId === creatorId;
+                }
+                return true;
+            }).map((r: { userId: string; role: string }) => r.userId);
 
             console.log(`>>>>>>>>>> [NOTIFICATION TEST] Sending WAITLISTED notification to ${recipients.length} recipients.`);
             for (const userId of recipients) {
@@ -178,7 +190,18 @@ export class NotificationService {
 
             const assigneeId = String(ticket.assigned_to);
             const assigneeName = ticket.assignee?.full_name || 'a team member';
-            const recipients = await this.getRelevantRecipients(ticket.property_id, ticket.organization_id);
+            const creatorId = ticket.raised_by ? String(ticket.raised_by) : null;
+
+            const prospectiveRecipients = await this.getRelevantRecipientsWithRoles(ticket.property_id);
+
+            // Filter recipients: Tenants only get notified if they raised the ticket
+            const filteredRecipients = prospectiveRecipients.filter((r: { userId: string; role: string }) => {
+                const isRecipientTenant = r.role.toUpperCase() === 'TENANT';
+                if (isRecipientTenant) {
+                    return r.userId === creatorId;
+                }
+                return true;
+            }).map((r: { userId: string; role: string }) => r.userId);
 
             // 1. Notify Assignee
             await this.send({
@@ -195,7 +218,7 @@ export class NotificationService {
             });
 
             // 2. Notify Others
-            const others = recipients.filter(id => id !== assigneeId);
+            const others = filteredRecipients.filter(id => id !== assigneeId);
             console.log(`>>>>>>>>>> [NOTIFICATION TEST] Sending ASSIGNED notification to ${others.length} others.`);
             for (const userId of others) {
                 await this.send({
@@ -278,6 +301,85 @@ export class NotificationService {
         }
     }
 
+    static async afterRoomBooked(bookingId: string) {
+        console.log('>>>>>>>>>> [NOTIFICATION TEST] afterRoomBooked starting for:', bookingId);
+        try {
+            const { data: booking, error: bookingError } = await supabaseAdmin
+                .from('meeting_room_bookings')
+                .select('*, meeting_room:meeting_rooms(name), booker:users!user_id(full_name)')
+                .eq('id', bookingId)
+                .single();
+
+            if (bookingError || !booking) {
+                console.error('[NotificationService] Error fetching booking:', bookingError);
+                return;
+            }
+
+            const bookerName = booking.booker?.full_name || 'A tenant';
+            const roomName = booking.meeting_room?.name || 'a meeting room';
+            const date = booking.booking_date;
+            const startTime = booking.start_time;
+            const endTime = booking.end_time;
+
+            const message = `${bookerName} has booked "${roomName}" for ${date} from ${startTime} to ${endTime}.`;
+
+            // Get relevant recipients (Role based)
+            // Note: 'technical' is a skill/team, not an app_role enum value.
+            const { data: members, error: membersError } = await supabaseAdmin
+                .from('property_memberships')
+                .select('user_id, role')
+                .eq('property_id', booking.property_id)
+                .in('role', ['property_admin', 'staff', 'mst', 'security']);
+
+            if (membersError) {
+                console.error('[NotificationService] Error fetching property members for booking notification:', membersError);
+                return;
+            }
+
+            const memberIds = (members || []).map(m => String(m.user_id));
+
+            // Fetch users with 'technical' skill
+            const { data: technicalSkills } = await supabaseAdmin
+                .from('mst_skills')
+                .select('user_id')
+                .eq('skill_code', 'technical')
+                .in('user_id', memberIds);
+
+            const technicalUserIds = new Set((technicalSkills || []).map(s => String(s.user_id)));
+
+            const finalRecipients = (members || []).filter(m => {
+                const role = m.role?.toLowerCase();
+                // 1. Property Admins always get notified
+                if (role === 'property_admin') return true;
+                // 2. ONLY Staff members get notified if they have the 'technical' skill
+                // (MST members are excluded even if they have technical skill)
+                if (role === 'staff') {
+                    return technicalUserIds.has(String(m.user_id));
+                }
+                return false;
+            }).map(m => String(m.user_id));
+
+            const uniqueRecipients = Array.from(new Set(finalRecipients));
+
+            console.log(`>>>>>>>>>> [NOTIFICATION TEST] Found ${members?.length || 0} members, ${technicalUserIds.size} technical ones.`);
+            console.log(`>>>>>>>>>> [NOTIFICATION TEST] Sending BOOKING notification to ${uniqueRecipients.length} recipients.`);
+
+            for (const userId of uniqueRecipients) {
+                await this.send({
+                    userId,
+                    bookingId: booking.id,
+                    propertyId: booking.property_id,
+                    type: 'ROOM_BOOKED',
+                    title: 'New Room Booking',
+                    message,
+                    deepLink: `/property-admin/bookings?date=${date}`
+                });
+            }
+        } catch (error) {
+            console.error('[NotificationService] afterRoomBooked error:', error);
+        }
+    }
+
     private static async getRelevantRecipientsWithRoles(propertyId: string) {
         console.log('>>>>>>>>>> [NOTIFICATION TEST] getRelevantRecipientsWithRoles for:', propertyId);
 
@@ -348,7 +450,8 @@ export class NotificationService {
                 .from('notifications')
                 .insert({
                     user_id: payload.userId,
-                    ticket_id: payload.ticketId,
+                    ticket_id: payload.ticketId || null,
+                    booking_id: payload.bookingId || null,
                     property_id: payload.propertyId,
                     organization_id: payload.organizationId,
                     notification_type: payload.type,

@@ -57,6 +57,26 @@ export async function POST(
     }
 
     console.log('[ElectricityMeters] Created meter:', data?.id);
+
+    // If an initial reading is provided, record it in history
+    if (body.last_reading > 0) {
+        console.log('[ElectricityMeters] Recording initial reading for meter:', data.id);
+        const { error: readingError } = await supabase
+            .from('electricity_readings')
+            .insert({
+                property_id: propertyId,
+                meter_id: data.id,
+                reading_date: new Date().toISOString().split('T')[0],
+                opening_reading: 0,
+                closing_reading: body.last_reading,
+                notes: 'Initial setup reading'
+            });
+
+        if (readingError) {
+            console.error('[ElectricityMeters] Error recording initial reading:', readingError.message);
+        }
+    }
+
     return NextResponse.json(data, { status: 201 });
 }
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
     IndianRupee, LogOut, CheckCircle2, LayoutDashboard,
     FileDown, Clock, Store, Percent, Wallet, ChevronRight, X, History,
-    UserCircle, Settings, Mail, Phone, Building, Save, Loader2, Camera, Plus
+    UserCircle, Settings, Mail, Phone, Building, Save, Loader2, Camera, Plus, Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -59,6 +59,7 @@ const FoodVendorDashboard = () => {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [activeTab, setActiveTab] = useState<'portal' | 'history' | 'profile' | 'settings'>('portal');
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [todayDate] = useState(new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }));
 
@@ -487,21 +488,37 @@ const FoodVendorDashboard = () => {
 
     return (
         <div className="min-h-screen bg-[#F8F9FC] flex font-inter text-slate-900">
+            {/* Sidebar Overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar (Very Minimal) */}
-            <aside className="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 p-8">
-                <div className="flex items-center gap-3 mb-12">
-                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse">
-                        <Store className="w-5 h-5" />
+            <aside className={`w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-30 p-8 transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="flex items-center justify-between mb-12">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-text-inverse">
+                            <Store className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="font-bold text-sm leading-tight text-slate-900 truncate max-w-[120px]">{vendor?.shop_name}</h2>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{vendor?.property_name}</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="font-bold text-sm leading-tight text-slate-900 truncate max-w-[160px]">{vendor?.shop_name}</h2>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{vendor?.property_name}</p>
-                    </div>
+                    <button
+                        onClick={() => setSidebarOpen(false)}
+                        className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                    >
+                        <X className="w-5 h-5 text-slate-400" />
+                    </button>
                 </div>
 
                 <nav className="flex-1 space-y-2">
                     <button
-                        onClick={() => setActiveTab('portal')}
+                        onClick={() => { setActiveTab('portal'); setSidebarOpen(false); }}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'portal'
                             ? 'bg-primary/10 text-primary'
                             : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
@@ -511,7 +528,7 @@ const FoodVendorDashboard = () => {
                         Portal
                     </button>
                     <button
-                        onClick={() => setActiveTab('history')}
+                        onClick={() => { setActiveTab('history'); setSidebarOpen(false); }}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'history'
                             ? 'bg-primary/10 text-primary'
                             : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
@@ -521,7 +538,7 @@ const FoodVendorDashboard = () => {
                         History
                     </button>
                     <button
-                        onClick={() => setActiveTab('profile')}
+                        onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'profile'
                             ? 'bg-primary/10 text-primary'
                             : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
@@ -531,7 +548,7 @@ const FoodVendorDashboard = () => {
                         Profile
                     </button>
                     <button
-                        onClick={() => setActiveTab('settings')}
+                        onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'settings'
                             ? 'bg-primary/10 text-primary'
                             : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
@@ -552,42 +569,51 @@ const FoodVendorDashboard = () => {
                 </div>
             </aside>
 
-            <main className="flex-1 ml-0 lg:ml-72 p-12">
-                <header className="mb-12 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                            {activeTab === 'portal' && 'Vendor Portal'}
-                            {activeTab === 'history' && 'Revenue History'}
-                            {activeTab === 'profile' && 'Vendor Profile'}
-                            {activeTab === 'settings' && 'Account Settings'}
-                        </h1>
-                        <p className="text-slate-500 font-medium">
-                            {activeTab === 'portal' && 'Monitoring your revenue and commissions.'}
-                            {activeTab === 'history' && 'Track your past submissions and earnings.'}
-                            {activeTab === 'profile' && 'View your store and contact information.'}
-                            {activeTab === 'settings' && 'Update your personal account details.'}
-                        </p>
+            <main className="flex-1 lg:ml-72 p-4 sm:p-6 lg:p-12">
+                <header className="mb-8 lg:mb-12 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="lg:hidden p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-all"
+                        >
+                            <Menu className="w-5 h-5 text-slate-600" />
+                        </button>
+                        <div>
+                            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
+                                {activeTab === 'portal' && 'Vendor Portal'}
+                                {activeTab === 'history' && 'Revenue History'}
+                                {activeTab === 'profile' && 'Vendor Profile'}
+                                {activeTab === 'settings' && 'Account Settings'}
+                            </h1>
+                            <p className="text-slate-500 font-medium text-sm">
+                                {activeTab === 'portal' && 'Monitoring your revenue and commissions.'}
+                                {activeTab === 'history' && 'Track your past submissions and earnings.'}
+                                {activeTab === 'profile' && 'View your store and contact information.'}
+                                {activeTab === 'settings' && 'Update your personal account details.'}
+                            </p>
+                        </div>
                     </div>
                     {activeTab === 'history' && (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
                             <button
                                 onClick={() => setViewState('entry')}
-                                className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 text-sm"
+                                className="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 text-xs sm:text-sm"
                             >
                                 <Plus className="w-4 h-4" />
-                                Record Missing Date
+                                <span className="hidden sm:inline">Record Missing Date</span>
+                                <span className="sm:hidden">Record</span>
                             </button>
                             <button
                                 onClick={() => setShowExportModal(true)}
-                                className="px-6 py-3 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-50 transition-all text-sm"
+                                className="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all text-xs sm:text-sm"
                             >
                                 <FileDown className="w-4 h-4" />
-                                Export History
+                                Export
                             </button>
                         </div>
                     )}
                     {activeTab === 'portal' && (
-                        <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm w-full sm:w-auto">
                             <div className="flex items-center gap-2 px-3">
                                 <Clock className="w-4 h-4 text-slate-400" />
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Period:</span>
@@ -599,7 +625,7 @@ const FoodVendorDashboard = () => {
                                     setStartDate(e.target.value);
                                     setIsFiltered(true);
                                 }}
-                                className="text-xs font-bold text-slate-900 border-none bg-slate-50 rounded-lg py-1.5 focus:ring-0"
+                                className="text-xs font-bold text-slate-900 border-none bg-slate-50 rounded-lg py-1.5 focus:ring-0 flex-1 min-w-[120px]"
                             />
                             <span className="text-slate-300">to</span>
                             <input
@@ -609,7 +635,7 @@ const FoodVendorDashboard = () => {
                                     setEndDate(e.target.value);
                                     setIsFiltered(true);
                                 }}
-                                className="text-xs font-bold text-slate-900 border-none bg-slate-50 rounded-lg py-1.5 focus:ring-0"
+                                className="text-xs font-bold text-slate-900 border-none bg-slate-50 rounded-lg py-1.5 focus:ring-0 flex-1 min-w-[120px]"
                             />
                             {isFiltered && (
                                 <button
@@ -635,28 +661,28 @@ const FoodVendorDashboard = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
-                            className="space-y-12"
+                            className="space-y-4 lg:space-y-12"
                         >
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
-                                        <Store className="w-6 h-6" />
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-8">
+                                <div className="bg-white p-4 lg:p-8 rounded-2xl lg:rounded-3xl border border-slate-100 shadow-sm">
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-50 text-indigo-600 rounded-xl lg:rounded-2xl flex items-center justify-center mb-3 lg:mb-6">
+                                        <Store className="w-5 h-5 lg:w-6 lg:h-6" />
                                     </div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Store Details</p>
-                                    <h3 className="text-xl font-black text-slate-900">{vendor?.shop_name}</h3>
-                                    <div className="mt-4 flex items-center gap-2 text-sm font-bold text-indigo-600">
+                                    <h3 className="text-lg lg:text-xl font-black text-slate-900">{vendor?.shop_name}</h3>
+                                    <div className="mt-2 lg:mt-4 flex items-center gap-2 text-sm font-bold text-indigo-600">
                                         <Percent className="w-4 h-4" />
                                         {vendor?.commission_rate}% Commission
                                     </div>
                                 </div>
 
-                                <div className="md:col-span-2 bg-card text-text-primary p-8 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
-                                    <div className="flex justify-between items-start">
+                                <div className="md:col-span-2 bg-card text-text-primary p-4 lg:p-8 rounded-2xl lg:rounded-3xl border border-border shadow-sm flex flex-col justify-between">
+                                    <div className="flex justify-between items-start gap-2">
                                         <div>
                                             <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">
                                                 {currentCycle?.status === 'filtered' ? 'Custom Period Summary' : 'Current Commission Cycle'}
                                             </p>
-                                            <h3 className="text-2xl font-black text-text-primary">
+                                            <h3 className="text-xl lg:text-2xl font-black text-text-primary">
                                                 {currentCycle?.status === 'filtered' ? (
                                                     <span>Summary View</span>
                                                 ) : (
@@ -664,12 +690,12 @@ const FoodVendorDashboard = () => {
                                                 )}
                                             </h3>
                                         </div>
-                                        <div className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold border border-primary/20">
+                                        <div className="bg-primary/10 text-primary px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl text-[10px] lg:text-xs font-bold border border-primary/20 whitespace-nowrap">
                                             {currentCycle?.status === 'filtered' ? 'Filtered View' : `Due in ${daysRemaining} Days`}
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-8 mt-8">
+                                    <div className="grid grid-cols-2 gap-4 lg:gap-8 mt-4 lg:mt-8">
                                         <div>
                                             <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-1">Revenue so far</p>
                                             <p className="text-2xl font-black text-text-primary">
@@ -686,24 +712,26 @@ const FoodVendorDashboard = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="grid grid-cols-3 gap-2 lg:flex lg:flex-wrap lg:items-center lg:gap-4">
                                 <button
                                     onClick={() => setViewState('entry')}
-                                    className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
+                                    className="px-3 lg:px-8 py-3 lg:py-4 bg-emerald-600 text-white rounded-xl lg:rounded-2xl font-black flex items-center justify-center gap-1.5 lg:gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 text-xs lg:text-sm"
                                 >
-                                    <Plus className="w-5 h-5" />
-                                    Record Revenue
+                                    <Plus className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Record Revenue</span>
+                                    <span className="sm:hidden">Record</span>
                                 </button>
                                 <button
                                     onClick={() => setShowPaymentModal(true)}
-                                    className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                                    className="px-3 lg:px-8 py-3 lg:py-4 bg-indigo-600 text-white rounded-xl lg:rounded-2xl font-black flex items-center justify-center gap-1.5 lg:gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 text-xs lg:text-sm"
                                 >
-                                    <Wallet className="w-5 h-5" />
-                                    Pay Commission
+                                    <Wallet className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Pay Commission</span>
+                                    <span className="sm:hidden">Pay</span>
                                 </button>
                                 <button
                                     onClick={() => setShowExportModal(true)}
-                                    className="px-8 py-4 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-50 transition-all"
+                                    className="px-3 lg:px-8 py-3 lg:py-4 bg-white border border-slate-100 text-slate-600 rounded-xl lg:rounded-2xl font-black flex items-center justify-center gap-1.5 lg:gap-2 hover:bg-slate-50 transition-all text-xs lg:text-sm"
                                 >
                                     <FileDown className="w-5 h-5" />
                                     Export Data
@@ -716,42 +744,82 @@ const FoodVendorDashboard = () => {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden"
+                            className="bg-white rounded-2xl lg:rounded-3xl border border-slate-100 shadow-sm overflow-hidden"
                         >
-                            <div className="overflow-x-auto">
+                            {/* Mobile card view */}
+                            <div className="md:hidden">
+                                {history.length === 0 ? (
+                                    <div className="px-4 py-12 text-center text-slate-400 italic font-medium">
+                                        No history entries found.
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-50">
+                                        {history.map((entry) => (
+                                            <div key={entry.id} className="p-4 flex items-center justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-sm text-slate-900">
+                                                        {new Date(entry.entry_date || entry.revenue_date).toLocaleDateString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                                        {new Date(entry.created_at).toLocaleString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="font-black text-sm text-slate-900">₹{entry.revenue_amount.toLocaleString('en-IN')}</p>
+                                                    <p className="font-bold text-xs text-emerald-600 mt-0.5">
+                                                        C: ₹{(entry.revenue_amount * (vendor?.commission_rate || 10) / 100).toLocaleString('en-IN')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Desktop table view */}
+                            <div className="hidden md:block overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead className="bg-slate-50 border-b border-slate-100">
                                         <tr>
-                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue Date</th>
-                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount Reported</th>
-                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Commission ({vendor?.commission_rate}%)</th>
-                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Submission Date</th>
+                                            <th className="px-6 lg:px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue Date</th>
+                                            <th className="px-6 lg:px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount Reported</th>
+                                            <th className="px-6 lg:px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Commission ({vendor?.commission_rate}%)</th>
+                                            <th className="px-6 lg:px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Submission Date</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
                                         {history.length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} className="px-8 py-12 text-center text-slate-400 italic font-medium">
+                                                <td colSpan={4} className="px-6 lg:px-8 py-12 text-center text-slate-400 italic font-medium">
                                                     No history entries found.
                                                 </td>
                                             </tr>
                                         ) : (
                                             history.map((entry) => (
                                                 <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-8 py-5 font-bold text-slate-900">
+                                                    <td className="px-6 lg:px-8 py-5 font-bold text-slate-900">
                                                         {new Date(entry.entry_date || entry.revenue_date).toLocaleDateString('en-IN', {
                                                             day: 'numeric',
                                                             month: 'short',
                                                             year: 'numeric'
                                                         })}
                                                     </td>
-                                                    <td className="px-8 py-5 font-black text-slate-900">
+                                                    <td className="px-6 lg:px-8 py-5 font-black text-slate-900">
                                                         ₹{entry.revenue_amount.toLocaleString('en-IN')}
                                                     </td>
-                                                    <td className="px-8 py-5 font-black text-emerald-600">
+                                                    <td className="px-6 lg:px-8 py-5 font-black text-emerald-600">
                                                         ₹{(entry.revenue_amount * (vendor?.commission_rate || 10) / 100).toLocaleString('en-IN')}
                                                     </td>
-                                                    <td className="px-8 py-5 text-slate-400 text-sm font-medium">
+                                                    <td className="px-6 lg:px-8 py-5 text-slate-400 text-sm font-medium">
                                                         {new Date(entry.created_at).toLocaleString('en-IN', {
                                                             day: 'numeric',
                                                             month: 'short',
@@ -784,7 +852,7 @@ const FoodVendorDashboard = () => {
                             className="flex justify-center"
                         >
                             <div className="bg-white border border-slate-100 rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
-                                <div className="bg-primary/5 p-12 flex flex-col items-center border-b border-slate-100">
+                                <div className="bg-primary/5 p-6 md:p-12 flex flex-col items-center border-b border-slate-100">
                                     <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center border-4 border-white mb-6 overflow-hidden shadow-xl">
                                         {user?.user_metadata?.user_photo_url || user?.user_metadata?.avatar_url ? (
                                             <Image
@@ -806,8 +874,8 @@ const FoodVendorDashboard = () => {
                                         Food Vendor
                                     </div>
                                 </div>
-                                <div className="p-8 space-y-6">
-                                    <div className="grid grid-cols-1 gap-6">
+                                <div className="p-4 md:p-8 space-y-6">
+                                    <div className="grid grid-cols-1 gap-4 md:gap-6">
                                         <div className="flex justify-between items-center py-3 border-b border-slate-50">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor Name</span>
                                             <span className="text-sm font-bold text-slate-900">{vendor?.owner_name || user?.user_metadata?.full_name || 'Not Set'}</span>

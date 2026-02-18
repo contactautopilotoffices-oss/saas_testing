@@ -234,34 +234,6 @@ export default function TicketCreateModal({
                                 <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
                                 <h3 className="text-xl font-display font-semibold text-text-primary mb-2">Request Submitted!</h3>
                                 <p className="text-text-secondary font-body text-sm mb-4">Your request has been created and will be reviewed shortly.</p>
-                                {classification && (
-                                    <div className="premium-list p-4 mt-4">
-                                        <p className="text-xs font-body font-medium text-text-tertiary mb-3 uppercase tracking-widest">System Classification</p>
-                                        <div className="space-y-2 text-left">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-text-secondary">Category:</span>
-                                                <span className="text-secondary font-display font-semibold capitalize">
-                                                    {classification.category?.replace(/_/g, ' ') || 'Pending'}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-text-secondary">Status:</span>
-                                                <span className={`font-display font-semibold uppercase px-2 py-0.5 rounded text-[10px] ${classification.status === 'assigned' ? 'bg-emerald-100 text-emerald-600' :
-                                                    classification.status === 'waitlist' ? 'bg-amber-100 text-amber-600' :
-                                                        'bg-slate-100 text-slate-600'
-                                                    }`}>
-                                                    {classification.status?.replace(/_/g, ' ') || 'Pending'}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-text-secondary">Confidence:</span>
-                                                <span className={`font-display font-semibold ${classification.confidence >= 70 ? 'text-success' : 'text-warning'}`}>
-                                                    {classification.confidence}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         ) : (
                             <>

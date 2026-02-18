@@ -98,7 +98,9 @@ const StaffDashboard = () => {
         type: 'success',
         visible: false
     });
-    const [requestFilter, setRequestFilter] = useState<'all' | 'active' | 'completed'>('all');
+    const [requestFilter, setRequestFilter] = useState<'all' | 'active' | 'completed'>(
+        (searchParams.get('filter') as any) || 'all'
+    );
 
     const supabase = createClient();
 
@@ -124,10 +126,23 @@ const StaffDashboard = () => {
     // Helper to change tab with URL persistence
     const handleTabChange = (tab: Tab, filter?: 'all' | 'active' | 'completed') => {
         setActiveTab(tab);
-        if (filter) setRequestFilter(filter);
+        if (filter) {
+            setRequestFilter(filter);
+        }
         setSidebarOpen(false);
         const url = new URL(window.location.href);
         url.searchParams.set('tab', tab);
+        if (filter) {
+            url.searchParams.set('filter', filter);
+        } else {
+            // Keep existing filter if it's there
+            const currentFilter = searchParams.get('filter');
+            if (currentFilter && tab === 'requests') {
+                url.searchParams.set('filter', currentFilter);
+            } else if (tab !== 'requests') {
+                url.searchParams.delete('filter');
+            }
+        }
         window.history.pushState({}, '', url.toString());
     };
 
@@ -282,8 +297,6 @@ const StaffDashboard = () => {
                 const data = await res.json();
                 alert(data.error || 'Failed to update ticket');
             }
-        } catch (error) {
-            console.error('Update ticket error:', error);
         } finally {
             setIsUpdating(false);
         }
@@ -291,11 +304,13 @@ const StaffDashboard = () => {
 
     const handleDelete = async (e: React.MouseEvent, ticketId: string) => {
         e.stopPropagation();
-        if (!confirm('Are you sure you want to delete this request?')) return;
+        if (!window.confirm('Are you sure you want to deactivate this request?')) return;
+
         try {
             const res = await fetch(`/api/tickets/${ticketId}`, {
                 method: 'DELETE'
             });
+
             if (res.ok) {
                 fetchTickets();
             } else {
@@ -304,8 +319,10 @@ const StaffDashboard = () => {
             }
         } catch (error) {
             console.error('Delete ticket error:', error);
+            alert('An error occurred while deleting the ticket');
         }
     };
+
 
     if (isLoading) return (
         <div className="min-h-screen flex items-center justify-center bg-background">
@@ -642,7 +659,12 @@ const StaffDashboard = () => {
                                     propertyId={propertyId}
                                     onTabChange={handleTabChange}
                                     filter={requestFilter}
-                                    onFilterChange={setRequestFilter}
+                                    onFilterChange={(newFilter) => {
+                                        setRequestFilter(newFilter);
+                                        const url = new URL(window.location.href);
+                                        url.searchParams.set('filter', newFilter);
+                                        window.history.pushState({}, '', url.toString());
+                                    }}
                                 />
                             )}
                             {activeTab === 'create_request' && property && user && (
@@ -658,7 +680,7 @@ const StaffDashboard = () => {
                                 <TicketFlowMap propertyId={propertyId} />
                             )}
                             {activeTab === 'visitors' && <VMSAdminDashboard propertyId={propertyId} />}
-                            {activeTab === 'rooms' && property && <AdminRoomManager propertyId={property.id} />}
+                            {activeTab === 'rooms' && property && user && <AdminRoomManager propertyId={property.id} user={user} />}
                             {activeTab === 'diesel' && <DieselStaffDashboard />}
                             {activeTab === 'electricity' && canAccessElectricityLogger(userRole) && (
                                 property && <ElectricityStaffDashboard propertyId={property.id} isDark={isDarkMode} />
@@ -852,7 +874,6 @@ const canAccessElectricityLogger = (role: string): boolean => {
 
 // Helper Sub-component for Ticket Row - DEPRECATED - Use shared/TicketCard
 
-// Dashboard Tab
 // Dashboard Tab
 const DashboardTab = ({ tickets, completedCount, onTicketClick, userId, isLoading, propertyId, propertyName, userName, onSettingsClick, onEditClick, onDeleteClick, userRole = '', onFilterClick }: { tickets: any[], completedCount: number, onTicketClick: (id: string) => void, userId: string, isLoading: boolean, propertyId: string, propertyName?: string, userName?: string, onSettingsClick?: () => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void, userRole?: string, onFilterClick?: (filter: 'all' | 'active' | 'completed') => void }) => {
     const total = tickets.length + completedCount;
@@ -1090,7 +1111,7 @@ const RequestsTab = ({ activeTickets = [], completedTickets = [], onTicketClick,
 };
 
 // Tasks Tab (My Assignments)
-const TasksTab = ({ tickets = [], onTicketClick, onEditClick, onDeleteClick }: { tickets: any[], onTicketClick: (id: string) => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void, onDeleteClick?: (e: React.MouseEvent, id: string) => void }) => {
+const TasksTab = ({ tickets = [], onTicketClick, onEditClick }: { tickets: any[], onTicketClick: (id: string) => void, onEditClick?: (e: React.MouseEvent, t: Ticket) => void }) => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1135,7 +1156,6 @@ const TasksTab = ({ tickets = [], onTicketClick, onEditClick, onDeleteClick }: {
                                     isSlaPaused={ticket.sla_paused}
                                     onClick={() => onTicketClick?.(ticket.id)}
                                     onEdit={onEditClick ? (e) => onEditClick(e, ticket) : undefined}
-                                    onDelete={onDeleteClick ? (e) => onDeleteClick(e, ticket.id) : undefined}
                                 />
                             ))}
                     </div>

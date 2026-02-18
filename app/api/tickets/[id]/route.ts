@@ -20,7 +20,7 @@ export async function GET(
         *,
         category:issue_categories(id, code, name, icon),
         skill_group:skill_groups(id, code, name),
-        creator:users!created_by(id, full_name, email, avatar_url),
+        creator:users!raised_by(id, full_name, email, avatar_url),
         assignee:users!assigned_to(id, full_name, email, avatar_url),
         organization:organizations(id, name, code),
         property:properties(id, name, code)
@@ -424,94 +424,116 @@ export async function DELETE(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Fetch ticket details to verify permissions
-        // We use the USER client here to ensure they can at least SEE the ticket
-        const { data: ticket, error: ticketError } = await supabase
+        // Fetch ticket details with admin client to bypass RLS for permission check
+        const adminSupabase = createAdminClient();
+        const { data: ticket, error: ticketError } = await adminSupabase
             .from('tickets')
             .select('id, property_id, organization_id, raised_by')
             .eq('id', ticketId)
             .single();
 
         if (ticketError || !ticket) {
-            console.error('Delete permission check failed:', ticketError);
+            console.error('Delete permission check failed: Ticket not found or access denied', ticketError);
             return NextResponse.json({ error: 'Ticket not found or access denied' }, { status: 404 });
         }
 
         // Permission Logic:
-        // 1. Creator can delete
-        // 2. Property Admin can delete
-        // 3. Org Super Admin can delete
-        // 4. Master Admin can delete
+        // 1. Master Admin can delete
+        // 2. Creator can delete
+        // 3. Property Admin (and variations) can delete
+        // 4. Org Super Admin can delete
         let canDelete = false;
 
-        // 0. Check Master Admin status first (most powerful)
-        const { data: userProfile } = await supabase
+        // Fetch User Profile for Master Admin
+        const { data: userProfile } = await adminSupabase
             .from('users')
             .select('is_master_admin')
             .eq('id', user.id)
             .maybeSingle();
 
+        // LOGGING FOR DEBUGGING
+        const { data: allPMs } = await adminSupabase.from('property_memberships').select('*').eq('user_id', user.id);
+        const { data: allOMs } = await adminSupabase.from('organization_memberships').select('*').eq('user_id', user.id);
+
+        console.log(`[DELETE TICKET] User: ${user.id}, Master: ${userProfile?.is_master_admin}`);
+        console.log(`[DELETE TICKET] Ticket: ${ticketId}, Property: ${ticket.property_id}, Org: ${ticket.organization_id}`);
+        console.log(`[DELETE TICKET] User All PMs:`, allPMs);
+        console.log(`[DELETE TICKET] User All OMs:`, allOMs);
+
         if (userProfile?.is_master_admin === true) {
             canDelete = true;
         }
 
-        if (!canDelete) {
-            if (ticket.raised_by === user.id) {
+        // Check if user is the creator
+        if (!canDelete && ticket.raised_by === user.id) {
+            canDelete = true;
+        }
+
+        const adminRoles = ['PROPERTY_ADMIN', 'property_admin', 'ORG_ADMIN', 'org_admin', 'admin', 'ADMIN', 'manager', 'MANAGER', 'manager_executive', 'super_admin', 'SUPER_ADMIN', 'staff', 'STAFF', 'mst', 'MST'];
+
+        // Check Property Admin/Manager Roles
+        if (!canDelete && ticket.property_id) {
+            const { data: pmList } = await adminSupabase
+                .from('property_memberships')
+                .select('role, is_active')
+                .eq('user_id', user.id)
+                .eq('property_id', ticket.property_id);
+
+            console.log(`[DELETE TICKET] Found PMs for this property:`, pmList);
+
+            const validPm = pmList?.find(m =>
+                adminRoles.includes(m.role) ||
+                adminRoles.includes(m.role?.toLowerCase()) ||
+                adminRoles.includes(m.role?.toUpperCase())
+            );
+
+            if (validPm) {
+                console.log(`[DELETE TICKET] Found valid PM:`, validPm);
                 canDelete = true;
             } else {
-                // Check Property Admin
-                const { data: pm } = await supabase
-                    .from('property_memberships')
-                    .select('role')
-                    .eq('user_id', user.id)
-                    .eq('property_id', ticket.property_id)
-                    .eq('is_active', true) // improved security
-                    .in('role', ['PROPERTY_ADMIN', 'property_admin'])
-                    .maybeSingle();
+                console.log(`[DELETE TICKET] No valid PM found in list of ${pmList?.length || 0} memberships`);
+            }
+        }
 
-                if (pm) canDelete = true;
+        // Check Org Super Admin
+        if (!canDelete && ticket.organization_id) {
+            const { data: omList } = await adminSupabase
+                .from('organization_memberships')
+                .select('role, is_active')
+                .eq('user_id', user.id)
+                .eq('organization_id', ticket.organization_id);
 
-                // Check Org Super Admin (if not already found)
-                if (!canDelete && ticket.organization_id) {
-                    const { data: om } = await supabase
-                        .from('organization_memberships')
-                        .select('role')
-                        .eq('user_id', user.id)
-                        .eq('organization_id', ticket.organization_id)
-                        .eq('is_active', true)
-                        .in('role', ['ORG_SUPER_ADMIN', 'org_super_admin'])
-                        .maybeSingle();
+            console.log(`[DELETE TICKET] Found OMs for this org:`, omList);
 
-                    if (om) canDelete = true;
-                }
+            const validOm = omList?.find(m =>
+                adminRoles.includes(m.role) ||
+                adminRoles.includes(m.role?.toLowerCase()) ||
+                adminRoles.includes(m.role?.toUpperCase())
+            );
+
+            if (validOm) {
+                console.log(`[DELETE TICKET] Found valid OM:`, validOm);
+                canDelete = true;
+            } else {
+                console.log(`[DELETE TICKET] No valid OM found in list of ${omList?.length || 0} memberships`);
             }
         }
 
         if (!canDelete) {
+            console.log(`[DELETE TICKET] Final Decision: Permission Denied for user ${user.id} on ticket ${ticketId}`);
             return NextResponse.json({ error: 'You do not have permission to delete this ticket' }, { status: 403 });
         }
 
         // Perform deletion using Admin Client to bypass RLS on cascaded tables
-        const adminSupabase = createAdminClient();
-
         // 1. Manually delete notifications (and rely on their cascade to delivery, or do strictly manual)
-        // Check if we need to clean up notifications first due to missing DB cascade
         const { error: notifDeleteError } = await adminSupabase
             .from('notifications')
             .delete()
             .eq('ticket_id', ticketId);
 
-        if (notifDeleteError) {
-            console.error('Admin notification cleanup error:', notifDeleteError);
-            // Verify if it is a "still referenced" error from notification_delivery
-            // If so, we might need to delete delivery records first.
-            // Assuming notification_delivery -> notification usually has cascade, but let's be safe.
-        }
-
         // If the above failed due to FK from notification_delivery, we try deleting that first
         if (notifDeleteError && notifDeleteError.code === '23503') {
             console.log('Cascade blocked by notification_delivery, cleaning that up first...');
-            // We need notification IDs to delete delivery records
             const { data: notifIds } = await adminSupabase
                 .from('notifications')
                 .select('id')

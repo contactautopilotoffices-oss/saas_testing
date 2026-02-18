@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    ChevronLeft, ChevronRight, Zap, Clock, Fuel, Edit2, Save, X, AlertTriangle
+    ChevronLeft, ChevronRight, Zap, Clock, Fuel, Edit2, Save, X, AlertTriangle, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -38,12 +38,14 @@ interface DieselRegisterViewProps {
     propertyId: string;
     isDark?: boolean;
     onBack?: () => void;
+    onDataChange?: () => void;
 }
 
 const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
     propertyId,
     isDark = false,
-    onBack
+    onBack,
+    onDataChange
 }) => {
     const supabase = createClient();
 
@@ -101,7 +103,8 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                 .eq('generator_id', selectedGeneratorId)
                 .gte('reading_date', startOfMonth)
                 .lte('reading_date', endOfMonth)
-                .order('reading_date', { ascending: true });
+                .order('reading_date', { ascending: false })
+                .order('created_at', { ascending: false });
 
             if (readError) throw readError;
             setReadings(data || []);
@@ -166,10 +169,31 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
 
             await fetchReadings();
             setEditingId(null);
+            if (onDataChange) onDataChange();
         } catch (err: any) {
             alert(err.message);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleDeleteReading = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this log entry?')) return;
+
+        try {
+            const res = await fetch(`/api/properties/${propertyId}/diesel-readings?id=${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to delete reading');
+            }
+
+            fetchReadings();
+            if (onDataChange) onDataChange();
+        } catch (err: any) {
+            alert(err.message);
         }
     };
 
@@ -259,9 +283,22 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                                 <button onClick={() => saveEdit(r)} disabled={isSaving} className="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded"><Save className="w-4 h-4" /></button>
                                                 <button onClick={cancelEdit} className="p-1 text-slate-400 hover:bg-slate-500/10 rounded"><X className="w-4 h-4" /></button>
                                             </div>
-                                        ) : canEdit ? (
-                                            <button onClick={() => startEdit(r)} className="p-1 text-slate-400 hover:text-primary rounded"><Edit2 className="w-4 h-4" /></button>
-                                        ) : null}
+                                        ) : (
+                                            <div className="flex gap-1">
+                                                {canEdit && (
+                                                    <button onClick={() => startEdit(r)} className="p-1 text-slate-400 hover:text-primary rounded" title="Edit entry">
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDeleteReading(r.id)}
+                                                    className="p-1 text-slate-400 hover:text-rose-500 rounded"
+                                                    title="Delete entry"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             );
@@ -322,9 +359,22 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                                 <button onClick={() => saveEdit(r)} disabled={isSaving} className="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded"><Save className="w-4 h-4" /></button>
                                                 <button onClick={cancelEdit} className="p-1 text-slate-400 hover:bg-slate-500/10 rounded"><X className="w-4 h-4" /></button>
                                             </div>
-                                        ) : canEdit ? (
-                                            <button onClick={() => startEdit(r)} className="p-1 text-slate-400 hover:text-primary rounded"><Edit2 className="w-4 h-4" /></button>
-                                        ) : null}
+                                        ) : (
+                                            <div className="flex gap-1">
+                                                {canEdit && (
+                                                    <button onClick={() => startEdit(r)} className="p-1 text-slate-400 hover:text-primary rounded" title="Edit entry">
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDeleteReading(r.id)}
+                                                    className="p-1 text-slate-400 hover:text-rose-500 rounded"
+                                                    title="Delete entry"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             );
@@ -399,9 +449,22 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                             <button onClick={() => saveEdit(r)} disabled={isSaving} className="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded"><Save className="w-4 h-4" /></button>
                                             <button onClick={cancelEdit} className="p-1 text-slate-400 hover:bg-slate-500/10 rounded"><X className="w-4 h-4" /></button>
                                         </div>
-                                    ) : canEdit ? (
-                                        <button onClick={() => startEdit(r)} className="p-1 text-slate-400 hover:text-primary rounded"><Edit2 className="w-4 h-4" /></button>
-                                    ) : null}
+                                    ) : (
+                                        <div className="flex gap-1">
+                                            {canEdit && (
+                                                <button onClick={() => startEdit(r)} className="p-1 text-slate-400 hover:text-primary rounded" title="Edit entry">
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDeleteReading(r.id)}
+                                                className="p-1 text-slate-400 hover:text-rose-500 rounded"
+                                                title="Delete entry"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         );

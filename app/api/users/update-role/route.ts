@@ -119,12 +119,17 @@ export async function POST(request: NextRequest) {
 
                 // Sync resolver_stats for specific property
                 if (propertyId) {
-                    // Filter skills for resolver pool (Staff Technical accounts don't go to load balancer)
-                    const skillsForResolverPool = newRole === 'staff'
-                        ? skills.filter(s => s !== 'technical')
-                        : skills;
+                    // Strict Filter based on User Request:
+                    // MST -> technical, plumbing, vendor
+                    // Staff -> soft_services
+                    const VALID_MST_SKILLS = ['technical', 'plumbing', 'vendor'];
+                    const VALID_STAFF_SKILLS = ['soft_services'];
 
-                    // Clear existing stats for this property to refresh with new skill selection
+                    const skillsForResolverPool = newRole === 'mst'
+                        ? skills.filter(s => VALID_MST_SKILLS.includes(s))
+                        : (newRole === 'staff' ? skills.filter(s => VALID_STAFF_SKILLS.includes(s)) : []);
+
+                    // Clear existing stats for this property
                     await adminClient.from('resolver_stats').delete().eq('user_id', userId).eq('property_id', propertyId);
 
                     if (skillsForResolverPool.length > 0) {
@@ -147,6 +152,8 @@ export async function POST(request: NextRequest) {
                             const { error: statsError } = await adminClient.from('resolver_stats').insert(statsToInsert);
                             if (statsError) console.error('Failed to insert resolver stats:', statsError);
                         }
+                    } else {
+                        console.log(`User ${userId} (Role: ${newRole}) does not have any resolver-eligible skills. Entry in resolver_stats removed/not created.`);
                     }
                 }
             } else if (!isOldResolver) {

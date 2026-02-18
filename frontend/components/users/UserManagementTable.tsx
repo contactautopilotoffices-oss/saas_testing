@@ -17,7 +17,7 @@ export default function UserManagementTable() {
             if (currentUser?.property_id) {
                 setPropertyId(currentUser.property_id);
                 const data = await userService.getUsers(currentUser.property_id);
-                setUsers(data);
+                setUsers(data.sort((a, b) => a.full_name.localeCompare(b.full_name)));
             }
             setLoading(false);
         };

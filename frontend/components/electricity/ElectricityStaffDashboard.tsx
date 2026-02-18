@@ -136,9 +136,10 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
 
                 const { data: latestReadings, error: latestError } = await supabase
                     .from('electricity_readings')
-                    .select('meter_id, closing_reading, reading_date')
+                    .select('meter_id, closing_reading, reading_date, created_at')
                     .eq('property_id', propertyId)
                     .order('reading_date', { ascending: false })
+                    .order('created_at', { ascending: false })
                     .limit(fetchedMeters.length * 2); // Get recent history
 
                 if (!latestError && latestReadings) {
@@ -497,6 +498,7 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
                         propertyId={propertyId}
                         isDark={isDark}
                         onBack={() => setShowHistory(false)}
+                        onDeleteSuccess={fetchData}
                     />
                 </div>
             )}

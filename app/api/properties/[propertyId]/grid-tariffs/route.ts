@@ -112,3 +112,67 @@ export async function POST(
     console.log('[GridTariffs] Created new tariff version:', data.id);
     return NextResponse.json(data, { status: 201 });
 }
+
+// DELETE: Remove a tariff version
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ propertyId: string }> }
+) {
+    const { propertyId } = await params;
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+    const tariffId = searchParams.get('id');
+
+    if (!tariffId) {
+        return NextResponse.json({ error: 'Tariff ID is required' }, { status: 400 });
+    }
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('[GridTariffs] DELETE request for tariff:', tariffId, 'property:', propertyId);
+
+    // 1. Reset electricity readings associated with this tariff
+    // We set computed_cost to 0 and tariff fields to NULL
+    const { error: readingsError } = await supabase
+        .from('electricity_readings')
+        .update({
+            tariff_id: null,
+            tariff_rate_used: null,
+            computed_cost: 0
+        })
+        .eq('tariff_id', tariffId);
+
+    if (readingsError) {
+        console.error('[GridTariffs] Error resetting readings:', readingsError.message);
+        // We continue anyway to try and delete the tariff, or we could bail. 
+        // Better to bail if we can't clean up associated data.
+        return NextResponse.json({ error: 'Failed to clean up associated readings' }, { status: 500 });
+    }
+
+    // 2. Delete the tariff record
+    const { error: deleteError } = await supabase
+        .from('grid_tariffs')
+        .delete()
+        .eq('id', tariffId)
+        .eq('property_id', propertyId);
+
+    if (deleteError) {
+        console.error('[GridTariffs] Error deleting tariff:', deleteError.message);
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // 3. Maintenance: Restore continuity if needed
+    // Look for a tariff that ended exactly when this one started
+    // In POST, we set effective_to to (effective_from - 1 day)
+    // This is complex to undo perfectly without knowing the full chain, 
+    // but we can try to find the previous one and set its effective_to to NULL if it was closed.
+
+    // For now, let's keep it simple as a first pass. 
+    // The most important part is the deletion and cost clearing.
+
+    return NextResponse.json({ success: true });
+}

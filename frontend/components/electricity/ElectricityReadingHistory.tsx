@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, Filter, Search, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, Search, Download, Trash2 } from 'lucide-react';
 import { createClient } from '@/frontend/utils/supabase/client';
 
 interface ElectricityReadingHistoryProps {
     propertyId: string;
     isDark?: boolean;
     onBack: () => void;
+    onDeleteSuccess?: () => void;
 }
 
 interface ReadingLog {
@@ -33,13 +34,15 @@ interface Meter {
 const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
     propertyId,
     isDark = false,
-    onBack
+    onBack,
+    onDeleteSuccess
 }) => {
     const supabase = createClient();
 
     const [readings, setReadings] = useState<ReadingLog[]>([]);
     const [meters, setMeters] = useState<Meter[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Filters
     const [selectedMeterId, setSelectedMeterId] = useState<string>('all');
@@ -114,6 +117,35 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
             url += `&meterId=${selectedMeterId}`;
         }
         window.open(url, '_blank');
+    };
+
+    // Delete reading
+    const handleDeleteReading = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this reading entry?')) {
+            return;
+        }
+
+        setDeletingId(id);
+        try {
+            const res = await fetch(`/api/properties/${propertyId}/electricity-readings?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Failed to delete reading');
+            }
+
+            // Refresh the list locally
+            setReadings(prev => prev.filter(r => r.id !== id));
+            if (onDeleteSuccess) onDeleteSuccess();
+
+        } catch (err: any) {
+            console.error('Delete error:', err);
+            alert(err.message || 'Failed to delete reading');
+        } finally {
+            setDeletingId(null);
+        }
     };
 
     return (
@@ -208,6 +240,7 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
                                         <th className="px-6 py-4 text-right">Opening</th>
                                         <th className="px-6 py-4 text-right">Closing</th>
                                         <th className="px-6 py-4 text-right">Consumption</th>
+                                        <th className="px-6 py-4 text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className={`divide-y ${isDark ? 'divide-[#30363d]' : 'divide-slate-100'}`}>
@@ -235,6 +268,20 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
                                                     }`}>
                                                     {log.computed_units.toFixed(1)} kVAh
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button
+                                                    onClick={() => handleDeleteReading(log.id)}
+                                                    disabled={deletingId === log.id}
+                                                    className={`p-1.5 rounded-lg transition-all ${isDark ? 'hover:bg-rose-500/10 text-slate-500 hover:text-rose-400' : 'hover:bg-rose-50 text-slate-400 hover:text-rose-500'}`}
+                                                    title="Delete Entry"
+                                                >
+                                                    {deletingId === log.id ? (
+                                                        <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="w-4 h-4" />
+                                                    )}
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

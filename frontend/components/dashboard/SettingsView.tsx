@@ -243,16 +243,16 @@ export default function SettingsView({ onUpdate }: SettingsViewProps) {
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-4 md:p-8 space-y-6 md:space-y-8 animate-in fade-in duration-500">
+        <div className="max-w-4xl mx-auto space-y-4 md:space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-display font-bold text-slate-900">Account Settings</h1>
-                <p className="text-slate-500 font-body mt-2">Manage your personal information and profile details.</p>
+                <h1 className="text-xl md:text-3xl font-display font-bold text-slate-900">Account Settings</h1>
+                <p className="text-slate-500 font-body mt-1 text-sm">Manage your personal information and profile details.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
                 {/* Profile Section */}
-                <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm">
+                <section className="bg-white rounded-2xl border border-slate-200 p-4 md:p-8 shadow-sm">
                     <h2 className="text-xl font-display font-semibold text-slate-900 mb-6 flex items-center gap-2">
                         <User className="w-5 h-5 text-primary" />
                         Profile Information
@@ -262,7 +262,7 @@ export default function SettingsView({ onUpdate }: SettingsViewProps) {
                         {/* Avatar Upload */}
                         <div className="flex flex-col items-center gap-4">
                             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-slate-100 bg-slate-50 relative">
+                                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 bg-slate-50 relative">
                                     {avatarPreview ? (
                                         <Image
                                             src={avatarPreview}
@@ -366,7 +366,7 @@ export default function SettingsView({ onUpdate }: SettingsViewProps) {
                 </section>
 
                 {/* Additional Info Section (Read Only) */}
-                <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm">
+                <section className="bg-white rounded-2xl border border-slate-200 p-4 md:p-8 shadow-sm">
                     <h2 className="text-xl font-display font-semibold text-slate-900 mb-6 flex items-center gap-2">
                         <Shield className="w-5 h-5 text-primary" />
                         Account Roles & Memberships
@@ -407,11 +407,11 @@ export default function SettingsView({ onUpdate }: SettingsViewProps) {
                 </section>
 
                 {/* Actions */}
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-end pt-2 md:pt-4">
                     <button
                         type="submit"
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-70 shadow-sm shadow-primary/20"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-70 shadow-sm shadow-primary/20"
                     >
                         {isSaving ? (
                             <>

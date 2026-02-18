@@ -306,11 +306,16 @@ export default function OnboardingPage() {
 
             // 2️⃣ Insert Resolver Stats (if skills selected)
             // NOTE: "Staff Technical" accounts are treated as BMS accounts and are NOT stored in resolver_stats.
-            // Only 'soft_services' for staff and all 'mst' skills are eligible for the resolver pool.
+            // Strict Filter based on User Request:
+            // MST -> technical, plumbing, vendor
+            // Staff -> soft_services
             if (selectedSkills.length > 0) {
-                const skillsForResolver = selectedRole === 'staff'
-                    ? selectedSkills.filter(skill => skill !== 'technical')
-                    : selectedSkills;
+                const VALID_MST_SKILLS = ['technical', 'plumbing', 'vendor'];
+                const VALID_STAFF_SKILLS = ['soft_services'];
+
+                const skillsForResolver = selectedRole === 'mst'
+                    ? selectedSkills.filter(skill => VALID_MST_SKILLS.includes(skill))
+                    : (selectedRole === 'staff' ? selectedSkills.filter(skill => VALID_STAFF_SKILLS.includes(skill)) : []);
 
                 if (skillsForResolver.length > 0) {
                     // Fetch skill group IDs (Global/Active check)

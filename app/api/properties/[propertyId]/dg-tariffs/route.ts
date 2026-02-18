@@ -155,3 +155,56 @@ export async function POST(
     console.log('[DGTariffs] Created new tariff version:', data.id);
     return NextResponse.json(data, { status: 201 });
 }
+// DELETE: Remove a DG tariff version
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ propertyId: string }> }
+) {
+    const { propertyId } = await params;
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+        return NextResponse.json({ error: 'Tariff ID is required' }, { status: 400 });
+    }
+
+    // Get tariff details before deletion to find the generator
+    const { data: tariffToDelete, error: fetchError } = await supabase
+        .from('dg_tariffs')
+        .select('generator_id, effective_from')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !tariffToDelete) {
+        return NextResponse.json({ error: 'Tariff not found' }, { status: 404 });
+    }
+
+    // Delete the tariff
+    const { error: deleteError } = await supabase
+        .from('dg_tariffs')
+        .delete()
+        .eq('id', id);
+
+    if (deleteError) {
+        console.error('[DGTariffs] Error deleting tariff:', deleteError.message);
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // Recalibrate/Heal the timeline:
+    // If there was a previous tariff that was closed because of this one, re-open it.
+    // The previous tariff would have effective_to = (this.effective_from - 1)
+    const effectiveFromDate = new Date(tariffToDelete.effective_from);
+    const dayBefore = new Date(effectiveFromDate);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    const dayBeforeStr = dayBefore.toISOString().split('T')[0];
+
+    await supabase
+        .from('dg_tariffs')
+        .update({ effective_to: null })
+        .eq('generator_id', tariffToDelete.generator_id)
+        .eq('effective_to', dayBeforeStr);
+
+    console.log('[DGTariffs] Deleted tariff and recalibrated history for generator:', tariffToDelete.generator_id);
+    return NextResponse.json({ success: true });
+}

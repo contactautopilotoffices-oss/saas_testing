@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, CheckCircle2, XCircle, Search, Filter, Loader2 } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle2, XCircle, Search, Filter, Loader2, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@/frontend/utils/supabase/client';
 
 interface Booking {
     id: string;
@@ -34,10 +35,54 @@ const AdminBookingList: React.FC<AdminBookingListProps> = ({ propertyId }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState('');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [userRole, setUserRole] = useState<string | null>(null);
+    const [isTechnical, setIsTechnical] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+    const supabase = createClient();
 
     useEffect(() => {
+        fetchUserInfo();
         fetchBookings();
     }, [propertyId]);
+
+    const fetchUserInfo = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        setCurrentUserId(user.id);
+
+        // Check master admin
+        const { data: profile } = await supabase.from('users').select('is_master_admin').eq('id', user.id).maybeSingle();
+        if (profile?.is_master_admin) {
+            setUserRole('master_admin');
+            return;
+        }
+
+        // Check property role
+        const { data: membership } = await supabase
+            .from('property_memberships')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('property_id', propertyId)
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (membership) {
+            setUserRole(membership.role.toLowerCase());
+
+            // Check technical skill if staff/mst
+            if (membership.role.toLowerCase() === 'staff' || membership.role.toLowerCase() === 'mst') {
+                const { data: skill } = await supabase
+                    .from('mst_skills')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('skill_code', 'technical')
+                    .maybeSingle();
+                setIsTechnical(!!skill);
+            }
+        }
+    };
 
     const fetchBookings = async () => {
         setIsLoading(true);
@@ -52,6 +97,36 @@ const AdminBookingList: React.FC<AdminBookingListProps> = ({ propertyId }) => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this booking?')) return;
+
+        setDeletingId(id);
+        try {
+            const res = await fetch(`/api/meeting-room-bookings/${id}`, {
+                method: 'DELETE',
+            });
+            if (res.ok) {
+                setBookings(prev => prev.filter(b => b.id !== id));
+            } else {
+                const error = await res.json();
+                alert(error.error || 'Failed to delete booking');
+            }
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            alert('An unexpected error occurred');
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const canDelete = (bookingUserId: string) => {
+        if (userRole === 'master_admin') return true;
+        if (currentUserId === bookingUserId) return true;
+        if (userRole === 'property_admin') return true;
+        if ((userRole === 'staff' || userRole === 'mst') && isTechnical) return true;
+        return false;
     };
 
     const filteredBookings = bookings.filter(booking => {
@@ -75,34 +150,37 @@ const AdminBookingList: React.FC<AdminBookingListProps> = ({ propertyId }) => {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
                 <div className="flex-1 relative group">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                    <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
                         placeholder="Search by tenant or room..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-primary/5 transition-all"
+                        className="w-full pl-12 md:pl-14 pr-4 md:pr-6 py-3.5 md:py-4 bg-white border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all shadow-sm outline-none"
                     />
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                     <input
                         type="date"
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
-                        className="px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-primary/5 transition-all cursor-pointer"
+                        className="px-4 py-3.5 md:py-4 bg-white border border-slate-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-black text-slate-700 focus:ring-4 focus:ring-primary/5 transition-all cursor-pointer outline-none shrink-0 shadow-sm uppercase tracking-widest"
                     />
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-primary/5 transition-all cursor-pointer"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="completed">Completed</option>
-                    </select>
+                    <div className="flex items-center gap-2 bg-white px-4 md:px-6 py-3.5 md:py-4 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm overflow-hidden min-w-[140px] md:min-w-[160px]">
+                        <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="bg-transparent text-[11px] md:text-sm font-black text-slate-700 focus:outline-none cursor-pointer uppercase tracking-widest w-full appearance-none outline-none"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -120,43 +198,64 @@ const AdminBookingList: React.FC<AdminBookingListProps> = ({ propertyId }) => {
                 </div>
             ) : (
                 <div className="grid gap-4">
-                    {filteredBookings.map((booking) => (
-                        <motion.div
-                            key={booking.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md transition-shadow"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                                    <img src={booking.meeting_room.photo_url} alt="" className="w-full h-full object-cover" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-slate-900">{booking.meeting_room.name}</h4>
-                                    <div className="flex items-center gap-3 mt-1">
-                                        <div className="flex items-center gap-1.5 text-slate-400">
-                                            <Calendar className="w-3 h-3" />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider">{booking.booking_date}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-slate-400">
-                                            <Clock className="w-3 h-3" />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider">{booking.start_time} - {booking.end_time}</span>
+                    <AnimatePresence mode="popLayout">
+                        {filteredBookings.map((booking) => (
+                            <motion.div
+                                key={booking.id}
+                                layout
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white p-4 md:p-6 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 hover:shadow-md transition-shadow group/card"
+                            >
+                                <div className="flex items-center gap-4 flex-1 min-w-0">
+                                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg md:rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-50">
+                                        <img src={booking.meeting_room.photo_url} alt="" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className="text-sm font-bold text-slate-900 truncate">{booking.meeting_room.name}</h4>
+                                        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
+                                            <div className="flex items-center gap-1.5 text-slate-400">
+                                                <Calendar className="w-3 h-3" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">{booking.booking_date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-slate-400">
+                                                <Clock className="w-3 h-3" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">{booking.start_time} - {booking.end_time}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex flex-col md:items-end gap-2">
-                                <div className="flex items-center gap-2">
-                                    <User className="w-3.5 h-3.5 text-slate-400" />
-                                    <span className="text-xs font-bold text-slate-700">{booking.tenant.full_name}</span>
+                                <div className="flex items-center justify-between md:justify-end gap-6">
+                                    <div className="flex flex-col md:items-end gap-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <User className="w-3.5 h-3.5 text-slate-400" />
+                                            <span className="text-xs font-bold text-slate-700">{booking.tenant.full_name}</span>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${getStatusColor(booking.status)}`}>
+                                            {booking.status}
+                                        </span>
+                                    </div>
+
+                                    {canDelete(booking.user_id) && (
+                                        <button
+                                            onClick={() => handleDelete(booking.id)}
+                                            disabled={deletingId === booking.id}
+                                            className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-colors md:opacity-0 group-hover/card:opacity-100"
+                                            title="Delete Booking"
+                                        >
+                                            {deletingId === booking.id ? (
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
-                                <span className={`self-start md:self-end px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${getStatusColor(booking.status)}`}>
-                                    {booking.status}
-                                </span>
-                            </div>
-                        </motion.div>
-                    ))}
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
                 </div>
             )}
         </div>

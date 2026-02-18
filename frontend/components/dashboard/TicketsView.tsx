@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import TicketCard from '@/frontend/components/shared/TicketCard';
+import { useDataCache } from '@/frontend/context/DataCacheContext';
 
 interface Ticket {
     id: string;
@@ -50,9 +51,13 @@ interface TicketsViewProps {
 
 const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewRequest, initialStatusFilter = 'all' }) => {
     const router = useRouter();
-    const [tickets, setTickets] = useState<Ticket[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { getCachedData, setCachedData } = useDataCache();
+
     const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter);
+    const cacheKey = `tickets-${propertyId}-${statusFilter}`; // Use statusFilter here for dynamic key
+
+    const [tickets, setTickets] = useState<Ticket[]>(() => getCachedData(`tickets-${propertyId}-${initialStatusFilter}`) || []);
+    const [isLoading, setIsLoading] = useState(!getCachedData(`tickets-${propertyId}-${initialStatusFilter}`));
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     // Edit Modal State
@@ -80,14 +85,20 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
 
     useEffect(() => {
         fetchTickets();
-    }, [statusFilter]);
+    }, [statusFilter, propertyId]);
 
     const fetchTickets = async () => {
         setIsLoading(true);
         try {
-            let url = (statusFilter === 'all' || statusFilter === 'sla_paused')
-                ? '/api/tickets'
-                : `/api/tickets?status=${statusFilter}`;
+            let url: string;
+            if (statusFilter === 'tenant_raised') {
+                // Tenant filter: use raisedByRole param instead of status
+                url = '/api/tickets?raisedByRole=tenant';
+            } else if (statusFilter === 'all' || statusFilter === 'sla_paused') {
+                url = '/api/tickets';
+            } else {
+                url = `/api/tickets?status=${statusFilter}`;
+            }
 
             if (propertyId) {
                 const sep = url.includes('?') ? '&' : '?';
@@ -110,6 +121,7 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                 });
 
                 setTickets(sorted);
+                setCachedData(cacheKey, sorted);
             }
         } catch (error) {
             console.error('Error fetching tickets:', error);
@@ -228,7 +240,18 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                         <Filter className="w-4 h-4 text-text-tertiary shrink-0" />
                         <select
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
+                            onChange={(e) => {
+                                const newFilter = e.target.value;
+                                setStatusFilter(newFilter);
+                                // Update URL with new filter
+                                const url = new URL(window.location.href);
+                                if (newFilter !== 'all') {
+                                    url.searchParams.set('filter', newFilter);
+                                } else {
+                                    url.searchParams.delete('filter');
+                                }
+                                window.history.pushState({}, '', url.toString());
+                            }}
                             className="h-9 w-full sm:w-auto px-3 bg-surface border border-border rounded-[var(--radius-md)] text-xs font-semibold font-body text-text-primary transition-smooth focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
                         >
                             <option value="all">All</option>
@@ -236,6 +259,7 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                             <option value="open,assigned,in_progress,blocked">Open</option>
                             <option value="waitlist">Waitlist</option>
                             <option value="sla_paused">SLA Paused</option>
+                            <option value="tenant_raised">Tenant Raised</option>
                         </select>
                     </div>
                 </div>

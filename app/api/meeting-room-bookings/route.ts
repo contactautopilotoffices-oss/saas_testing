@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/frontend/utils/supabase/server';
+import { NotificationService } from '@/backend/services/NotificationService';
 
 /**
  * GET /api/meeting-room-bookings
@@ -114,7 +115,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 });
         }
 
-        // Trigger notification (Optional: Implement NotificationService call here)
+        // Trigger notification asynchronously
+        NotificationService.afterRoomBooked(booking.id).catch(err => {
+            console.error('[Booking API] Notification trigger error:', err);
+        });
 
         return NextResponse.json({ success: true, booking }, { status: 201 });
     } catch (error) {

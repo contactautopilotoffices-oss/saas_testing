@@ -14,6 +14,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import DieselAnalyticsDashboard from '@/frontend/components/diesel/DieselAnalyticsDashboard';
+import DieselStaffDashboard from '@/frontend/components/diesel/DieselStaffDashboard';
 import ElectricityStaffDashboard from '@/frontend/components/electricity/ElectricityStaffDashboard';
 import ElectricityAnalyticsDashboard from '@/frontend/components/electricity/ElectricityAnalyticsDashboard';
 import NotificationBell from './NotificationBell';
@@ -32,7 +33,7 @@ import { ImportReportsView } from '@/frontend/components/snags';
 import AdminRoomManager from '@/frontend/components/meeting-rooms/AdminRoomManager';
 
 // Types
-type Tab = 'overview' | 'requests' | 'reports' | 'users' | 'visitors' | 'rooms' | 'diesel' | 'electricity' | 'electricity_analytics' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
+type Tab = 'overview' | 'requests' | 'reports' | 'users' | 'visitors' | 'rooms' | 'diesel' | 'diesel_analytics' | 'electricity' | 'electricity_analytics' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
 
 interface Property {
     id: string;
@@ -91,7 +92,7 @@ const PropertyAdminDashboard = () => {
     // Restore tab from URL
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['overview', 'requests', 'reports', 'users', 'visitors', 'diesel', 'electricity', 'electricity_analytics', 'cafeteria', 'settings', 'profile', 'units', 'vendor_revenue'].includes(tab)) {
+        if (tab && ['overview', 'requests', 'reports', 'users', 'visitors', 'diesel', 'diesel_analytics', 'electricity', 'electricity_analytics', 'cafeteria', 'settings', 'profile', 'units', 'vendor_revenue'].includes(tab)) {
             setActiveTab(tab as Tab);
         }
         const filter = searchParams.get('filter');
@@ -354,6 +355,16 @@ const PropertyAdminDashboard = () => {
                                     }`}
                             >
                                 <Fuel className="w-4 h-4" />
+                                Diesel Logger
+                            </button>
+                            <button
+                                onClick={() => handleTabChange('diesel_analytics')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'diesel_analytics'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Fuel className="w-4 h-4" />
                                 Diesel Analytics
                             </button>
                             <button
@@ -464,7 +475,7 @@ const PropertyAdminDashboard = () => {
                                 <Menu className="w-6 h-6" />
                             </button>
                             <div>
-                                <h1 className="text-2xl md:text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab}</h1>
+                                <h1 className="text-2xl md:text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab.replace(/_/g, ' ')}</h1>
                                 <p className="text-text-tertiary text-xs md:text-sm font-medium mt-0.5">{property?.address || 'Property Management Hub'}</p>
                             </div>
                         </div>
@@ -546,7 +557,7 @@ const PropertyAdminDashboard = () => {
                             <VMSAdminDashboard propertyId={property.id} />
                         )}
                         {activeTab === 'rooms' && property && (
-                            <AdminRoomManager propertyId={property.id} />
+                            <AdminRoomManager propertyId={property.id} user={user} />
                         )}
                         {activeTab === 'units' && (
                             <div className="p-12 text-center text-slate-400 font-bold italic bg-white rounded-3xl border border-slate-100 shadow-sm">
@@ -555,7 +566,8 @@ const PropertyAdminDashboard = () => {
                                 <p className="text-slate-500 font-inter not-italic font-medium">Unit inventory management loading...</p>
                             </div>
                         )}
-                        {activeTab === 'diesel' && <DieselAnalyticsDashboard />}
+                        {activeTab === 'diesel' && property && <DieselStaffDashboard propertyId={property.id} />}
+                        {activeTab === 'diesel_analytics' && <DieselAnalyticsDashboard />}
                         {activeTab === 'electricity' && property && <ElectricityStaffDashboard propertyId={property.id} />}
                         {activeTab === 'electricity_analytics' && property && <ElectricityAnalyticsDashboard propertyId={property.id} />}
                         {activeTab === 'settings' && <SettingsView />}
@@ -728,8 +740,9 @@ const OverviewTab = memo(function OverviewTab({
     const lastFetchKey = useRef('');
 
     // Stats State initialized from cache if available
-    const [ticketStats, setTicketStats] = useState(initialCached?.ticketStats || { total: 0, open: 0, in_progress: 0, resolved: 0, sla_breached: 0, avg_resolution_hours: 0 });
-    const [dieselStats, setDieselStats] = useState(initialCached?.dieselStats || { total_consumption: 0, change_percentage: 0, tank_capacity: 1000 });
+    const [ticketStats, setTicketStats] = useState(initialCached?.ticketStats || { total: 0, open: 0, waitlist: 0, in_progress: 0, resolved: 0, sla_breached: 0, avg_resolution_hours: 0 });
+    const [electricityStats, setElectricityStats] = useState(initialCached?.electricityStats || { total_units_month: 0, total_units_today: 0 });
+    const [electricityPeriod, setElectricityPeriod] = useState<'today' | 'month'>(initialCached?.electricityPeriod || 'month');
     const [vmsStats, setVmsStats] = useState(initialCached?.vmsStats || { total_visitors_today: 0, checked_in: 0, checked_out: 0 });
     const [vendorStats, setVendorStats] = useState(initialCached?.vendorStats || { total_revenue: 0, total_commission: 0, total_vendors: 0 });
     const [recentTickets, setRecentTickets] = useState<any[]>(initialCached?.recentTickets || []);
@@ -751,7 +764,8 @@ const OverviewTab = memo(function OverviewTab({
                 if (Date.now() - (cached.timestamp || 0) < 2 * 60 * 1000) {
                     setTicketStats(cached.ticketStats);
                     setRecentTickets(cached.recentTickets);
-                    setDieselStats(cached.dieselStats);
+                    setElectricityStats(cached.electricityStats);
+                    setElectricityPeriod(cached.electricityPeriod || 'month');
                     setVmsStats(cached.vmsStats);
                     setVendorStats(cached.vendorStats);
                     setIsLoading(false);
@@ -767,8 +781,9 @@ const OverviewTab = memo(function OverviewTab({
 
             try {
                 // --- Tickets (all in parallel) ---
-                const [openRes, inProgressRes, resolvedRes, totalRes, recentsRes] = await Promise.all([
+                const [openRes, waitlistRes, inProgressRes, resolvedRes, totalRes, recentsRes] = await Promise.all([
                     supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).in('status', ['open', 'waitlist', 'blocked']),
+                    supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).in('status', ['waitlist']),
                     supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).in('status', ['assigned', 'in_progress', 'paused', 'work_started']),
                     supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).in('status', ['resolved', 'closed']),
                     supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('property_id', propertyId),
@@ -779,16 +794,15 @@ const OverviewTab = memo(function OverviewTab({
                 const today = new Date().toISOString().split('T')[0];
                 const monthStart = new Date(new Date().setDate(1)).toISOString().split('T')[0];
 
-                const [dieselRes, genRes, vmsRes, vendorRes] = await Promise.all([
-                    supabase.from('diesel_readings').select('computed_consumed_litres').eq('property_id', propertyId).gte('reading_date', monthStart),
-                    supabase.from('generators').select('tank_capacity_litres').eq('property_id', propertyId),
+                const [electricityRes, vmsRes, vendorRes] = await Promise.all([
+                    supabase.from('electricity_readings').select('computed_units, reading_date').eq('property_id', propertyId).gte('reading_date', monthStart),
                     supabase.from('visitor_logs').select('status').eq('property_id', propertyId).gte('checkin_time', today),
                     supabase.from('vendors').select('id, commission_rate, vendor_daily_revenue(revenue_amount, revenue_date)').eq('property_id', propertyId),
                 ]);
 
-                // Process diesel
-                const totalDiesel = dieselRes.data?.reduce((acc: number, r: any) => acc + (r.computed_consumed_litres || 0), 0) || 0;
-                const totalCapacity = genRes.data?.reduce((acc: number, g: any) => acc + (g.tank_capacity_litres || 1000), 0) || 1000;
+                // Process electricity
+                const monthUnits = electricityRes.data?.reduce((acc: number, r: any) => acc + (r.computed_units || 0), 0) || 0;
+                const todayUnits = electricityRes.data?.filter((r: any) => r.reading_date === today).reduce((acc: number, r: any) => acc + (r.computed_units || 0), 0) || 0;
 
                 // Process VMS
                 const checkedInCount = vmsRes.data?.filter((v: any) => v.status === 'checked_in').length || 0;
@@ -808,13 +822,15 @@ const OverviewTab = memo(function OverviewTab({
                     ticketStats: {
                         total: totalRes.count || 0,
                         open: openRes.count || 0,
+                        waitlist: waitlistRes.count || 0,
                         in_progress: inProgressRes.count || 0,
                         resolved: resolvedRes.count || 0,
                         sla_breached: 0,
                         avg_resolution_hours: 0
                     },
                     recentTickets: recentsRes.data || [],
-                    dieselStats: { total_consumption: totalDiesel, change_percentage: 0, tank_capacity: totalCapacity },
+                    electricityStats: { total_units_month: Math.round(monthUnits), total_units_today: Math.round(todayUnits) },
+                    electricityPeriod: electricityPeriod,
                     vmsStats: { total_visitors_today: vmsRes.data?.length || 0, checked_in: checkedInCount, checked_out: checkedOutCount },
                     vendorStats: { total_revenue: totalRev, total_commission: totalComm, total_vendors: vendorRes.data?.length || 0 },
                     timestamp: Date.now()
@@ -822,7 +838,7 @@ const OverviewTab = memo(function OverviewTab({
 
                 setTicketStats(result.ticketStats);
                 setRecentTickets(result.recentTickets);
-                setDieselStats(result.dieselStats);
+                setElectricityStats(result.electricityStats);
                 setVmsStats(result.vmsStats);
                 setVendorStats(result.vendorStats);
                 setCachedData(fetchKey, result);
@@ -880,18 +896,8 @@ const OverviewTab = memo(function OverviewTab({
                         </button>
                         <h1 className="text-2xl md:text-3xl font-black text-white">Unified Dashboard</h1>
                     </div>
-                    <div className="flex gap-4">
-                        <button
-                            onClick={() => { onRefresh(); setIsLoading(true); }}
-                            disabled={isLoading}
-                            className={`p-2.5 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all shadow-sm relative ${isLoading && !initialCached ? 'animate-pulse' : ''}`}
-                        >
-                            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                            {isLoading && !initialCached && (
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-info rounded-full animate-ping" />
-                            )}
-                        </button>
-                    </div>
+
+
                 </div>
                 <div className="flex items-center gap-2 mb-5">
                     <span className="text-white text-sm font-bold">Dashboard / {property?.name || 'Property'}</span>
@@ -909,6 +915,20 @@ const OverviewTab = memo(function OverviewTab({
                             {ticketStats.sla_breached > 0 && (
                                 <span className="text-[10px] text-rose-500 font-bold uppercase">{ticketStats.sla_breached} SLA breached</span>
                             )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-500">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-1"></span>
+                                {ticketStats.open - ticketStats.waitlist} Open
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1"></span>
+                                {ticketStats.waitlist} Waitlist
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1"></span>
+                                {ticketStats.in_progress} In Progress
+                            </span>
                         </div>
                     </div>
                     <div
@@ -940,13 +960,76 @@ const OverviewTab = memo(function OverviewTab({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                     {/* Left Column */}
                     <div className="lg:col-span-3 space-y-5">
-                        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-900 mb-2">Diesel Consumption</h3>
-                            <div className="text-primary text-xs font-bold mb-4 flex items-center gap-2"><span className="w-2 h-2 bg-primary rounded-full animate-pulse" />Real-time Tank Status</div>
-                            <div className="flex justify-center my-6"><DieselSphere percentage={Math.min(100, (dieselStats.total_consumption / (dieselStats as any).tank_capacity) * 100)} /></div>
-                            <div className="space-y-1">
-                                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total consumption</div>
-                                <div className="text-3xl font-black text-slate-900 flex items-baseline gap-1">{dieselStats.total_consumption.toLocaleString()}<span className="text-sm text-slate-400 font-bold">L</span></div>
+                        <div
+                            className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-yellow-300/50 transition-all group relative overflow-hidden"
+                        >
+                            <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-sm font-black text-slate-900">Electricity</h3>
+                                <div className="flex items-center bg-slate-100/70 p-0.5 rounded-xl shrink-0">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setElectricityPeriod('today');
+                                        }}
+                                        className={`px-2 py-1 text-[8px] font-black uppercase tracking-tight rounded-md transition-all ${electricityPeriod === 'today'
+                                            ? 'bg-white text-yellow-600 shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-600'
+                                            }`}
+                                    >
+                                        Today
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setElectricityPeriod('month');
+                                        }}
+                                        className={`px-2 py-1 text-[8px] font-black uppercase tracking-tight rounded-md transition-all ${electricityPeriod === 'month'
+                                            ? 'bg-white text-yellow-600 shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-600'
+                                            }`}
+                                    >
+                                        Month
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="text-yellow-600 text-xs font-bold mb-4 flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full animate-pulse ${electricityPeriod === 'today' ? 'bg-blue-400' : 'bg-yellow-500'}`} />
+                                {electricityPeriod === 'today' ? 'Today' : 'This Month'}
+                            </div>
+                            <div className="flex justify-center my-4" onClick={() => onTabChange('electricity_analytics' as any)}>
+                                <div className="relative w-[140px] h-[140px] cursor-pointer">
+                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                                        <circle cx="60" cy="60" r="52" fill="none" stroke="#f1f5f9" strokeWidth="10" />
+                                        <circle
+                                            cx="60" cy="60" r="52" fill="none"
+                                            stroke="url(#propElecGrad)" strokeWidth="10" strokeLinecap="round"
+                                            strokeDasharray={`${Math.min(326, ((electricityPeriod === 'today' ? electricityStats.total_units_today : electricityStats.total_units_month) / (electricityPeriod === 'today' ? 100 : 1000)) * 326)} 326`}
+                                        />
+                                        <defs>
+                                            <linearGradient id="propElecGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stopColor="#facc15" />
+                                                <stop offset="100%" stopColor="#f59e0b" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <Zap className="w-5 h-5 text-yellow-500 mb-1" />
+                                        <span className="text-xl font-black text-slate-900">
+                                            {(electricityPeriod === 'today' ? electricityStats.total_units_today : electricityStats.total_units_month).toLocaleString()}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">kVAh</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-1" onClick={() => onTabChange('electricity_analytics' as any)}>
+                                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Units Consumed</div>
+                                <div className="text-3xl font-black text-slate-900 flex items-baseline gap-1">
+                                    {(electricityPeriod === 'today' ? electricityStats.total_units_today : electricityStats.total_units_month).toLocaleString()}
+                                    <span className="text-sm text-slate-400 font-bold">kVAh</span>
+                                </div>
+                                <div className="pt-2 border-t border-slate-50 mt-2">
+                                    <span className="text-[10px] font-bold text-yellow-600 uppercase group-hover:underline cursor-pointer">View Analytics →</span>
+                                </div>
                             </div>
                         </div>
                         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
@@ -1011,7 +1094,7 @@ const OverviewTab = memo(function OverviewTab({
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-4 bg-blue-50 rounded-xl"><div className="text-xs font-bold text-blue-600 mb-1">Tickets</div><div className="text-2xl font-black text-blue-900">{ticketStats.total}</div></div>
                                 <div className="p-4 bg-emerald-50 rounded-xl"><div className="text-xs font-bold text-emerald-600 mb-1">Visitors</div><div className="text-2xl font-black text-emerald-900">{vmsStats.total_visitors_today}</div></div>
-                                <div className="p-4 bg-primary/5 rounded-xl"><div className="text-xs font-bold text-primary mb-1">Diesel (L)</div><div className="text-2xl font-black text-slate-900">{dieselStats.total_consumption}</div></div>
+                                <div className="p-4 bg-yellow-50 rounded-xl"><div className="text-xs font-bold text-yellow-600 mb-1">Electricity ({electricityPeriod === 'today' ? 'Today' : 'Month'})</div><div className="text-2xl font-black text-slate-900">{(electricityPeriod === 'today' ? electricityStats.total_units_today : electricityStats.total_units_month).toLocaleString()}</div></div>
                                 <div className="p-4 bg-purple-50 rounded-xl"><div className="text-xs font-bold text-purple-600 mb-1">Vendors</div><div className="text-2xl font-black text-purple-900">{vendorStats.total_vendors}</div></div>
                             </div>
                         </div>

@@ -60,7 +60,7 @@ const VendorExportModal: React.FC<VendorExportModalProps> = ({
                     className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
                 >
                     {/* Header */}
-                    <div className="p-6 border-b border-slate-100">
+                    <div className="p-4 sm:p-6 border-b border-slate-100">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
@@ -78,7 +78,7 @@ const VendorExportModal: React.FC<VendorExportModalProps> = ({
                     </div>
 
                     {/* Body */}
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 sm:p-6 space-y-6">
                         {/* Date Range Selection */}
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
@@ -122,7 +122,7 @@ const VendorExportModal: React.FC<VendorExportModalProps> = ({
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="grid grid-cols-2 gap-4"
+                                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                                 >
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -181,7 +181,7 @@ const VendorExportModal: React.FC<VendorExportModalProps> = ({
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-slate-100 flex gap-3">
+                    <div className="p-4 sm:p-6 border-t border-slate-100 flex gap-3">
                         <button
                             onClick={onClose}
                             className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-colors"

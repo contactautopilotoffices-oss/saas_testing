@@ -52,6 +52,31 @@ export async function POST(
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Record initial setup reading in history
+    if (body.initial_kwh_reading > 0 || body.initial_run_hours > 0 || body.initial_diesel_level > 0) {
+        const { error: readingError } = await supabase
+            .from('diesel_readings')
+            .insert({
+                property_id: propertyId,
+                generator_id: data.id,
+                reading_date: body.effective_from_date || new Date().toISOString().split('T')[0],
+                opening_hours: 0,
+                closing_hours: body.initial_run_hours || 0,
+                opening_kwh: 0,
+                closing_kwh: body.initial_kwh_reading || 0,
+                opening_diesel_level: 0,
+                closing_diesel_level: body.initial_diesel_level || 0,
+                diesel_added_litres: 0,
+                computed_consumed_litres: body.initial_diesel_level || 0, // Baseline "consumed" up to now
+                notes: 'Initial setup reading',
+                created_by: (await supabase.auth.getUser()).data.user?.id
+            });
+
+        if (readingError) {
+            console.error('[Generators] Error recording initial setup reading:', readingError.message);
+        }
+    }
+
     return NextResponse.json(data, { status: 201 });
 }
 

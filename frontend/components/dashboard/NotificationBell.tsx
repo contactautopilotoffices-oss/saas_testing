@@ -148,12 +148,11 @@ export default function NotificationBell({ align = 'right' }: NotificationBellPr
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 rounded-xl border border-border bg-white text-text-tertiary hover:text-text-primary hover:border-primary/20 transition-all group"
+                className="relative p-2 text-slate-600 hover:text-primary transition-all group flex items-center justify-center min-w-[44px] min-h-[44px]"
             >
                 <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'animate-wiggle' : ''}`} />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-black text-white border-2 border-white shadow-sm shadow-primary/40">
-                        {unreadCount > 9 ? '9+' : unreadCount}
+                    <span className="absolute top-1 right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-rose-500 border-2 border-white shadow-sm">
                     </span>
                 )}
             </button>
@@ -220,14 +219,6 @@ export default function NotificationBell({ align = 'right' }: NotificationBellPr
                             )}
                         </div>
 
-                        <div className="p-4 border-t border-gray-100 bg-gray-50/50 text-center sticky bottom-0 backdrop-blur-sm">
-                            <button
-                                onClick={() => { setIsOpen(false); router.push('/notifications'); }}
-                                className="text-[13px] font-semibold text-gray-500 hover:text-primary transition-colors hover:bg-gray-100 px-4 py-2 rounded-lg w-full"
-                            >
-                                View All Activity
-                            </button>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

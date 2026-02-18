@@ -5,6 +5,7 @@ import { Plus, Loader2, Search, Filter, Calendar as CalendarIcon, LayoutGrid } f
 import RoomCard from './RoomCard';
 import RoomFormModal from './RoomFormModal';
 import AdminBookingList from './AdminBookingList';
+import TenantRoomBooking from './TenantRoomBooking';
 
 interface Room {
     id: string;
@@ -19,14 +20,15 @@ interface Room {
 
 interface AdminRoomManagerProps {
     propertyId: string;
+    user?: any;
 }
 
-const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({ propertyId }) => {
+const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({ propertyId, user }) => {
     const [rooms, setRooms] = useState<Room[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [activeTab, setActiveTab] = useState<'rooms' | 'bookings'>('rooms');
+    const [activeTab, setActiveTab] = useState<'rooms' | 'bookings' | 'book'>('rooms');
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -81,39 +83,47 @@ const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({ propertyId }) => {
     });
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="px-4 md:px-0 space-y-4 md:space-y-8 animate-in fade-in duration-500 pb-10">
             {/* Header / Actions */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm">
                 <div className="flex flex-col gap-4 w-full md:w-auto">
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Meeting Room Assets</h2>
-                        <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Manage and monitor conference facilities</p>
+                        <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Meeting Room Assets</h2>
+                        <p className="text-slate-500 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-1">Manage and monitor conference facilities</p>
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex bg-slate-50 p-1.5 rounded-2xl w-fit">
+                    <div className="grid grid-cols-3 md:flex bg-slate-50 p-1 md:p-1.5 rounded-xl md:rounded-2xl w-full md:w-fit">
                         <button
                             onClick={() => setActiveTab('rooms')}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'rooms' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                            className={`flex flex-1 items-center justify-center gap-0.5 md:gap-2 px-0.5 md:px-6 py-2 rounded-lg md:rounded-xl text-[6.5px] md:text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'rooms' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                                 }`}
                         >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                            Assets
+                            <LayoutGrid className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
+                            <span className="truncate">Assets</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('bookings')}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'bookings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                            className={`flex flex-1 items-center justify-center gap-0.5 md:gap-2 px-0.5 md:px-6 py-2 rounded-lg md:rounded-xl text-[6.5px] md:text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'bookings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                                 }`}
                         >
-                            <CalendarIcon className="w-3.5 h-3.5" />
-                            Bookings
+                            <CalendarIcon className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
+                            <span className="truncate">Bookings</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('book')}
+                            className={`flex flex-1 items-center justify-center gap-0.5 md:gap-2 px-0.5 md:px-6 py-2 rounded-lg md:rounded-xl text-[6.5px] md:text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'book' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                        >
+                            <Plus className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
+                            <span className="truncate">Book Now</span>
                         </button>
                     </div>
                 </div>
 
                 {activeTab === 'rooms' && (
                     <button
-                        className="px-8 py-4 bg-primary text-white font-black text-xs rounded-2xl uppercase tracking-[0.2em] hover:opacity-95 hover:scale-105 transition-all flex items-center gap-3 shadow-xl shadow-primary/20"
+                        className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-primary text-white font-black text-xs rounded-xl md:rounded-2xl uppercase tracking-[0.2em] hover:opacity-95 hover:scale-105 transition-all flex items-center justify-center gap-3 shadow-xl shadow-primary/20"
                         onClick={handleAdd}
                     >
                         <Plus className="w-4 h-4" />
@@ -125,23 +135,23 @@ const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({ propertyId }) => {
             {activeTab === 'rooms' ? (
                 <>
                     {/* Filters */}
-                    <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex flex-col md:flex-row gap-3 md:gap-4">
                         <div className="flex-1 relative group">
-                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                            <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                             <input
                                 type="text"
                                 placeholder="Search by name or location..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all shadow-sm"
+                                className="w-full pl-12 md:pl-14 pr-4 md:pr-6 py-3.5 md:py-4 bg-white border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all shadow-sm outline-none"
                             />
                         </div>
-                        <div className="flex items-center gap-2 bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <Filter className="w-4 h-4 text-slate-400" />
+                        <div className="flex items-center gap-2 bg-white px-4 md:px-6 py-3.5 md:py-4 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm overflow-hidden min-w-[140px] md:min-w-[160px]">
+                            <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer uppercase tracking-widest"
+                                className="bg-transparent text-[11px] md:text-sm font-black text-slate-700 focus:outline-none cursor-pointer uppercase tracking-widest w-full appearance-none outline-none"
                             >
                                 <option value="all">All Status</option>
                                 <option value="active">Active Only</option>
@@ -152,21 +162,21 @@ const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({ propertyId }) => {
 
                     {/* Grid */}
                     {isLoading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="h-[450px] bg-slate-50 rounded-[2.5rem] animate-pulse border border-slate-100" />
+                                <div key={i} className="h-[450px] bg-slate-50 rounded-[1.5rem] md:rounded-[2.5rem] animate-pulse border border-slate-100" />
                             ))}
                         </div>
                     ) : filteredRooms.length === 0 ? (
-                        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] p-24 text-center">
-                            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
-                                <Plus className="w-10 h-10 text-slate-200" />
+                        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] md:rounded-[3rem] p-12 md:p-24 text-center">
+                            <div className="w-16 h-16 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-sm">
+                                <Plus className="w-8 h-8 md:w-10 md:h-10 text-slate-200" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">No meeting rooms found</h3>
-                            <p className="text-slate-500 max-w-sm mx-auto font-medium">Start by adding your first meeting room to allow tenants to make bookings.</p>
+                            <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-2">No meeting rooms found</h3>
+                            <p className="text-slate-500 max-w-sm mx-auto font-medium text-sm">Start by adding your first meeting room to allow tenants to make bookings.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                             {filteredRooms.map(room => (
                                 <RoomCard
                                     key={room.id}
@@ -179,8 +189,10 @@ const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({ propertyId }) => {
                         </div>
                     )}
                 </>
-            ) : (
+            ) : activeTab === 'bookings' ? (
                 <AdminBookingList propertyId={propertyId} />
+            ) : (
+                <TenantRoomBooking propertyId={propertyId} user={user} hideHeader={true} />
             )}
 
             <RoomFormModal

@@ -28,6 +28,7 @@ interface DieselReading {
     computed_consumed_litres: number;
     computed_cost: number;
     tariff_rate: number;
+    tariff_rate_used?: number; // Backend field
     generator: { name: string; capacity_kva?: number };
 }
 
@@ -98,11 +99,19 @@ const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ pro
             // 3. Current Tariff (Property required for specific tariff, or find first available)
             const today = new Date().toISOString().split('T')[0];
             if (propertyId && propertyId !== 'undefined' && Array.isArray(gens) && gens.length > 0) {
-                const tariffRes = await fetch(`/api/properties/${propertyId}/dg-tariffs?generator_id=${gens[0].id}&date=${today}`);
-                if (tariffRes.ok) {
-                    const t = await tariffRes.json();
-                    setActiveTariff(t?.rate_per_litre || 0);
+                let tariffFound = false;
+                for (const gen of gens) {
+                    const tariffRes = await fetch(`/api/properties/${propertyId}/dg-tariffs?generatorId=${gen.id}&date=${today}`);
+                    if (tariffRes.ok) {
+                        const t = await tariffRes.json();
+                        if (t && t.cost_per_litre) {
+                            setActiveTariff(t.cost_per_litre);
+                            tariffFound = true;
+                            break;
+                        }
+                    }
                 }
+                if (!tariffFound) setActiveTariff(0);
             }
 
             // 4. Readings (Batch or separate)
@@ -147,8 +156,9 @@ const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ pro
         const calc = (readings: DieselReading[]) => {
             return readings.filter(filterFn).reduce((acc, r) => {
                 let cost = r.computed_cost || 0;
-                if (cost === 0 && activeTariff > 0) {
-                    cost = (r.computed_consumed_litres || 0) * activeTariff;
+                let rate = r.tariff_rate || r.tariff_rate_used || activeTariff || 0;
+                if (cost === 0 && rate > 0) {
+                    cost = (r.computed_consumed_litres || 0) * rate;
                 }
                 return {
                     cost: acc.cost + cost,
@@ -196,8 +206,9 @@ const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ pro
             const dayReadings = relevantReadings.filter(r => r.reading_date === dateStr);
             const dayTotals = dayReadings.reduce((acc, r) => {
                 let cost = r.computed_cost || 0;
-                if (cost === 0 && activeTariff > 0) {
-                    cost = (r.computed_consumed_litres || 0) * activeTariff;
+                let rate = r.tariff_rate || r.tariff_rate_used || activeTariff || 0;
+                if (cost === 0 && rate > 0) {
+                    cost = (r.computed_consumed_litres || 0) * rate;
                 }
                 return {
                     cost: acc.cost + cost,
@@ -222,7 +233,98 @@ const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ pro
     const displayCost = costTimeframe === 'today' ? metrics.today.cost : metrics.month.cost;
     const displayLitres = litresTimeframe === 'today' ? metrics.today.litres : metrics.month.litres;
 
-    if (isLoading) return <div className="p-12 text-center text-slate-500">Loading Analytics...</div>;
+    if (isLoading) return (
+        <div className="space-y-8 animate-pulse">
+            {/* Skeleton Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <div className="h-8 w-56 bg-slate-200 rounded-lg" />
+                    <div className="flex items-center gap-3 mt-3">
+                        <div className="h-5 w-36 bg-slate-200 rounded-full" />
+                        <div className="h-4 w-40 bg-slate-100 rounded" />
+                    </div>
+                </div>
+                <div className="h-9 w-48 bg-slate-200 rounded-lg" />
+            </div>
+
+            {/* Skeleton 3-Tile Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Tile 1: Cost Skeleton */}
+                <div className="bg-[#ecfdf5] rounded-2xl p-6 border border-emerald-100">
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-emerald-100 rounded-full" />
+                            <div className="space-y-1.5">
+                                <div className="h-3 w-16 bg-emerald-100 rounded" />
+                                <div className="h-3 w-12 bg-emerald-100 rounded" />
+                            </div>
+                        </div>
+                        <div className="h-7 w-28 bg-emerald-100/50 rounded-lg" />
+                    </div>
+                    <div className="h-8 w-32 bg-emerald-200/50 rounded-lg mt-4" />
+                    <div className="h-1.5 w-12 bg-emerald-200 rounded-full mt-4 mb-4" />
+                    <div className="h-3 w-24 bg-emerald-100 rounded mt-2" />
+                </div>
+
+                {/* Tile 2: Litres Skeleton */}
+                <div className="bg-[#fffbeb] rounded-2xl p-6 border border-amber-100">
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-amber-100 rounded-full" />
+                            <div className="space-y-1.5">
+                                <div className="h-3 w-16 bg-amber-100 rounded" />
+                                <div className="h-3 w-20 bg-amber-100 rounded" />
+                            </div>
+                        </div>
+                        <div className="h-7 w-28 bg-amber-100/50 rounded-lg" />
+                    </div>
+                    <div className="h-8 w-36 bg-amber-200/50 rounded-lg mt-4" />
+                    <div className="h-1.5 w-12 bg-amber-200 rounded-full mt-4 mb-4" />
+                    <div className="h-3 w-28 bg-amber-100 rounded mt-2" />
+                </div>
+
+                {/* Tile 3: Averages Skeleton */}
+                <div className="bg-[#fff7ed] rounded-2xl p-6 border border-orange-100">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full" />
+                        <div className="space-y-1.5">
+                            <div className="h-3 w-14 bg-orange-100 rounded" />
+                            <div className="h-3 w-18 bg-orange-100 rounded" />
+                        </div>
+                    </div>
+                    <div className="space-y-5">
+                        <div>
+                            <div className="h-7 w-24 bg-orange-200/50 rounded-lg" />
+                            <div className="h-1 w-8 bg-orange-200 rounded-full mt-2" />
+                        </div>
+                        <div>
+                            <div className="h-6 w-28 bg-orange-200/40 rounded-lg" />
+                            <div className="h-1 w-8 bg-orange-200 rounded-full mt-2" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Skeleton Trends Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <div className="h-5 w-44 bg-slate-200 rounded" />
+                        <div className="h-4 w-56 bg-slate-100 rounded mt-2" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="h-8 w-32 bg-slate-100 rounded-lg" />
+                        <div className="h-8 w-28 bg-slate-100 rounded-lg" />
+                    </div>
+                </div>
+                <div className="h-[300px] w-full flex items-end gap-2 px-4">
+                    {[40, 65, 35, 80, 55, 70, 45].map((h, i) => (
+                        <div key={i} className="flex-1 bg-slate-100 rounded-t-md" style={{ height: `${h}%` }} />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -507,7 +609,7 @@ const DieselAnalyticsDashboard: React.FC<DieselAnalyticsDashboardProps> = ({ pro
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="h-full w-full max-w-2xl bg-white shadow-2xl overflow-y-auto"
+                            className="h-full w-full max-w-4xl bg-white shadow-2xl overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="absolute top-4 right-4 z-10">

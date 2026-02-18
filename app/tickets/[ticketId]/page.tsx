@@ -113,7 +113,7 @@ export default function TicketDetailPage() {
     // Reassign State
     const [resolvers, setResolvers] = useState<any[]>([]);
     const [showAssignModal, setShowAssignModal] = useState(false);
-    const [selectedResolver, setSelectedResolver] = useState('');
+    const [selectedResolver, setSelectedResolver] = useState<string>('');
 
     // Creator Role State
     const [creatorRole, setCreatorRole] = useState<string>('Tenant');
@@ -129,6 +129,7 @@ export default function TicketDetailPage() {
     const [isUpdatingContent, setIsUpdatingContent] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [userSkills, setUserSkills] = useState<string[]>([]);
+    const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
 
     // Camera Modal State
     const [showCameraModal, setShowCameraModal] = useState(false);
@@ -290,7 +291,38 @@ export default function TicketDetailPage() {
             .select('*, user:user_id(full_name)')
             .eq('ticket_id', ticketId)
             .order('created_at', { ascending: false });
-        setActivities(data || []);
+
+        if (data) {
+            setActivities(data);
+
+            // Resolve names for UUIDs in new_value/old_value
+            const idsToResolve = new Set<string>();
+            data.forEach(act => {
+                if (act.action === 'assigned' || act.action === 'reassigned') {
+                    if (act.new_value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(act.new_value)) {
+                        idsToResolve.add(act.new_value);
+                    }
+                    if (act.old_value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(act.old_value)) {
+                        idsToResolve.add(act.old_value);
+                    }
+                }
+            });
+
+            if (idsToResolve.size > 0) {
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('id, full_name')
+                    .in('id', Array.from(idsToResolve));
+
+                if (users) {
+                    const newMap = { ...userNameMap };
+                    users.forEach(u => {
+                        newMap[u.id] = u.full_name;
+                    });
+                    setUserNameMap(newMap);
+                }
+            }
+        }
     };
 
     const fetchComments = async () => {
@@ -303,20 +335,35 @@ export default function TicketDetailPage() {
     };
 
     const fetchResolvers = async (propId: string) => {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('resolver_stats')
-            .select('*, user:user_id(full_name)')
-            .eq('property_id', propId);
+            .select(`
+                user_id,
+                user:users!user_id(id, full_name)
+            `)
+            .eq('property_id', propId)
+            .eq('is_available', true);
+
+        if (error) {
+            console.error('Error fetching resolvers:', error);
+            return;
+        }
 
         if (data) {
             const unique = [];
             const seen = new Set();
             for (const r of data) {
-                if (!seen.has(r.user_id)) {
+                if (r.user && !seen.has(r.user_id)) {
                     seen.add(r.user_id);
                     unique.push(r);
                 }
             }
+            // Sort unique list alphabetically by full_name
+            unique.sort((a: any, b: any) => {
+                const nameA = a.user?.full_name || '';
+                const nameB = b.user?.full_name || '';
+                return nameA.localeCompare(nameB);
+            });
             setResolvers(unique);
         } else {
             setResolvers([]);
@@ -459,10 +506,14 @@ export default function TicketDetailPage() {
     const handleReassign = async () => {
         if (!selectedResolver) return;
         try {
-            const res = await fetch(`/api/tickets/${ticketId}`, {
-                method: 'PATCH',
+            const res = await fetch(`/api/tickets/reassign`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assigned_to: selectedResolver })
+                body: JSON.stringify({
+                    ticketId,
+                    newAssigneeId: selectedResolver,
+                    forceAssign: true
+                })
             });
 
             if (!res.ok) {
@@ -667,11 +718,11 @@ export default function TicketDetailPage() {
         }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div></div>;
+    if (loading || isDeleting) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div></div>;
     if (!ticket) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-bold">Ticket not found</div>;
 
-    const isAssignedToMe = userId === ticket.assigned_to;
-    const isOwner = userId === ticket.raised_by;
+    const isAssignedToMe = userId === ticket?.assigned_to;
+    const isOwner = userId === ticket?.raised_by;
     const canManage = userRole === 'admin';
     const canWork = (userRole === 'staff' || userRole === 'mst') && isAssignedToMe;
     const isSpecializedStaff = userRole === 'staff' && (userSkills.includes('soft_service') || userSkills.includes('technical') || userSkills.includes('bms'));
@@ -828,6 +879,15 @@ export default function TicketDetailPage() {
                                 className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200"
                             >
                                 <PlayCircle className="w-4 h-4" /> Start Work
+                            </button>
+                        )}
+                        {/* New Reassign button for MST - and Staff/Resolvers too if needed, but user specifically asked for MST */}
+                        {(userRole === 'mst' || userRole === 'staff') && (
+                            <button
+                                onClick={() => setShowAssignModal(true)}
+                                className={`flex items-center gap-2 px-4 py-2 ${isDark ? 'bg-[#21262d] border-[#30363d] text-slate-300 hover:bg-[#30363d]' : 'bg-slate-100 border-slate-100 text-slate-600 hover:bg-slate-200'} border rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
+                            >
+                                <User className="w-4 h-4" /> Reassign
                             </button>
                         )}
                         {/* Complete Task button: ONLY show if work is IN PROGRESS */}
@@ -1097,6 +1157,8 @@ export default function TicketDetailPage() {
                             </div>
                         </div>
 
+
+
                         {/* 3. Activity Timeline (Progress) */}
                         <div className={`${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-100'} p-6 rounded-3xl border shadow-sm`}>
                             <h3 className={`text-sm font-black ${isDark ? 'text-white' : 'text-slate-900'} mb-8 flex items-center gap-2`}>
@@ -1114,17 +1176,27 @@ export default function TicketDetailPage() {
                                     <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>System generated unique ID: {ticket.ticket_number}</p>
                                 </div>
 
-                                {/* 2. Assigned */}
-                                <div className="relative pl-12">
-                                    <div className={`absolute left-0 top-0 mt-0.5 z-10 w-8 h-8 rounded-full flex items-center justify-center ring-4 ${isDark ? 'ring-[#161b22]' : 'ring-white'} shadow-lg ${ticket.assigned_at ? 'bg-success text-white shadow-success/20' : (isDark ? 'bg-[#21262d] text-slate-600' : 'bg-slate-100 text-slate-400')}`}>
-                                        {ticket.assigned_at ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                                    </div>
-                                    <p className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'} mb-1`}>{ticket.assigned_at ? new Date(ticket.assigned_at).toLocaleString() : 'PENDING'}</p>
-                                    <p className={`text-sm font-bold ${ticket.assigned_at ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-slate-700' : 'text-slate-300')}`}>Assigned</p>
-                                    {ticket.assignee && (
-                                        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Assigned to {ticket.assignee.full_name}</p>
-                                    )}
-                                </div>
+                                {/* Reassignment & Assignment History */}
+                                {activities
+                                    .filter(a => a.action === 'reassigned' || a.action === 'assigned')
+                                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                                    .map((act) => (
+                                        <div key={act.id} className="relative pl-12">
+                                            <div className={`absolute left-0 top-0 mt-0.5 z-10 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white ring-4 ${isDark ? 'ring-[#161b22]' : 'ring-white'} shadow-primary/20 shadow-lg`}>
+                                                <User className="w-4 h-4" />
+                                            </div>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'} mb-1`}>{new Date(act.created_at).toLocaleString()}</p>
+                                            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                                {act.action === 'assigned' ? 'Initial Assignment' : 'Route Changed'}
+                                            </p>
+                                            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                {act.new_value && userNameMap[act.new_value] && (
+                                                    <span className="font-bold text-primary mr-1">Assigned to {userNameMap[act.new_value]}</span>
+                                                )}
+                                                Executed by {act.user?.full_name || 'System'}
+                                            </p>
+                                        </div>
+                                    ))}
 
                                 {/* 3. Work Started */}
                                 <div className="relative pl-12">
@@ -1156,7 +1228,11 @@ export default function TicketDetailPage() {
                                             <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                                 <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-600'} leading-relaxed`}>
                                                     <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{act.user?.full_name || 'System'}:</span> {act.action.replace(/_/g, ' ')}
-                                                    {act.new_value && <span className="text-success font-bold ml-1">→ {act.new_value}</span>}
+                                                    {act.new_value && (
+                                                        <span className="text-success font-bold ml-1">
+                                                            → {userNameMap[act.new_value] || act.new_value}
+                                                        </span>
+                                                    )}
                                                 </p>
                                             </div>
                                             <span className={`text-[9px] ${isDark ? 'text-slate-600' : 'text-slate-400'} font-bold uppercase whitespace-nowrap`}>{new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -1274,7 +1350,7 @@ export default function TicketDetailPage() {
                                 <div className="space-y-3 mb-8 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {resolvers.map((r: any) => (
                                         <div
-                                            key={r.id}
+                                            key={r.user_id}
                                             onClick={() => setSelectedResolver(r.user_id)}
                                             className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedResolver === r.user_id ? 'bg-primary/10 border-primary text-white' : (isDark ? 'bg-[#0d1117] border-[#30363d] text-slate-400 hover:border-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300')}`}
                                         >

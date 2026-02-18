@@ -14,6 +14,7 @@ import { HapticCard } from '@/frontend/components/ui/HapticCard';
 import UserDirectory from './UserDirectory';
 import SignOutModal from '@/frontend/components/ui/SignOutModal';
 import AdminSPOCDashboard from '../tickets/AdminSPOCDashboard';
+import TicketsView from './TicketsView';
 import SettingsView from './SettingsView';
 import DieselAnalyticsDashboard from '../diesel/DieselAnalyticsDashboard';
 import ElectricityAnalyticsDashboard from '../electricity/ElectricityAnalyticsDashboard';
@@ -83,7 +84,20 @@ const OrgAdminDashboard = () => {
     const [userRole, setUserRole] = useState<string>('User');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [pendingStatusFilter, setPendingStatusFilter] = useState('all');
+    const [showRequestsList, setShowRequestsList] = useState(false);
     const searchParams = useSearchParams();
+
+    // Restore showRequestsList and filter from URL on mount/back navigation
+    useEffect(() => {
+        const view = searchParams.get('view');
+        setShowRequestsList(view === 'list');
+        const filter = searchParams.get('filter');
+        if (filter) {
+            setPendingStatusFilter(filter);
+        } else {
+            setPendingStatusFilter('all');
+        }
+    }, [searchParams]);
 
     // Derived state
     const activeProperty = selectedPropertyId === 'all'
@@ -380,6 +394,10 @@ const OrgAdminDashboard = () => {
             url.searchParams.set('filter', filter);
         } else {
             url.searchParams.delete('filter');
+        }
+        // Clear view param when leaving requests tab
+        if (tab !== 'requests') {
+            url.searchParams.delete('view');
         }
         window.history.pushState({}, '', url.toString());
     };
@@ -735,6 +753,30 @@ const OrgAdminDashboard = () => {
                                     </AnimatePresence>
                                 </div>
                             )}
+
+                            {/* View Requests Button — only show when requests tab is active */}
+                            {activeTab === 'requests' && (
+                                <button
+                                    onClick={() => {
+                                        const next = !showRequestsList;
+                                        setShowRequestsList(next);
+                                        const url = new URL(window.location.href);
+                                        if (next) {
+                                            url.searchParams.set('view', 'list');
+                                        } else {
+                                            url.searchParams.delete('view');
+                                        }
+                                        window.history.pushState({}, '', url.toString());
+                                    }}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm border-2 ${showRequestsList
+                                        ? 'bg-primary text-white border-primary'
+                                        : 'bg-surface-elevated text-primary border-primary/20 hover:bg-primary/5'
+                                        }`}
+                                >
+                                    <Ticket className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{showRequestsList ? 'Board View' : 'View Requests'}</span>
+                                </button>
+                            )}
                             <div className="hidden md:flex flex-col items-end">
                                 <span className="text-sm font-display font-semibold text-text-primary tracking-tight">System Status</span>
                                 <span className="text-[10px] text-primary font-bold uppercase tracking-widest">Online</span>
@@ -772,16 +814,24 @@ const OrgAdminDashboard = () => {
                         )}
                         {activeTab === 'requests' && (
                             <div className="h-full">
-                                <AdminSPOCDashboard
-                                    organizationId={org?.id || ''}
-                                    propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
-                                    propertyName={selectedPropertyId === 'all' ? 'All Properties' : activeProperty?.name}
-                                    adminUser={{
-                                        full_name: user?.user_metadata?.full_name || 'Super Admin',
-                                        avatar_url: '' // Add avatar if available
-                                    }}
-                                    initialStatusFilter={pendingStatusFilter}
-                                />
+                                {showRequestsList ? (
+                                    <TicketsView
+                                        propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
+                                        canDelete={true}
+                                        initialStatusFilter={pendingStatusFilter}
+                                    />
+                                ) : (
+                                    <AdminSPOCDashboard
+                                        organizationId={org?.id || ''}
+                                        propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
+                                        propertyName={selectedPropertyId === 'all' ? 'All Properties' : activeProperty?.name}
+                                        adminUser={{
+                                            full_name: user?.user_metadata?.full_name || 'Super Admin',
+                                            avatar_url: ''
+                                        }}
+                                        initialStatusFilter={pendingStatusFilter}
+                                    />
+                                )}
                             </div>
                         )}
 
@@ -1077,6 +1127,7 @@ const OverviewTab = memo(function OverviewTab({
     const [ticketSummary, setTicketSummary] = useState({
         total_tickets: 0,
         open_tickets: 0,
+        waitlist: 0,
         in_progress: 0,
         resolved: 0,
         sla_breached: 0,
@@ -1084,11 +1135,10 @@ const OverviewTab = memo(function OverviewTab({
         properties: [] as any[],
     });
 
-    const [dieselSummary, setDieselSummary] = useState({
-        total_consumption: 0,
-        change_percentage: 0,
+    const [electricitySummary, setElectricitySummary] = useState({
+        total_units: 0,
+        total_cost: 0,
         properties: [] as any[],
-        tank_capacity: 5000,
     });
 
     const [vmsSummary, setVmsSummary] = useState({
@@ -1115,29 +1165,39 @@ const OverviewTab = memo(function OverviewTab({
 
             try {
                 // Run ALL API calls in parallel for faster load
-                const [ticketsRes, dieselRes, vmsRes, vendorRes] = await Promise.all([
+                const monthStart = new Date(new Date().setDate(1)).toISOString().split('T')[0];
+                const todayDate = new Date().toISOString().split('T')[0];
+
+                const [ticketsRes, electricityRes, vmsRes, vendorRes] = await Promise.all([
                     fetch(`/api/organizations/${orgId}/tickets-summary?period=month`),
-                    fetch(`/api/organizations/${orgId}/diesel-summary?period=month`),
+                    fetch(`/api/organizations/${orgId}/electricity-readings?startDate=${monthStart}&endDate=${todayDate}`),
                     fetch(`/api/organizations/${orgId}/vms-summary?period=today`),
                     fetch(`/api/organizations/${orgId}/vendor-summary?period=month`),
                 ]);
 
                 // Process responses in parallel
-                const [ticketsData, dieselData, vmsData, vendorData] = await Promise.all([
+                const [ticketsData, electricityData, vmsData, vendorData] = await Promise.all([
                     ticketsRes.ok ? ticketsRes.json() : null,
-                    dieselRes.ok ? dieselRes.json() : null,
+                    electricityRes.ok ? electricityRes.json() : null,
                     vmsRes.ok ? vmsRes.json() : null,
                     vendorRes.ok ? vendorRes.json() : null,
                 ]);
 
                 if (ticketsData) setTicketSummary(ticketsData);
 
-                if (dieselData) {
-                    setDieselSummary({
-                        total_consumption: dieselData.org_summary?.total_litres || 0,
-                        change_percentage: 0,
-                        properties: dieselData.properties || [],
-                        tank_capacity: dieselData.org_summary?.total_capacity_litres || 5000,
+                if (electricityData && Array.isArray(electricityData)) {
+                    const totalUnits = electricityData.reduce((acc: number, r: any) => acc + (r.computed_units || 0), 0);
+                    const totalCost = electricityData.reduce((acc: number, r: any) => acc + (r.computed_cost || 0), 0);
+                    // Group by property for per-property breakdown
+                    const propMap: Record<string, { property_id: string; units: number }> = {};
+                    electricityData.forEach((r: any) => {
+                        if (!propMap[r.property_id]) propMap[r.property_id] = { property_id: r.property_id, units: 0 };
+                        propMap[r.property_id].units += r.computed_units || 0;
+                    });
+                    setElectricitySummary({
+                        total_units: Math.round(totalUnits),
+                        total_cost: Math.round(totalCost),
+                        properties: Object.values(propMap),
                     });
                 }
 
@@ -1180,6 +1240,7 @@ const OverviewTab = memo(function OverviewTab({
         if (!propStats) return {
             total_tickets: 0,
             open_tickets: 0,
+            waitlist: 0,
             in_progress: 0,
             resolved: 0,
             sla_breached: 0,
@@ -1190,6 +1251,7 @@ const OverviewTab = memo(function OverviewTab({
         return {
             total_tickets: propStats.total,
             open_tickets: propStats.open,
+            waitlist: propStats.waitlist || 0,
             in_progress: propStats.in_progress,
             resolved: propStats.resolved,
             sla_breached: propStats.sla_breached,
@@ -1198,16 +1260,15 @@ const OverviewTab = memo(function OverviewTab({
         };
     }, [selectedPropertyId, ticketSummary]);
 
-    const displayDieselStats = useMemo(() => {
-        if (selectedPropertyId === 'all') return dieselSummary;
-        const propStats = dieselSummary.properties?.find(p => p.property_id === selectedPropertyId);
+    const displayElectricityStats = useMemo(() => {
+        if (selectedPropertyId === 'all') return electricitySummary;
+        const propStats = electricitySummary.properties?.find((p: any) => p.property_id === selectedPropertyId);
         return {
-            total_consumption: propStats?.period_total_litres || 0,
-            change_percentage: 0,
-            properties: dieselSummary.properties,
-            tank_capacity: propStats?.tank_capacity_litres || 1000
+            total_units: propStats?.units || 0,
+            total_cost: 0,
+            properties: electricitySummary.properties,
         };
-    }, [selectedPropertyId, dieselSummary]);
+    }, [selectedPropertyId, electricitySummary]);
 
     const displayVmsStats = useMemo(() => {
         if (selectedPropertyId === 'all') return vmsSummary;
@@ -1350,6 +1411,20 @@ const OverviewTab = memo(function OverviewTab({
                                 <span className="text-[10px] text-rose-500 font-bold uppercase">{displayTicketStats.sla_breached} SLA breached</span>
                             )}
                         </div>
+                        <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-500">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-1"></span>
+                                {displayTicketStats.open_tickets - displayTicketStats.waitlist} Open
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1"></span>
+                                {displayTicketStats.waitlist} Waitlist
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1"></span>
+                                {displayTicketStats.in_progress} In Progress
+                            </span>
+                        </div>
                     </div>
 
                     {/* Resolved */}
@@ -1383,32 +1458,68 @@ const OverviewTab = memo(function OverviewTab({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                     {/* Left Column */}
                     <div className="lg:col-span-3 space-y-5">
-                        {/* Diesel Consumption */}
-                        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden group">
+                        {/* Electricity Consumption */}
+                        <div
+                            onClick={() => onTabChange('electricity')}
+                            className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md hover:border-yellow-300/50 transition-all"
+                        >
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-black text-slate-900">Diesel Consumption</h3>
+                                <h3 className="text-sm font-black text-slate-900">Electricity</h3>
+                                <div className="w-8 h-8 bg-yellow-50 rounded-xl flex items-center justify-center">
+                                    <Zap className="w-4 h-4 text-yellow-500" />
+                                </div>
                             </div>
-                            <div className="text-primary text-xs font-bold mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                                Real-time Tank Status
+                            <div className="text-yellow-600 text-xs font-bold mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                                This Month
                             </div>
 
-                            {/* 3D Sphere Visualization */}
+                            {/* Electricity Visualization */}
                             <div className="flex justify-center my-6">
-                                <DieselSphere percentage={Math.min(100, (displayDieselStats.total_consumption / (displayDieselStats as any).tank_capacity) * 100)} />
+                                <div className="relative w-[160px] h-[160px]">
+                                    {/* Background ring */}
+                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                                        <circle cx="60" cy="60" r="52" fill="none" stroke="#f1f5f9" strokeWidth="10" />
+                                        <motion.circle
+                                            cx="60" cy="60" r="52" fill="none"
+                                            stroke="url(#elecGradient)" strokeWidth="10" strokeLinecap="round"
+                                            strokeDasharray={`${Math.min(326, (displayElectricityStats.total_units / Math.max(displayElectricityStats.total_units, 1000)) * 326)} 326`}
+                                            initial={{ strokeDasharray: '0 326' }}
+                                            animate={{ strokeDasharray: `${Math.min(326, (displayElectricityStats.total_units / Math.max(displayElectricityStats.total_units, 1000)) * 326)} 326` }}
+                                            transition={{ duration: 1.5, ease: 'circOut' }}
+                                        />
+                                        <defs>
+                                            <linearGradient id="elecGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stopColor="#facc15" />
+                                                <stop offset="100%" stopColor="#f59e0b" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    {/* Center content */}
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <Zap className="w-6 h-6 text-yellow-500 mb-1" />
+                                        <motion.span
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="text-2xl font-black text-slate-900"
+                                        >
+                                            {displayElectricityStats.total_units.toLocaleString()}
+                                        </motion.span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">kVAh</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-1">
-                                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total consumption</div>
+                                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Units Consumed</div>
                                 <div className="text-3xl font-black text-slate-900 flex items-baseline gap-1">
-                                    {displayDieselStats.total_consumption.toLocaleString()}
-                                    <span className="text-sm text-slate-400 font-bold">L</span>
+                                    {displayElectricityStats.total_units.toLocaleString()}
+                                    <span className="text-sm text-slate-400 font-bold">kVAh</span>
                                 </div>
                                 <div className="flex items-center gap-2 pt-2 border-t border-slate-50 mt-2">
-                                    <span className={`font-black text-xs ${displayDieselStats.change_percentage >= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                        {displayDieselStats.change_percentage >= 0 ? '+' : ''}{displayDieselStats.change_percentage}%
+                                    <span className="text-[10px] font-bold text-yellow-600 uppercase flex items-center gap-1 group-hover:underline">
+                                        View Analytics →
                                     </span>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase">vs Last Month</span>
                                 </div>
                             </div>
                         </div>
@@ -1506,9 +1617,9 @@ const OverviewTab = memo(function OverviewTab({
                                     <div className="text-xs font-bold text-emerald-600 mb-1">Visitors</div>
                                     <div className="text-2xl font-black text-emerald-900">{displayVmsStats.total_visitors_today}</div>
                                 </div>
-                                <div className="p-4 bg-primary/5 rounded-xl">
-                                    <div className="text-xs font-bold text-primary mb-1">Diesel (L)</div>
-                                    <div className="text-2xl font-black text-slate-900">{displayDieselStats.total_consumption}</div>
+                                <div className="p-4 bg-yellow-50 rounded-xl">
+                                    <div className="text-xs font-bold text-yellow-600 mb-1">Electricity (kVAh)</div>
+                                    <div className="text-2xl font-black text-slate-900">{displayElectricityStats.total_units.toLocaleString()}</div>
                                 </div>
                                 <div className="p-4 bg-purple-50 rounded-xl">
                                     <div className="text-xs font-bold text-purple-600 mb-1">Vendor Revenue</div>

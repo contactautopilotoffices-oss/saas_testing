@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Zap, History, AlertTriangle, Save } from 'lucide-react';
+import { X, Plus, Zap, History, AlertTriangle, Save, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface GridTariffModalProps {
@@ -31,6 +31,7 @@ const GridTariffModal: React.FC<GridTariffModalProps> = ({
     const [tariffs, setTariffs] = useState<GridTariff[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // Fetch tariffs
@@ -89,6 +90,32 @@ const GridTariffModal: React.FC<GridTariffModalProps> = ({
             setError(err.message);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this tariff? This will also clear calculations for recorded readings in this period.')) {
+            return;
+        }
+
+        setDeletingId(id);
+        setError(null);
+
+        try {
+            const res = await fetch(`/api/properties/${propertyId}/grid-tariffs?id=${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to delete tariff');
+            }
+
+            fetchTariffs();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -226,6 +253,18 @@ const GridTariffModal: React.FC<GridTariffModalProps> = ({
                                                 {idx === 0 && (
                                                     <span className="px-2 py-0.5 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest rounded-full">Active</span>
                                                 )}
+                                                <button
+                                                    onClick={() => handleDelete(tariff.id)}
+                                                    disabled={deletingId === tariff.id}
+                                                    className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                    title="Delete Tariff"
+                                                >
+                                                    {deletingId === tariff.id ? (
+                                                        <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="w-4 h-4" />
+                                                    )}
+                                                </button>
                                             </div>
                                             <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                                                 <span>From: {new Date(tariff.effective_from).toLocaleDateString()}</span>

@@ -110,7 +110,7 @@ const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpda
                     is_active: item.is_active,
                     joined_at: item.created_at,
                     phone: item.user.phone
-                }));
+                })).sort((a, b) => a.full_name.localeCompare(b.full_name));
                 setUsers(formattedUsers);
             }
         } else if (orgId) {
@@ -174,7 +174,8 @@ const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpda
                 }
             });
 
-            setUsers(Array.from(userMap.values()));
+
+            setUsers(Array.from(userMap.values()).sort((a, b) => a.full_name.localeCompare(b.full_name)));
         }
 
         setIsLoading(false);

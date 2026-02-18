@@ -139,10 +139,7 @@ export async function POST(
 
         const { data, error } = await supabase
             .from('diesel_readings')
-            .upsert(processedReadings, {
-                onConflict: 'generator_id,reading_date',
-                ignoreDuplicates: false
-            })
+            .insert(processedReadings)
             .select();
 
         if (error) {
@@ -161,10 +158,7 @@ export async function POST(
 
     const { data, error } = await supabase
         .from('diesel_readings')
-        .upsert(processedReading, {
-            onConflict: 'generator_id,reading_date',
-            ignoreDuplicates: false
-        })
+        .insert(processedReading)
         .select()
         .maybeSingle();
 
@@ -175,4 +169,34 @@ export async function POST(
 
     console.log('[DieselReadings] Single reading saved:', data?.id, 'Cost:', data?.computed_cost);
     return NextResponse.json(data, { status: 201 });
+}
+
+// DELETE: Remove a diesel reading and recalibrate progress
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ propertyId: string }> }
+) {
+    const { propertyId } = await params;
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+        return NextResponse.json({ error: 'Reading ID is required' }, { status: 400 });
+    }
+
+    // DELETE handling for diesel:
+    // Simply delete. The dashboard carry-forward logic handles recalibration on fetch.
+    const { error: deleteError } = await supabase
+        .from('diesel_readings')
+        .delete()
+        .eq('id', id);
+
+    if (deleteError) {
+        console.error('[DieselReadings] Error deleting reading:', deleteError.message);
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    console.log('[DieselReadings] Deleted reading:', id);
+    return NextResponse.json({ success: true });
 }

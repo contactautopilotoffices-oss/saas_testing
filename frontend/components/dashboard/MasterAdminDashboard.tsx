@@ -6,7 +6,7 @@ import {
     LayoutGrid, Settings, Trash2, RefreshCcw,
     CheckCircle2, AlertCircle, Search, Plus, ExternalLink, XCircle, Filter,
     Key, Eye, EyeOff, Globe, Copy, X, Ticket, Link as LinkIcon, LogOut,
-    UserCircle, FileDown, Brain
+    UserCircle, FileDown, Brain, Wrench
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -25,9 +25,10 @@ import AIInsightsDashboard from './AIInsightsDashboard';
 import IssueCategoryKanban from '@/frontend/components/admin/IssueCategoryKanban';
 import AnalyticsTab from './AnalyticsTab';
 import MasterAdminChatbot from './MasterAdminChatbot';
+import ResolverStatsList from '@/frontend/components/mst/ResolverStatsList';
 import { MessageSquareCode } from 'lucide-react';
 
-type Tab = 'overview' | 'analytics' | 'organizations' | 'tickets' | 'users' | 'visitors' | 'invite-links' | 'ai-insights' | 'ai-assistant' | 'issue-config' | 'modules' | 'settings';
+type Tab = 'overview' | 'analytics' | 'organizations' | 'tickets' | 'users' | 'visitors' | 'invite-links' | 'ai-insights' | 'ai-assistant' | 'issue-config' | 'modules' | 'settings' | 'resolvers';
 
 interface Organization {
     id: string;
@@ -107,7 +108,7 @@ const MasterAdminDashboard = () => {
     // Restore tab from URL
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['overview', 'analytics', 'organizations', 'tickets', 'users', 'visitors', 'invite-links', 'ai-insights', 'ai-assistant', 'issue-config', 'modules', 'settings'].includes(tab)) {
+        if (tab && ['overview', 'analytics', 'organizations', 'tickets', 'users', 'visitors', 'invite-links', 'ai-insights', 'ai-assistant', 'issue-config', 'modules', 'settings', 'resolvers'].includes(tab)) {
             setActiveTab(tab as Tab);
         }
     }, [searchParams]);
@@ -268,6 +269,7 @@ const MasterAdminDashboard = () => {
     const navItems: { id: Tab, label: string, icon: any }[] = [
         { id: 'overview', label: 'Console', icon: ShieldCheck },
         { id: 'analytics', label: 'Engagement', icon: Activity },
+        { id: 'resolvers', label: 'Resolvers', icon: Wrench },
         { id: 'organizations', label: 'Organizations', icon: Building2 },
         { id: 'tickets', label: 'Support Tickets', icon: Ticket },
         { id: 'users', label: 'User Directory', icon: Users },
@@ -294,7 +296,7 @@ const MasterAdminDashboard = () => {
                     </div>
                 </div>
 
-                <nav className="space-y-2 flex-1">
+                <nav className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {navItems.map((item) => (
                         <button
                             key={item.id}
@@ -464,6 +466,9 @@ const MasterAdminDashboard = () => {
                         )}
                         {activeTab === 'settings' && (
                             <SystemSettings onRestore={handleRestoreWithSecret} />
+                        )}
+                        {activeTab === 'resolvers' && (
+                            <ResolverStatsList />
                         )}
                     </motion.div>
                 </AnimatePresence>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Fuel, History, AlertTriangle, Save } from 'lucide-react';
+import { X, Plus, Fuel, History, AlertTriangle, Save, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DGTariffModalProps {
@@ -97,6 +97,25 @@ const DGTariffModal: React.FC<DGTariffModalProps> = ({
             setError(err.message);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this price entry?')) return;
+
+        try {
+            const res = await fetch(`/api/properties/${propertyId}/dg-tariffs?id=${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to delete tariff');
+            }
+
+            fetchTariffs();
+        } catch (err: any) {
+            setError(err.message);
         }
     };
 
@@ -228,9 +247,17 @@ const DGTariffModal: React.FC<DGTariffModalProps> = ({
                                         >
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>₹{tariff.cost_per_litre}</span>
-                                                {idx === 0 && (
-                                                    <span className="px-2 py-0.5 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest rounded-full">Active</span>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    {idx === 0 && (
+                                                        <span className="px-2 py-0.5 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest rounded-full">Active</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDelete(tariff.id)}
+                                                        className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-slate-500 hover:text-rose-500 hover:bg-rose-500/10' : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'}`}
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                                                 <span>From: {new Date(tariff.effective_from).toLocaleDateString()}</span>

@@ -231,10 +231,15 @@ export async function POST(request: NextRequest) {
 
             // 2. Insert into resolver_stats if we have a property_id
             if (property_id) {
-                // Filter skills for resolver pool (same logic as onboarding)
-                const skillsForResolver = role === 'staff'
-                    ? effectiveSkills.filter((s: string) => s !== 'technical')
-                    : effectiveSkills;
+                // Strict Filter based on User Request:
+                // MST -> technical, plumbing, vendor
+                // Staff -> soft_services
+                const VALID_MST_SKILLS = ['technical', 'plumbing', 'vendor'];
+                const VALID_STAFF_SKILLS = ['soft_services'];
+
+                const skillsForResolver = role === 'mst'
+                    ? effectiveSkills.filter((s: string) => VALID_MST_SKILLS.includes(s))
+                    : (role === 'staff' ? effectiveSkills.filter((s: string) => VALID_STAFF_SKILLS.includes(s)) : []);
 
                 if (skillsForResolver.length > 0) {
                     const { data: skillGroups } = await adminClient

@@ -162,10 +162,7 @@ export async function POST(
 
         const { data, error } = await supabase
             .from('electricity_readings')
-            .upsert(processedReadings, {
-                onConflict: 'meter_id,reading_date',
-                ignoreDuplicates: false
-            })
+            .insert(processedReadings)
             .select();
 
         if (error) {
@@ -192,10 +189,7 @@ export async function POST(
 
     const { data, error } = await supabase
         .from('electricity_readings')
-        .upsert(processedReading, {
-            onConflict: 'meter_id,reading_date',
-            ignoreDuplicates: false
-        })
+        .insert(processedReading)
         .select()
         .single();
 
@@ -212,4 +206,78 @@ export async function POST(
 
     console.log('[ElectricityReadings] Single reading saved:', data?.id, 'Cost:', data?.computed_cost);
     return NextResponse.json(data, { status: 201 });
+}
+
+// DELETE: Remove a reading
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ propertyId: string }> }
+) {
+    const { propertyId } = await params;
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+    const readingId = searchParams.get('id');
+
+    if (!readingId) {
+        return NextResponse.json({ error: 'Reading ID is required' }, { status: 400 });
+    }
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('[ElectricityReadings] DELETE request for reading:', readingId, 'property:', propertyId);
+
+    // 1. Get the reading details first to know the meter_id and opening_reading
+    const { data: readingData, error: fetchError } = await supabase
+        .from('electricity_readings')
+        .select('meter_id, opening_reading')
+        .eq('id', readingId)
+        .eq('property_id', propertyId)
+        .single();
+
+    if (fetchError || !readingData) {
+        console.error('[ElectricityReadings] Error fetching reading before delete:', fetchError?.message);
+        return NextResponse.json({ error: 'Reading not found' }, { status: 404 });
+    }
+
+    const { meter_id, opening_reading } = readingData;
+
+    // 2. Delete the reading record
+    const { error: deleteError } = await supabase
+        .from('electricity_readings')
+        .delete()
+        .eq('id', readingId)
+        .eq('property_id', propertyId);
+
+    if (deleteError) {
+        console.error('[ElectricityReadings] Error deleting reading:', deleteError.message);
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // 3. Recalibrate meter's last_reading
+    // Find the new most recent reading for this meter
+    const { data: latestReadings } = await supabase
+        .from('electricity_readings')
+        .select('closing_reading')
+        .eq('meter_id', meter_id)
+        .order('reading_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+    // If no readings left, reset to 0
+    const newLastReading = latestReadings && latestReadings.length > 0
+        ? latestReadings[0].closing_reading
+        : 0;
+
+    console.log('[ElectricityReadings] Recalibrating meter:', meter_id, 'New last_reading:', newLastReading);
+
+    await supabase
+        .from('electricity_meters')
+        .update({ last_reading: newLastReading, updated_at: new Date().toISOString() })
+        .eq('id', meter_id);
+
+    return NextResponse.json({ success: true });
 }
