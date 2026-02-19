@@ -6,7 +6,27 @@ export async function GET(request: Request) {
     const code = requestUrl.searchParams.get('code');
     const propertyCode = requestUrl.searchParams.get('state'); // Optional: for property-scoped signup
     const next = requestUrl.searchParams.get('next'); // For password reset redirect
+    const decodedNext = next ? decodeURIComponent(next) : null;
     const redirect = requestUrl.searchParams.get('redirect');
+
+    // Handle Supabase error responses (e.g., expired OTP, invalid link)
+    const errorParam = requestUrl.searchParams.get('error');
+    const errorCode = requestUrl.searchParams.get('error_code');
+    const errorDescription = requestUrl.searchParams.get('error_description');
+
+    if (errorParam) {
+        console.error('Auth callback error:', errorParam, errorCode, errorDescription);
+
+        // If this was a password reset flow, redirect back to forgot-password with error
+        if (decodedNext === '/reset-password' || errorCode === 'otp_expired') {
+            return NextResponse.redirect(
+                `${requestUrl.origin}/forgot-password?error=link_expired`
+            );
+        }
+
+        // Generic auth error
+        return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_failed`);
+    }
 
     if (code) {
         const supabase = await createClient();
@@ -16,13 +36,19 @@ export async function GET(request: Request) {
 
         if (error) {
             console.error('Auth Error:', error.message);
+            // If this was a password reset, redirect to forgot-password
+            if (decodedNext === '/reset-password') {
+                return NextResponse.redirect(
+                    `${requestUrl.origin}/forgot-password?error=link_expired`
+                );
+            }
             return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_failed`);
         }
 
         // 2. If 'next' parameter exists (e.g., password reset), redirect there immediately
-        if (next) {
-            console.log('Password reset flow detected, redirecting to:', next);
-            return NextResponse.redirect(`${requestUrl.origin}${next}`);
+        if (decodedNext) {
+            console.log('Password reset flow detected, redirecting to:', decodedNext);
+            return NextResponse.redirect(`${requestUrl.origin}${decodedNext}`);
         }
 
         if (user) {

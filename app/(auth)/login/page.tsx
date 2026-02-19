@@ -429,7 +429,7 @@ function AuthContent() {
                                                 {authMode === 'signin' && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setAuthMode('forgot')}
+                                                        onClick={() => router.push('/forgot-password')}
                                                         className="text-xs font-semibold text-primary hover:underline transition-smooth"
                                                     >
                                                         Forgot Password?

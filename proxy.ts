@@ -41,6 +41,8 @@ export async function proxy(request: NextRequest) {
     const publicRoutes = [
         '/login',
         '/signup',
+        '/forgot-password',
+        '/reset-password',
         '/join',
         '/api',        // API routes handle their own auth
         '/kiosk',
