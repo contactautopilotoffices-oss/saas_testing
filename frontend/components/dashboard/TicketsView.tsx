@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import TicketCard from '@/frontend/components/shared/TicketCard';
 import { useDataCache } from '@/frontend/context/DataCacheContext';
+import Skeleton from '@/frontend/components/ui/Skeleton';
+import { useAuth } from '@/frontend/context/AuthContext';
 
 interface Ticket {
     id: string;
@@ -52,6 +54,7 @@ interface TicketsViewProps {
 const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewRequest, initialStatusFilter = 'all' }) => {
     const router = useRouter();
     const { getCachedData, setCachedData } = useDataCache();
+    const { membership } = useAuth();
 
     const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter);
     const cacheKey = `tickets-${propertyId}-${statusFilter}`; // Use statusFilter here for dynamic key
@@ -264,13 +267,15 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                     </div>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3">
-                    <button
-                        onClick={() => router.push(`/property/${propertyId}/flow-map?from=requests`)}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-secondary/10 text-secondary text-[10px] sm:text-xs font-bold rounded-[var(--radius-md)] border border-secondary/20 hover:bg-secondary/20 transition-all active:scale-[0.98]"
-                        title="View Operational Flow Map"
-                    >
-                        <Activity className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="whitespace-nowrap">Live Flow Map</span>
-                    </button>
+                    {propertyId && !['org_super_admin', 'master_admin', 'owner'].includes(membership?.org_role || '') && (
+                        <button
+                            onClick={() => router.push(`/property/${propertyId}/flow-map?from=requests`)}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-secondary/10 text-secondary text-[10px] sm:text-xs font-bold rounded-[var(--radius-md)] border border-secondary/20 hover:bg-secondary/20 transition-all active:scale-[0.98]"
+                            title="View Operational Flow Map"
+                        >
+                            <Activity className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="whitespace-nowrap">Live Flow Map</span>
+                        </button>
+                    )}
                     {onNewRequest && (
                         <button
                             onClick={onNewRequest}
@@ -291,7 +296,30 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
             {/* Tickets List */}
             <div className="glass-card overflow-hidden">
                 {isLoading ? (
-                    <div className="p-12 text-center text-text-tertiary font-body">Loading tickets...</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 p-1.5 sm:p-6">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="w-full h-[220px] bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4">
+                                <div className="flex justify-between items-start gap-4">
+                                    <div className="flex-1 flex gap-3">
+                                        <Skeleton className="w-16 h-16 rounded-xl flex-shrink-0" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-3/4 rounded" />
+                                            <Skeleton className="h-4 w-1/2 rounded" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="w-16 h-8 rounded-lg" />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Skeleton className="h-6 w-16 rounded-full" />
+                                    <Skeleton className="h-6 w-20 rounded-full" />
+                                </div>
+                                <div className="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
+                                    <Skeleton className="h-4 w-24 rounded" />
+                                    <Skeleton className="h-8 w-24 rounded-lg" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 ) : tickets.length === 0 ? (
                     <div className="p-12 text-center text-text-tertiary font-body">No tickets found</div>
                 ) : (

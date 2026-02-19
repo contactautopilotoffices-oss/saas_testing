@@ -29,20 +29,82 @@ export default function PropertyLayout({
 
     useEffect(() => {
         const checkPropertyAccess = async () => {
-            // Wait for auth to finish loading
             if (authLoading) return;
-
-            // Redirect to login if not authenticated
             if (!user) {
                 router.replace('/login');
                 return;
             }
 
+            // UUID Validation helper
+            const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+            // Handle invalid propertyId early
+            if (!propertyId || !isUuid(propertyId)) {
+                console.warn('Invalid propertyId detected in layout:', propertyId);
+                // If the user is a Master Admin, they might be on a special path, but /property/[id] 
+                // expects a UUID. If not a UUID, redirect to home or show error.
+                if (propertyId === 'all') {
+                    // Internal routing for "all" properties might be handled elsewhere, 
+                    // but if it hits this layout, we should at least check master admin.
+                } else {
+                    setIsAuthorized(false);
+                    setIsCheckingAccess(false);
+                    return;
+                }
+            }
+
             try {
                 const supabase = createClient();
 
-                // Check if user has property membership for this property
-                const { data: membership, error } = await supabase
+                // 1. Check for Master Admin first (Ultimate Bypass)
+                const { data: userProfile, error: profileError } = await supabase
+                    .from('users')
+                    .select('is_master_admin')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                if (userProfile?.is_master_admin) {
+                    setIsAuthorized(true);
+                    setUserRole('master_admin');
+                    setIsCheckingAccess(false);
+                    return;
+                }
+
+                // 2. Fetch Property to get its Organization
+                const { data: property, error: propError } = await supabase
+                    .from('properties')
+                    .select('organization_id')
+                    .eq('id', propertyId)
+                    .maybeSingle();
+
+                if (propError) {
+                    console.error('Error fetching property info:', propError);
+                }
+
+                // 3. Check Organization-level access (Super Admin / Owner)
+                if (property?.organization_id) {
+                    const { data: orgMembership, error: orgError } = await supabase
+                        .from('organization_memberships')
+                        .select('role')
+                        .eq('user_id', user.id)
+                        .eq('organization_id', property.organization_id)
+                        .eq('is_active', true)
+                        .maybeSingle();
+
+                    if (orgError) {
+                        console.error('Error checking org membership:', orgError);
+                    }
+
+                    if (orgMembership && ['org_admin', 'org_super_admin', 'owner'].includes(orgMembership.role)) {
+                        setIsAuthorized(true);
+                        setUserRole(orgMembership.role);
+                        setIsCheckingAccess(false);
+                        return;
+                    }
+                }
+
+                // 4. Check Property-level access (for Staff / Local Admins)
+                const { data: membership, error: memError } = await supabase
                     .from('property_memberships')
                     .select('property_id, organization_id, role')
                     .eq('user_id', user.id)
@@ -50,63 +112,32 @@ export default function PropertyLayout({
                     .eq('is_active', true)
                     .maybeSingle();
 
-                if (error) {
-                    console.error('Property access check error:', error);
-                    setIsAuthorized(false);
-                    setIsCheckingAccess(false);
-                    return;
+                if (memError) {
+                    console.error('Property membership check error:', memError);
                 }
 
                 if (membership) {
-                    // User has property membership
                     setIsAuthorized(true);
                     setUserRole(membership.role);
 
                     // Validate role-based route access
                     const allowedPaths = getRoleAllowedPaths(membership.role, propertyId);
                     const currentPath = pathname || '';
-
-                    // Check if current path is allowed for this role
                     const isPathAllowed = allowedPaths.some(allowed =>
                         currentPath.startsWith(allowed) || currentPath === allowed
                     );
 
                     if (!isPathAllowed) {
-                        // Redirect to the appropriate dashboard for their role
                         const redirectPath = getRoleDefaultPath(membership.role, propertyId);
                         router.replace(redirectPath);
                         return;
                     }
                 } else {
-                    // No property membership - check org admin access
-                    const { data: orgMembership } = await supabase
-                        .from('organization_memberships')
-                        .select('organization_id, role')
-                        .eq('user_id', user.id)
-                        .eq('is_active', true);
-
-                    // Check if user is org admin for the property's org
-                    if (orgMembership && orgMembership.length > 0) {
-                        const { data: property } = await supabase
-                            .from('properties')
-                            .select('organization_id')
-                            .eq('id', propertyId)
-                            .single();
-
-                        if (property && orgMembership.some(m => m.organization_id === property.organization_id)) {
-                            // Org admin can access all properties in their org
-                            setIsAuthorized(true);
-                            setUserRole('org_admin');
-                            setIsCheckingAccess(false);
-                            return;
-                        }
-                    }
-
-                    // No access
+                    // No access found at any level
                     setIsAuthorized(false);
                 }
             } catch (err) {
-                console.error('Access check failed:', err);
+                console.error('Access check failed with exception:', err);
                 setIsAuthorized(false);
             } finally {
                 setIsCheckingAccess(false);
@@ -167,6 +198,9 @@ function getRoleAllowedPaths(role: string, propertyId: string): string[] {
     switch (role) {
         case 'property_admin':
         case 'org_admin':
+        case 'org_super_admin':
+        case 'master_admin':
+        case 'owner':
             // Full access
             return [basePath];
         case 'tenant':
@@ -207,6 +241,10 @@ function getRoleDefaultPath(role: string, propertyId: string): string {
 
     switch (role) {
         case 'property_admin':
+        case 'org_admin':
+        case 'org_super_admin':
+        case 'master_admin':
+        case 'owner':
             return `${basePath}/dashboard`;
         case 'tenant':
             return `${basePath}/tenant`;

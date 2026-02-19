@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     RefreshCw, Filter, Calendar, Users,
     Search, ChevronRight, Activity, Clock,
-    CheckCircle2, AlertCircle, ArrowLeft, Zap, ChevronDown
+    CheckCircle2, AlertCircle, ArrowLeft, Zap, ChevronDown, Building2
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -116,7 +116,7 @@ export default function TicketFlowMap({
     const searchParams = useSearchParams();
     const from = searchParams.get('from');
 
-    const { membership } = useAuth();
+    const { membership, user } = useAuth();
     const { getCachedData, setCachedData } = useDataCache();
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -151,8 +151,11 @@ export default function TicketFlowMap({
     const [searchQuery, setSearchQuery] = useState('');
     const [showDevTools, setShowDevTools] = useState(false); // FOR DEMO ONLY
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [properties, setProperties] = useState<any[]>([]);
+    const [activePropertyId, setActivePropertyId] = useState<string | null>(propertyId || null);
+    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+    const [isFetchingProps, setIsFetchingProps] = useState(false);
 
-    // Find active ticket for overlay
     const activeTicket = useMemo(() => {
         if (!activeId || !flowData) return null;
         return [...flowData.waitlist, ...flowData.mstGroups.flatMap(g => g.tickets)]
@@ -168,6 +171,50 @@ export default function TicketFlowMap({
         })
     );
 
+    // Initial check for roles and fetch properties if admin
+    useEffect(() => {
+        if (!membership) return;
+
+        const checkAdmin = () => {
+            const orgRole = membership.org_role;
+            const isMaster = (user as any)?.user_metadata?.is_master_admin || (user as any)?.is_master_admin;
+            return isMaster || ['org_admin', 'org_super_admin', 'owner'].includes(orgRole || '');
+        };
+
+        const adminStatus = checkAdmin();
+        setIsOrgAdmin(adminStatus);
+
+        if (adminStatus) {
+            fetchProperties();
+        }
+    }, [membership, user]);
+
+    const fetchProperties = async () => {
+        setIsFetchingProps(true);
+        try {
+            const supabase = createClient();
+            let query = supabase.from('properties').select('id, name, code');
+
+            // If org admin, limit to their org
+            if (membership?.org_id) {
+                query = query.eq('organization_id', membership.org_id);
+            }
+
+            const { data, error } = await query.order('name');
+            if (error) throw error;
+            setProperties(data || []);
+
+            // If no propertyId in props, default to first property
+            if (!propertyId && data && data.length > 0) {
+                setActivePropertyId(data[0].id);
+            }
+        } catch (err) {
+            console.error('Error fetching properties:', err);
+        } finally {
+            setIsFetchingProps(false);
+        }
+    };
+
     const fetchFlowData = useCallback(async (isInitial = false) => {
         // Abort previous request if any
         if (abortControllerRef.current) {
@@ -180,7 +227,8 @@ export default function TicketFlowMap({
         try {
             const params = new URLSearchParams();
             if (organizationId) params.set('organization_id', organizationId);
-            if (propertyId) params.set('property_id', propertyId);
+            const targetPropId = activePropertyId || propertyId;
+            if (targetPropId) params.set('property_id', targetPropId);
             params.set('date', selectedDate);
 
             const response = await fetch(`/api/tickets/flow?${params}`, {
@@ -228,10 +276,11 @@ export default function TicketFlowMap({
         const supabase = createClient();
 
         // Filter changes to current property if available to reduce noise
-        const filter = propertyId ? `property_id=eq.${propertyId}` : undefined;
+        const targetPropId = activePropertyId || propertyId;
+        const filter = targetPropId ? `property_id=eq.${targetPropId}` : undefined;
 
         const channel = supabase
-            .channel(`flow-${propertyId || 'global'}`)
+            .channel(`flow-${targetPropId || 'global'}`)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'tickets', filter },
                 () => debouncedFetch()
@@ -239,7 +288,7 @@ export default function TicketFlowMap({
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, [propertyId, debouncedFetch]);
+    }, [propertyId, activePropertyId, debouncedFetch]);
 
     const handleTicketClick = (ticketId: string) => {
         const ticket = [...(flowData?.waitlist || []), ...(flowData?.mstGroups.flatMap(g => g.tickets) || [])]
@@ -511,6 +560,23 @@ export default function TicketFlowMap({
                     </div>
 
                     <div className="hidden lg:flex items-center gap-4 border-l border-border pl-6">
+                        {isOrgAdmin && properties.length > 1 && (
+                            <div className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-primary" />
+                                <select
+                                    value={activePropertyId || ''}
+                                    onChange={(e) => setActivePropertyId(e.target.value)}
+                                    className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm font-bold outline-none cursor-pointer text-text-primary h-auto transition-all hover:border-primary/50"
+                                    disabled={isFetchingProps}
+                                >
+                                    {properties.map(prop => (
+                                        <option key={prop.id} value={prop.id}>
+                                            {prop.name} ({prop.code})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-widest">Summary:</span>
                             <span className="text-sm font-black text-text-secondary">

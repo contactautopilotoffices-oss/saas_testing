@@ -5,6 +5,7 @@ import { AlertTriangle, Clock, RefreshCw, ChevronDown, User, X, Trash2 } from 'l
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useDataCache } from '@/frontend/context/DataCacheContext';
+import Skeleton from '@/frontend/components/ui/Skeleton';
 
 interface Ticket {
     id: string;
@@ -351,7 +352,17 @@ export default function AdminSPOCDashboard({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {tickets.length === 0 ? (
+                                {loading ? (
+                                    // Skeleton rows
+                                    [1, 2, 3, 4, 5].map((i) => (
+                                        <tr key={i}>
+                                            <td className="py-3"><Skeleton className="h-4 w-10" /></td>
+                                            <td className="py-3 pl-2"><Skeleton className="h-4 w-32" /></td>
+                                            <td className="py-3 pl-2"><Skeleton className="h-4 w-16 rounded" /></td>
+                                            <td className="py-3 text-right"><Skeleton className="h-4 w-12 ml-auto" /></td>
+                                        </tr>
+                                    ))
+                                ) : tickets.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="py-12 text-center text-slate-400 font-bold italic">
                                             No active tickets found.

@@ -122,14 +122,15 @@ export async function GET(request: NextRequest) {
                     .eq('role', raisedByRole)
                     .eq('is_active', true);
             } else if (organizationId) {
-                // Scoped: tenants across all properties in this org
+                // Scoped: users with this role across any property in this org
                 membershipQuery = supabase
-                    .from('organization_memberships')
-                    .select('user_id')
-                    .eq('organization_id', organizationId)
+                    .from('property_memberships')
+                    .select('user_id, properties!inner(organization_id)')
+                    .eq('properties.organization_id', organizationId)
                     .eq('role', raisedByRole)
                     .eq('is_active', true);
-            } else {
+            }
+            else {
                 // Global fallback: all users with this role across all properties
                 membershipQuery = supabase
                     .from('property_memberships')
