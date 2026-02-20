@@ -5,6 +5,7 @@ import PropertyDashboard from './PropertyDashboard';
 import OrgDashboard from './OrgDashboard';
 import TenantDashboard from './TenantDashboard';
 import MasterAdminDashboard from './MasterAdminDashboard';
+import SoftServiceManagerDashboard from './SoftServiceManagerDashboard';
 import Loader from '@/frontend/components/ui/Loader';
 import { useAppSession } from '@/frontend/hooks/useAppSession';
 import PropertySelectionView from './PropertySelectionView';
@@ -31,6 +32,12 @@ const UnifiedDashboard = () => {
 
     if (role === 'org_super_admin') {
         return <OrgDashboard orgId={session?.org_id || ''} />;
+    }
+
+    // Soft Service Manager — dedicated dashboard
+    if (role === 'soft_service_manager') {
+        const activePropertyId = propertyIds[0] || 'prop-1';
+        return <SoftServiceManagerDashboard propertyId={activePropertyId} />;
     }
 
     // Handle roles that might have multiple properties

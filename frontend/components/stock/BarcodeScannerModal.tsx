@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeResult } from 'html5-qrcode';
-import { X, Scan, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { X, Scan, AlertCircle, Loader2, Camera, ImagePlus, Keyboard, CheckCircle2 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 
 interface BarcodeScannerModalProps {
     isOpen: boolean;
@@ -11,93 +12,183 @@ interface BarcodeScannerModalProps {
     title?: string;
 }
 
+type ScanMode = 'camera' | 'gallery' | 'manual';
+
 export default function BarcodeScannerModal({
     isOpen,
     onClose,
     onScanSuccess,
     title = 'Scan Barcode'
 }: BarcodeScannerModalProps) {
-    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-    const [loading, setLoading] = useState(true);
+    const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [manualInput, setManualInput] = useState('');
-    const [showManualFallback, setShowManualFallback] = useState(false);
-    const [cameraPermissionError, setCameraPermissionError] = useState(false);
+    const [scanMode, setScanMode] = useState<ScanMode>('camera');
+    const [cameraActive, setCameraActive] = useState(false);
+    const [galleryProcessing, setGalleryProcessing] = useState(false);
+    const [galleryPreview, setGalleryPreview] = useState<string | null>(null);
 
+    const SCANNER_ID = 'barcode-scanner-region';
+
+    const stopCamera = useCallback(async () => {
+        if (html5QrCodeRef.current && cameraActive) {
+            try {
+                // Check if it's actually scanning before trying to stop
+                // This prevents the "Cannot stop, scanner is not running or paused" error
+                if (html5QrCodeRef.current.isScanning) {
+                    await html5QrCodeRef.current.stop();
+                }
+                setCameraActive(false);
+            } catch (err: any) {
+                // If the error indicates it's already stopped, just update state
+                if (err?.message?.includes('not running') || err?.includes?.('not running')) {
+                    setCameraActive(false);
+                } else {
+                    console.error('Error stopping camera:', err);
+                }
+            }
+        }
+    }, [cameraActive]);
+
+    const handleClose = useCallback(async () => {
+        await stopCamera();
+        if (html5QrCodeRef.current) {
+            try {
+                html5QrCodeRef.current.clear();
+            } catch (e) { /* ignore */ }
+            html5QrCodeRef.current = null;
+        }
+        setError(null);
+        setManualInput('');
+        setScanMode('camera');
+        setGalleryPreview(null);
+        setGalleryProcessing(false);
+        onClose();
+    }, [stopCamera, onClose]);
+
+    // Initialize the Html5Qrcode instance
     useEffect(() => {
         if (!isOpen) return;
 
-        const initializeScanner = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                setCameraPermissionError(false);
-
-                const scanner = new Html5QrcodeScanner(
-                    'barcode-scanner-container',
-                    {
-                        fps: 10,
-                        qrbox: { width: 250, height: 250 }
-                    },
-                    false
-                );
-
-                scannerRef.current = scanner;
-
-                // On successful scan
-                scanner.render(
-                    (decodedText: string) => {
-                        // Extract barcode from different formats
-                        const barcode = decodedText.trim();
-                        if (barcode) {
-                            onScanSuccess(barcode, 'BARCODE');
-                            handleClose();
-                        }
-                    },
-                    (errorMessage: string) => {
-                        // Silently handle scanning errors (common and expected)
-                    }
-                );
-
-                setLoading(false);
-            } catch (err) {
-                const errorMsg = err instanceof Error ? err.message : 'Failed to access camera';
-                console.error('Scanner initialization error:', errorMsg);
-
-                // Check if it's a permission error
-                if (errorMsg.includes('permission') || errorMsg.includes('NotAllowedError')) {
-                    setCameraPermissionError(true);
-                    setShowManualFallback(true);
-                } else {
-                    setError(errorMsg);
-                    setShowManualFallback(true);
-                }
-                setLoading(false);
+        // Small delay to let the DOM element render
+        const timer = setTimeout(() => {
+            if (!html5QrCodeRef.current) {
+                html5QrCodeRef.current = new Html5Qrcode(SCANNER_ID);
             }
-        };
-
-        initializeScanner();
+            if (scanMode === 'camera') {
+                startCamera();
+            }
+        }, 100);
 
         return () => {
-            if (scannerRef.current) {
-                try {
-                    scannerRef.current.clear();
-                } catch (err) {
-                    console.error('Error clearing scanner:', err);
+            clearTimeout(timer);
+        };
+    }, [isOpen]);
+
+    // Handle mode switches
+    useEffect(() => {
+        if (!isOpen || !html5QrCodeRef.current) return;
+
+        if (scanMode === 'camera') {
+            startCamera();
+        } else {
+            stopCamera();
+        }
+    }, [scanMode]);
+
+    const startCamera = async () => {
+        if (!html5QrCodeRef.current || cameraActive) return;
+
+        try {
+            setLoading(true);
+            setError(null);
+
+            await html5QrCodeRef.current.start(
+                { facingMode: 'environment' },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 150 },
+                    aspectRatio: 1.5,
+                },
+                (decodedText) => {
+                    const barcode = decodedText.trim();
+                    if (barcode) {
+                        onScanSuccess(barcode, 'CAMERA');
+                        handleClose();
+                    }
+                },
+                () => { /* scan errors are normal */ }
+            );
+
+            setCameraActive(true);
+            setLoading(false);
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error('Camera start error:', msg);
+
+            if (msg.includes('permission') || msg.includes('NotAllowedError') || msg.includes('NotFoundError')) {
+                setError('Camera access denied. Please allow camera permission or use Gallery/Manual entry.');
+            } else {
+                setError(msg);
+            }
+            setLoading(false);
+        }
+    };
+
+    const handleGallerySelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !html5QrCodeRef.current) return;
+
+        setGalleryProcessing(true);
+        setError(null);
+        setGalleryPreview(null);
+
+        try {
+            // Options for image compression
+            const options = {
+                maxSizeMB: 1,
+                maxWidthOrHeight: 1024,
+                useWebWorker: true,
+            };
+
+            // Show initial preview of original file
+            const reader = new FileReader();
+            reader.onload = (ev) => setGalleryPreview(ev.target?.result as string);
+            reader.readAsDataURL(file);
+
+            // Compress image for better detection
+            const compressedFile = await imageCompression(file, options);
+
+            // Try scanning the compressed file
+            try {
+                const result = await html5QrCodeRef.current.scanFile(compressedFile, true);
+                const barcode = result.trim();
+                if (barcode) {
+                    onScanSuccess(barcode, 'GALLERY');
+                    handleClose();
+                }
+            } catch (err) {
+                // If compressed scan fails, try original as fallback
+                console.log('Compressed scan failed, trying original...');
+                const result = await html5QrCodeRef.current.scanFile(file, true);
+                const barcode = result.trim();
+                if (barcode) {
+                    onScanSuccess(barcode, 'GALLERY');
+                    handleClose();
+                } else {
+                    throw new Error('No barcode detected');
                 }
             }
-        };
-    }, [isOpen, onScanSuccess]);
-
-    const handleClose = () => {
-        if (scannerRef.current) {
-            try {
-                scannerRef.current.clear();
-            } catch (err) {
-                console.error('Error clearing scanner:', err);
-            }
+        } catch (err) {
+            console.error('Gallery scan error:', err);
+            setError('No barcode found in the image. Try a clearer photo or enter manually.');
+            setGalleryProcessing(false);
         }
-        onClose();
+
+        // Reset file input so same file can be re-selected
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleManualSubmit = () => {
@@ -110,70 +201,149 @@ export default function BarcodeScannerModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            {/* Modal Container */}
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={handleClose}>
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden mx-4"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-border-primary bg-gradient-to-r from-accent-primary/10 to-transparent">
+                <div className="flex items-center justify-between p-5 border-b border-gray-100">
                     <div className="flex items-center gap-2">
-                        <Scan size={24} className="text-accent-primary" />
-                        <h2 className="text-xl font-bold text-text-primary">{title}</h2>
+                        <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <Scan size={18} className="text-blue-600" />
+                        </div>
+                        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
                     </div>
+                    <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                        <X size={20} className="text-gray-500" />
+                    </button>
+                </div>
+
+                {/* Mode Tabs */}
+                <div className="flex gap-1 p-2 mx-4 mt-3 bg-gray-100 rounded-xl">
                     <button
-                        onClick={handleClose}
-                        className="p-1 hover:bg-bg-secondary rounded-lg transition-colors"
+                        onClick={() => { setError(null); setGalleryPreview(null); setScanMode('camera'); }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${scanMode === 'camera'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
                     >
-                        <X size={24} className="text-text-secondary" />
+                        <Camera size={14} />
+                        Camera
+                    </button>
+                    <button
+                        onClick={() => { stopCamera(); setError(null); setGalleryPreview(null); setScanMode('gallery'); }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${scanMode === 'gallery'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <ImagePlus size={14} />
+                        Gallery
+                    </button>
+                    <button
+                        onClick={() => { stopCamera(); setError(null); setGalleryPreview(null); setScanMode('manual'); }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${scanMode === 'manual'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Keyboard size={14} />
+                        Manual
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-                    {/* Scanner Container */}
-                    {!showManualFallback && (
+                <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+
+                    {/* Error Banner */}
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-2.5">
+                            <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-700">{error}</p>
+                        </div>
+                    )}
+
+                    {/* Camera Mode */}
+                    {scanMode === 'camera' && (
                         <div>
                             {loading && (
-                                <div className="flex items-center justify-center h-64 bg-bg-secondary rounded-lg">
+                                <div className="flex items-center justify-center h-52 bg-gray-50 rounded-xl">
                                     <div className="text-center">
-                                        <Loader2 size={32} className="animate-spin text-accent-primary mx-auto mb-2" />
-                                        <p className="text-text-secondary text-sm">Initializing camera...</p>
-                                    </div>
-                                </div>
-                            )}
-                            {error && (
-                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
-                                    <AlertCircle size={20} className="text-red-500 flex-shrink-0" />
-                                    <div className="text-sm">
-                                        <p className="font-semibold text-red-900">Scanner Error</p>
-                                        <p className="text-red-700">{error}</p>
+                                        <Loader2 size={28} className="animate-spin text-blue-500 mx-auto mb-2" />
+                                        <p className="text-gray-400 text-sm">Starting camera...</p>
                                     </div>
                                 </div>
                             )}
                             <div
-                                id="barcode-scanner-container"
-                                className="rounded-lg overflow-hidden"
+                                id={SCANNER_ID}
+                                className="rounded-xl overflow-hidden"
                                 style={{ display: loading ? 'none' : 'block' }}
                             />
+                            <p className="text-center text-xs text-gray-400 mt-3">
+                                Point your camera at a barcode or QR code
+                            </p>
                         </div>
                     )}
 
-                    {/* Manual Entry Fallback */}
-                    {showManualFallback && (
+                    {/* Gallery Mode */}
+                    {scanMode === 'gallery' && (
                         <div className="space-y-4">
-                            {cameraPermissionError && (
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
-                                    <AlertCircle size={20} className="text-yellow-600 flex-shrink-0" />
-                                    <div className="text-sm">
-                                        <p className="font-semibold text-yellow-900">Camera Permission Denied</p>
-                                        <p className="text-yellow-700">
-                                            Please enable camera access in your browser settings to use the scanner.
-                                        </p>
-                                    </div>
+                            {/* Hidden scanner region needed for file scanning */}
+                            <div id={SCANNER_ID} style={{ display: 'none' }} />
+
+                            {/* Upload Area */}
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-8 flex flex-col items-center gap-3 transition-colors cursor-pointer hover:bg-blue-50/30"
+                            >
+                                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center">
+                                    <ImagePlus size={28} className="text-blue-600" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-semibold text-gray-700 text-sm">Upload from Gallery</p>
+                                    <p className="text-xs text-gray-400 mt-1">Choose a photo with a barcode or QR code</p>
+                                </div>
+                            </button>
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleGallerySelect}
+                                className="hidden"
+                            />
+
+                            {/* Gallery Preview */}
+                            {galleryPreview && (
+                                <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                                    <img
+                                        src={galleryPreview}
+                                        alt="Selected barcode image"
+                                        className="w-full max-h-48 object-contain bg-gray-50"
+                                    />
+                                    {galleryProcessing && (
+                                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                            <div className="text-center px-4">
+                                                <Loader2 size={24} className="animate-spin text-blue-500 mx-auto mb-2" />
+                                                <p className="text-xs text-gray-700 font-bold mb-1">Optimizing & Scanning</p>
+                                                <p className="text-[10px] text-gray-500">Detecting barcode patterns...</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* Manual Mode */}
+                    {scanMode === 'manual' && (
+                        <div className="space-y-4">
+                            {/* Hidden scanner region */}
+                            <div id={SCANNER_ID} style={{ display: 'none' }} />
 
                             <div>
-                                <label className="block text-sm font-semibold text-text-primary mb-2">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Enter Barcode Manually
                                 </label>
                                 <input
@@ -183,41 +353,35 @@ export default function BarcodeScannerModal({
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleManualSubmit();
                                     }}
-                                    placeholder="Scan or type barcode..."
+                                    placeholder="Type or scan barcode number..."
                                     autoFocus
-                                    className="w-full px-4 py-2 bg-bg-secondary border border-border-primary rounded-lg focus:ring-2 focus:ring-accent-primary outline-none"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-400"
                                 />
                             </div>
 
-                            <div className="text-sm text-text-secondary">
-                                <p className="mb-2">Supported formats:</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                    <li>QR Code</li>
-                                    <li>CODE128</li>
-                                    <li>EAN-13 / EAN-8</li>
-                                    <li>UPC-A / UPC-E</li>
-                                    <li>CODE39</li>
-                                </ul>
+                            <button
+                                onClick={handleManualSubmit}
+                                disabled={!manualInput.trim()}
+                                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-blue-500/20"
+                            >
+                                Confirm Barcode
+                            </button>
+
+                            <div className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3">
+                                <p className="font-semibold mb-1 text-gray-500">Supported formats:</p>
+                                <p>QR Code, CODE128, EAN-13/8, UPC-A/E, CODE39</p>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-border-primary p-6 bg-bg-secondary flex gap-3">
-                    {showManualFallback && manualInput && (
-                        <button
-                            onClick={handleManualSubmit}
-                            className="flex-1 px-4 py-2 bg-accent-primary text-white rounded-lg font-semibold hover:bg-accent-primary/90 transition-colors"
-                        >
-                            Confirm
-                        </button>
-                    )}
+                <div className="border-t border-gray-100 p-4">
                     <button
                         onClick={handleClose}
-                        className="flex-1 px-4 py-2 bg-bg-tertiary text-text-primary rounded-lg font-semibold hover:bg-border-primary transition-colors"
+                        className="w-full px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm"
                     >
-                        Close
+                        Cancel
                     </button>
                 </div>
             </div>

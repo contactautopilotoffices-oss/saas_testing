@@ -168,6 +168,12 @@ export default function TicketFlowMap({
             activationConstraint: {
                 distance: 10,
             },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200,
+                tolerance: 5,
+            },
         })
     );
 
@@ -262,7 +268,7 @@ export default function TicketFlowMap({
     const lastFetchRef = useRef<number>(0);
     const debouncedFetch = useCallback(() => {
         const now = Date.now();
-        if (now - lastFetchRef.current < 2000) return; // Throttle to once every 2 seconds
+        if (now - lastFetchRef.current < 200) return; // Throttle to once every 200ms for fast updates
         lastFetchRef.current = now;
         fetchFlowData();
     }, [fetchFlowData]);
@@ -668,9 +674,12 @@ export default function TicketFlowMap({
                                         return g.mst.team === 'housekeeping' || g.mst.team === 'soft_services';
                                     }
                                     const t = (g.mst.team || '').toLowerCase();
-                                    // "Show in both": Technical, Plumbing, and Vendor appear in both Technical and Plumbing columns
-                                    if (['technical', 'plumbing'].includes(team.id)) {
-                                        return ['technical', 'plumbing', 'vendor'].includes(t) || (!t && team.id === 'technical');
+                                    // Separate Technical and Plumbing lanes
+                                    if (team.id === 'technical') {
+                                        return t === 'technical' || (!t);
+                                    }
+                                    if (team.id === 'plumbing') {
+                                        return t === 'plumbing' || t === 'vendor';
                                     }
                                     return t === team.id;
                                 });
@@ -686,11 +695,11 @@ export default function TicketFlowMap({
                                     team.id === 'plumbing' ? 'text-success' : 'text-error';
 
                                 return (
-                                    <div key={team.id} className="w-full lg:w-[400px] flex flex-col border-b lg:border-b-0 lg:border-r border-slate-100 last:border-0 relative group/dept flex-shrink-0 h-auto lg:h-full min-h-[300px]">
+                                    <div key={team.id} className="w-full lg:w-[400px] flex flex-col border-b lg:border-b-0 lg:border-r border-slate-100 last:border-0 relative group/dept flex-shrink-0 h-[500px] lg:h-full">
                                         {/* Department Vertical Rail Backdrop */}
                                         <div className="absolute inset-0 bg-slate-50/30 opacity-100 transition-opacity pointer-events-none" />
 
-                                        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white sticky top-0 z-10 w-full">
+                                        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white sticky top-0 z-10 w-full flex-shrink-0">
                                             <div className="flex flex-col">
                                                 <h3 className={`text-xs font-black uppercase tracking-widest ${teamColorClass}`}>
                                                     {team.label}
@@ -709,7 +718,7 @@ export default function TicketFlowMap({
                                             </div>
                                         </div>
 
-                                        <div className="flex-1 overflow-y-hidden lg:overflow-y-auto custom-scrollbar w-full">
+                                        <div className="flex-1 overflow-y-auto custom-scrollbar w-full min-h-0">
                                             <div className="flex flex-col px-1">
                                                 {mstsInTeam.map((group) => (
                                                     <MstGroup

@@ -1,228 +1,390 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Download, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+    Package, AlertTriangle, ArrowUpCircle, ArrowDownCircle,
+    TrendingUp, Loader2, BarChart3, Activity, ShieldAlert, Box
+} from 'lucide-react';
 import { createClient } from '@/frontend/utils/supabase/client';
-import { Toast } from '@/frontend/components/ui/Toast';
-import Skeleton from '@/frontend/components/ui/Skeleton';
 
 interface StockReportViewProps {
     propertyId?: string;
     orgId?: string;
 }
 
-interface StockReport {
+interface StockItem {
     id: string;
-    report_date: string;
-    total_items: number;
-    low_stock_count: number;
-    total_added: number;
-    total_removed: number;
-    property_name?: string;
-    property_code?: string;
+    name: string;
+    item_code: string;
+    quantity: number;
+    min_threshold: number;
+    category?: string;
+    unit?: string;
 }
 
-const StockReportView: React.FC<StockReportViewProps> = ({ propertyId, orgId }) => {
-    const [reports, setReports] = useState<StockReport[]>([]);
+interface Movement {
+    id: string;
+    action: string;
+    quantity_change: number;
+    created_at: string;
+    item_id: string;
+    stock_items: { name: string; item_code: string; unit?: string } | null;
+    users: { full_name: string } | null;
+}
+
+const StockReportView: React.FC<StockReportViewProps> = ({ propertyId }) => {
+    const [items, setItems] = useState<StockItem[]>([]);
+    const [movements, setMovements] = useState<Movement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const supabase = React.useMemo(() => createClient(), []);
+    const [dateRange, setDateRange] = useState<'7d' | '30d' | 'all'>('30d');
+    const supabase = useMemo(() => createClient(), []);
 
-    const fetchReports = useCallback(async () => {
+    const fetchData = useCallback(async () => {
+        if (!propertyId) return;
+        setIsLoading(true);
+
         try {
-            setIsLoading(true);
-            let url = '';
+            // Fetch items
+            const { data: itemsData } = await supabase
+                .from('stock_items')
+                .select('id, name, item_code, quantity, min_threshold, category, unit')
+                .eq('property_id', propertyId)
+                .order('name');
 
-            if (propertyId) {
-                url = `/api/properties/${propertyId}/stock/reports`;
-            } else if (orgId) {
-                url = `/api/organizations/${orgId}/stock/reports`;
-            } else {
-                return;
+            // Fetch movements with date filter
+            let movementQuery = supabase
+                .from('stock_movements')
+                .select('id, action, quantity_change, created_at, item_id, stock_items:item_id(name, item_code, unit), users:user_id(full_name)')
+                .eq('property_id', propertyId)
+                .order('created_at', { ascending: false })
+                .limit(500);
+
+            if (dateRange !== 'all') {
+                const days = dateRange === '7d' ? 7 : 30;
+                const since = new Date();
+                since.setDate(since.getDate() - days);
+                movementQuery = movementQuery.gte('created_at', since.toISOString());
             }
 
-            const params = new URLSearchParams();
-            if (startDate) params.append('startDate', startDate);
-            if (endDate) params.append('endDate', endDate);
+            const { data: movementsData } = await movementQuery;
 
-            const response = await fetch(`${url}?${params.toString()}`);
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.error || 'Failed to load reports');
-
-            setReports(data.reports || []);
+            setItems(itemsData || []);
+            setMovements(movementsData || []);
         } catch (err) {
-            setToast({ message: 'Error loading reports', type: 'error' });
+            console.error('Error fetching report data:', err);
         } finally {
             setIsLoading(false);
         }
-    }, [propertyId, orgId, startDate, endDate]);
+    }, [propertyId, supabase, dateRange]);
 
     useEffect(() => {
-        fetchReports();
-    }, [fetchReports]);
+        fetchData();
+    }, [fetchData]);
 
-    const handleGenerateReport = async () => {
-        const reportDate = new Date().toISOString().split('T')[0];
+    // ---- Computed analytics ----
+    const totalItems = items.length;
+    const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0);
+    const lowStockItems = items.filter(i => i.quantity <= (i.min_threshold || 5));
+    const outOfStockItems = items.filter(i => i.quantity === 0);
 
-        try {
-            const response = await fetch(`/api/properties/${propertyId}/stock/reports`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reportDate }),
-            });
+    const totalAdded = movements
+        .filter(m => m.action === 'add')
+        .reduce((sum, m) => sum + Math.abs(m.quantity_change), 0);
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to generate report');
+    const totalRemoved = movements
+        .filter(m => m.action === 'remove')
+        .reduce((sum, m) => sum + Math.abs(m.quantity_change), 0);
 
-            setToast({ message: 'Report generated successfully', type: 'success' });
-            fetchReports();
-        } catch (err) {
-            setToast({ message: err instanceof Error ? err.message : 'Error generating report', type: 'error' });
-        }
-    };
+    const netChange = totalAdded - totalRemoved;
 
-    const handleExportCSV = async () => {
-        try {
-            if (!orgId) {
-                setToast({ message: 'CSV export only available at organization level', type: 'error' });
-                return;
-            }
+    // Category breakdown
+    const categoryMap = useMemo(() => {
+        const map: Record<string, { count: number; totalQty: number; lowStock: number }> = {};
+        items.forEach(item => {
+            const cat = item.category || 'Uncategorized';
+            if (!map[cat]) map[cat] = { count: 0, totalQty: 0, lowStock: 0 };
+            map[cat].count++;
+            map[cat].totalQty += item.quantity;
+            if (item.quantity <= (item.min_threshold || 5)) map[cat].lowStock++;
+        });
+        return Object.entries(map).sort((a, b) => b[1].count - a[1].count);
+    }, [items]);
 
-            const params = new URLSearchParams();
-            params.append('format', 'csv');
-            if (startDate) params.append('startDate', startDate);
-            if (endDate) params.append('endDate', endDate);
+    // Top movers (most frequently moved items)
+    const topMovers = useMemo(() => {
+        const map: Record<string, { name: string; code: string; unit: string; added: number; removed: number; total: number }> = {};
+        movements.forEach(m => {
+            const id = m.item_id;
+            const name = (m.stock_items as any)?.name || 'Unknown';
+            const code = (m.stock_items as any)?.item_code || '';
+            const unit = (m.stock_items as any)?.unit || 'units';
+            if (!map[id]) map[id] = { name, code, unit, added: 0, removed: 0, total: 0 };
+            const abs = Math.abs(m.quantity_change);
+            if (m.action === 'add') map[id].added += abs;
+            else if (m.action === 'remove') map[id].removed += abs;
+            map[id].total += abs;
+        });
+        return Object.entries(map)
+            .sort((a, b) => b[1].total - a[1].total)
+            .slice(0, 5);
+    }, [movements]);
 
-            const response = await fetch(`/api/organizations/${orgId}/stock/reports?${params.toString()}`);
+    // Daily movement activity (last 7 or 30 days)
+    const dailyActivity = useMemo(() => {
+        const map: Record<string, { added: number; removed: number }> = {};
+        movements.forEach(m => {
+            const day = new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (!map[day]) map[day] = { added: 0, removed: 0 };
+            const abs = Math.abs(m.quantity_change);
+            if (m.action === 'add') map[day].added += abs;
+            else if (m.action === 'remove') map[day].removed += abs;
+        });
+        return Object.entries(map).reverse().slice(0, 14);
+    }, [movements]);
 
-            if (!response.ok) throw new Error('Failed to export');
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `stock-reports-${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-
-            setToast({ message: 'Report exported successfully', type: 'success' });
-        } catch (err) {
-            setToast({ message: 'Error exporting report', type: 'error' });
-        }
-    };
+    const maxDailyValue = useMemo(() => {
+        return Math.max(1, ...dailyActivity.map(([, d]) => Math.max(d.added, d.removed)));
+    }, [dailyActivity]);
 
     if (isLoading) {
-        return <Skeleton className="h-96" />;
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 size={32} className="animate-spin text-blue-500" />
+            </div>
+        );
     }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h3 className="text-xl font-bold">Stock Reports</h3>
-                <div className="flex gap-2">
-                    {propertyId && (
+            {/* Date Range Filter */}
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <BarChart3 size={20} className="text-blue-500" />
+                    Stock Analytics
+                </h3>
+                <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                    {(['7d', '30d', 'all'] as const).map(range => (
                         <button
-                            onClick={handleGenerateReport}
-                            className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors"
+                            key={range}
+                            onClick={() => setDateRange(range)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${dateRange === range
+                                ? 'bg-white text-gray-900 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
                         >
-                            <RefreshCw size={18} />
-                            Generate Today's Report
+                            {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : 'All Time'}
                         </button>
-                    )}
-                    {orgId && (
-                        <button
-                            onClick={handleExportCSV}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            <Download size={18} />
-                            Export CSV
-                        </button>
-                    )}
+                    ))}
                 </div>
             </div>
 
-            {/* Date Filters */}
-            <div className="flex gap-4">
-                <div>
-                    <label className="block text-sm font-semibold mb-2">From Date</label>
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="px-4 py-2 bg-bg-secondary border border-border-primary rounded-lg focus:outline-none focus:border-accent-primary"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-semibold mb-2">To Date</label>
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="px-4 py-2 bg-bg-secondary border border-border-primary rounded-lg focus:outline-none focus:border-accent-primary"
-                    />
-                </div>
-                <div className="flex items-end">
-                    <button
-                        onClick={fetchReports}
-                        className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors"
-                    >
-                        Filter
-                    </button>
-                </div>
-            </div>
-
-            {/* Reports Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {reports.map(report => (
-                    <div key={report.id} className="border border-border-primary rounded-xl p-4 hover:border-accent-primary/50 transition-colors">
-                        <div className="text-sm text-text-secondary mb-3">
-                            {report.property_name && `${report.property_name} • `}
-                            {new Date(report.report_date).toLocaleDateString()}
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="flex justify-between">
-                                <span className="text-text-secondary">Total Items:</span>
-                                <span className="font-semibold">{report.total_items}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-text-secondary">Low Stock:</span>
-                                <span className="font-semibold text-orange-500">{report.low_stock_count}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-text-secondary">Added:</span>
-                                <span className="font-semibold text-green-500">+{report.total_added}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-text-secondary">Removed:</span>
-                                <span className="font-semibold text-red-500">-{report.total_removed}</span>
-                            </div>
+            {/* Summary KPIs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Package size={16} className="text-blue-600" />
                         </div>
                     </div>
-                ))}
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Items</p>
+                    <p className="text-2xl font-black text-gray-900">{totalItems}</p>
+                    <p className="text-xs text-gray-400 mt-1">{totalUnits} total units</p>
+                </div>
+
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <ArrowUpCircle size={16} className="text-emerald-600" />
+                        </div>
+                    </div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Added</p>
+                    <p className="text-2xl font-black text-emerald-600">+{totalAdded}</p>
+                    <p className="text-xs text-gray-400 mt-1">{movements.filter(m => m.action === 'add').length} movements</p>
+                </div>
+
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                            <ArrowDownCircle size={16} className="text-red-600" />
+                        </div>
+                    </div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Removed</p>
+                    <p className="text-2xl font-black text-red-600">−{totalRemoved}</p>
+                    <p className="text-xs text-gray-400 mt-1">{movements.filter(m => m.action === 'remove').length} movements</p>
+                </div>
+
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+                            <TrendingUp size={16} className="text-violet-600" />
+                        </div>
+                    </div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Net Change</p>
+                    <p className={`text-2xl font-black ${netChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {netChange >= 0 ? '+' : ''}{netChange}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">{movements.length} total movements</p>
+                </div>
             </div>
 
-            {reports.length === 0 && (
-                <div className="text-center py-12 text-text-secondary">
-                    No reports available. {propertyId && 'Generate a report to get started!'}
+            {/* Movement Activity Chart (simple bar chart) */}
+            {dailyActivity.length > 0 && (
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Activity size={16} className="text-blue-500" />
+                        Daily Movement Activity
+                    </h4>
+                    <div className="flex items-end gap-1 h-32">
+                        {dailyActivity.map(([day, data]) => (
+                            <div key={day} className="flex-1 flex flex-col items-center gap-0.5" title={`${day}: +${data.added} / -${data.removed}`}>
+                                {/* Added bar (green) */}
+                                <div
+                                    className="w-full bg-emerald-400 rounded-t-sm min-h-[2px] transition-all"
+                                    style={{ height: `${Math.max(2, (data.added / maxDailyValue) * 100)}%` }}
+                                />
+                                {/* Removed bar (red) */}
+                                <div
+                                    className="w-full bg-red-400 rounded-b-sm min-h-[2px] transition-all"
+                                    style={{ height: `${Math.max(2, (data.removed / maxDailyValue) * 100)}%` }}
+                                />
+                                <span className="text-[9px] text-gray-400 mt-1 truncate w-full text-center">{day.split(' ')[1]}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex items-center justify-center gap-6 mt-3">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 bg-emerald-400 rounded-sm" />
+                            <span className="text-xs text-gray-500">Added</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 bg-red-400 rounded-sm" />
+                            <span className="text-xs text-gray-500">Removed</span>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            {/* Toast */}
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    visible={true}
-                    onClose={() => setToast(null)}
-                    duration={3000}
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Low Stock Alerts */}
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <ShieldAlert size={16} className="text-orange-500" />
+                        Low Stock Alerts
+                        {lowStockItems.length > 0 && (
+                            <span className="ml-auto px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-bold">
+                                {lowStockItems.length}
+                            </span>
+                        )}
+                    </h4>
+                    {lowStockItems.length === 0 ? (
+                        <div className="text-center py-6 text-gray-400">
+                            <Package size={28} className="mx-auto mb-2 opacity-40" />
+                            <p className="text-sm font-medium">All items are well stocked</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {lowStockItems.map(item => (
+                                <div key={item.id} className="flex items-center gap-3 p-2.5 bg-orange-50 border border-orange-100 rounded-lg">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.quantity === 0 ? 'bg-red-100' : 'bg-orange-100'}`}>
+                                        <AlertTriangle size={14} className={item.quantity === 0 ? 'text-red-600' : 'text-orange-600'} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-gray-900 text-sm truncate">{item.name}</p>
+                                        <p className="text-xs text-gray-400">{item.item_code}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className={`text-sm font-bold ${item.quantity === 0 ? 'text-red-600' : 'text-orange-600'}`}>
+                                            {item.quantity === 0 ? 'OUT' : item.quantity}
+                                        </span>
+                                        <p className="text-[10px] text-gray-400">min: {item.min_threshold || 5}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Top Moving Items */}
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <TrendingUp size={16} className="text-blue-500" />
+                        Most Active Items
+                    </h4>
+                    {topMovers.length === 0 ? (
+                        <div className="text-center py-6 text-gray-400">
+                            <Activity size={28} className="mx-auto mb-2 opacity-40" />
+                            <p className="text-sm font-medium">No movements in this period</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {topMovers.map(([id, data], index) => (
+                                <div key={id} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <span className="text-xs font-black text-blue-600">#{index + 1}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-gray-900 text-sm truncate">{data.name}</p>
+                                        <p className="text-xs text-gray-400">
+                                            <span className="text-emerald-500">+{data.added}</span>
+                                            {' / '}
+                                            <span className="text-red-500">−{data.removed}</span>
+                                            {' '}
+                                            {data.unit}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-sm font-bold text-gray-900">{data.total}</span>
+                                        <p className="text-[10px] text-gray-400">{data.unit} moved</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Category Breakdown */}
+            {categoryMap.length > 0 && (
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <Box size={16} className="text-indigo-500" />
+                        Category Breakdown
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {categoryMap.map(([category, data]) => (
+                            <div key={category} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-900 text-sm truncate">{category}</p>
+                                    <p className="text-xs text-gray-400">
+                                        {data.count} items • {data.totalQty} total units
+                                    </p>
+                                </div>
+                                {data.lowStock > 0 && (
+                                    <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-bold flex-shrink-0">
+                                        {data.lowStock} low
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Out of Stock Section */}
+            {outOfStockItems.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+                    <h4 className="text-sm font-bold text-red-800 mb-3 flex items-center gap-2">
+                        <AlertTriangle size={16} className="text-red-600" />
+                        Out of Stock ({outOfStockItems.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                        {outOfStockItems.map(item => (
+                            <span key={item.id} className="px-3 py-1.5 bg-white border border-red-200 rounded-lg text-sm font-medium text-red-700">
+                                {item.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     );

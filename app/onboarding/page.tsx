@@ -22,6 +22,7 @@ const AUTOPILOT_ORG_ID = process.env.NEXT_PUBLIC_AUTOPILOT_ORG_ID;
 
 const AVAILABLE_ROLES = [
     { id: 'property_admin', label: 'Property Admin', desc: 'Manage property operations & staff', icon: '🏢' },
+    { id: 'soft_service_manager', label: 'Soft Service Manager', desc: 'Oversee soft service operations & staff', icon: '✨' },
     { id: 'staff', label: 'Soft Services Staff', desc: 'Cleaning, hygiene, pantry & support', icon: '👷' },
     { id: 'mst', label: 'Maintenance Staff', desc: 'Technical repairs & maintenance', icon: '🔧' },
     { id: 'security', label: 'Security', desc: 'Property security & access control', icon: '🛡️' },
@@ -38,6 +39,10 @@ const SKILL_OPTIONS: Record<string, { code: string; label: string; icon: any }[]
     staff: [
         { code: 'technical', label: 'Technical', icon: Wrench },
         { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
+    ],
+    soft_service_manager: [
+        { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
+        { code: 'housekeeping', label: 'Housekeeping', icon: Sparkles },
     ],
 };
 
@@ -385,7 +390,7 @@ export default function OnboardingPage() {
     };
 
     const nextStep = () => {
-        if (step === 3 && (selectedRole === 'mst' || selectedRole === 'staff')) {
+        if (step === 3 && (selectedRole === 'mst' || selectedRole === 'staff' || selectedRole === 'soft_service_manager')) {
             // Need to go to skills step
             setStep(4);
         } else if (step === 3) {
@@ -420,7 +425,7 @@ export default function OnboardingPage() {
     };
 
     // Calculate total steps including skill step if relevant
-    const showSkillsStep = selectedRole && (selectedRole === 'mst' || selectedRole === 'staff');
+    const showSkillsStep = selectedRole && (selectedRole === 'mst' || selectedRole === 'staff' || selectedRole === 'soft_service_manager');
     const totalSteps = showSkillsStep ? 5 : 4;
 
 

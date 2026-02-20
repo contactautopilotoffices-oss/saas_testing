@@ -340,6 +340,7 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, canDelete, onNewR
                                 assignedTo={ticket.assignee?.full_name}
                                 photoUrl={ticket.photo_before_url}
                                 isSlaPaused={ticket.sla_paused}
+                                propertyName={ticket.property?.name}
                                 onClick={() => router.push(`/tickets/${ticket.id}?from=requests`)}
                                 onEdit={canEditTicket(ticket) ? (e) => handleEditClick(e, ticket) : undefined}
                                 onDelete={canDelete ? (e) => handleDelete(e, ticket.id) : undefined}

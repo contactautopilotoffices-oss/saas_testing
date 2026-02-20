@@ -33,21 +33,12 @@ const ResolverStatsList = () => {
     const fetchEntries = async () => {
         setIsLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('resolver_stats')
-                .select(`
-                    id,
-                    user_id,
-                    property_id,
-                    skill_group_id,
-                    user:users!user_id(full_name, email),
-                    property:properties!property_id(name),
-                    skill_group:skill_groups!skill_group_id(name, code)
-                `)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setEntries(data as any || []);
+            const response = await fetch('/api/admin/resolver-stats');
+            if (!response.ok) {
+                throw new Error('Failed to fetch resolver stats');
+            }
+            const data = await response.json();
+            setEntries(data || []);
         } catch (error) {
             console.error('Failed to fetch resolver stats:', error);
         } finally {
@@ -82,11 +73,16 @@ const ResolverStatsList = () => {
         }
     };
 
-    const filteredEntries = entries.filter(e =>
-        e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.property?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.skill_group?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredEntries = entries.filter(e => {
+        const query = searchQuery.toLowerCase();
+        return (
+            (e.user?.full_name?.toLowerCase().includes(query) || false) ||
+            (e.user?.email?.toLowerCase().includes(query) || false) ||
+            (e.property?.name?.toLowerCase().includes(query) || false) ||
+            (e.skill_group?.name?.toLowerCase().includes(query) || false) ||
+            (e.skill_group?.code?.toLowerCase().includes(query) || false)
+        );
+    });
 
     return (
         <div className="space-y-6">
@@ -120,6 +116,20 @@ const ResolverStatsList = () => {
                         <RefreshCcw className={`w-4 h-4 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
+            </div>
+
+            <div className="flex items-center gap-2 px-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Showing {filteredEntries.length} of {entries.length} Resolvers
+                </span>
+                {searchQuery && (
+                    <button
+                        onClick={() => setSearchQuery('')}
+                        className="text-[10px] font-bold text-primary hover:underline"
+                    >
+                        Clear Filter
+                    </button>
+                )}
             </div>
 
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">

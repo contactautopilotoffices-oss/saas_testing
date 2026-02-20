@@ -47,6 +47,10 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
             { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
             { code: 'housekeeping', label: 'Housekeeping', icon: Sparkles },
         ],
+        soft_service_manager: [
+            { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
+            { code: 'housekeeping', label: 'Housekeeping', icon: Sparkles },
+        ],
     };
 
     const toggleSkill = (code: string) => {
@@ -74,7 +78,7 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                     role,
                     property_id: role === 'org_super_admin' ? null : selectedPropertyId,
                     specialization: role === 'staff' ? specialization : undefined,
-                    skills: (role === 'staff' || role === 'mst' || role === 'soft_service_staff' || role === 'soft_service_supervisor') ? selectedSkills : undefined
+                    skills: (role === 'staff' || role === 'mst' || role === 'soft_service_staff' || role === 'soft_service_supervisor' || role === 'soft_service_manager') ? selectedSkills : undefined
                 }),
             });
 
@@ -225,6 +229,7 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                                             <option value="staff">General Staff</option>
                                             <option value="soft_service_staff">Soft Service Staff</option>
                                             <option value="soft_service_supervisor">Soft Service Supervisor</option>
+                                            <option value="soft_service_manager">Soft Service Manager</option>
                                             <option value="mst">MST (Maintenance)</option>
                                         </optgroup>
 
@@ -286,7 +291,7 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                         )}
 
                         {/* Skills Selection */}
-                        {(role === 'mst' || role === 'staff' || role === 'soft_service_staff' || role === 'soft_service_supervisor') && (
+                        {(role === 'mst' || role === 'staff' || role === 'soft_service_staff' || role === 'soft_service_supervisor' || role === 'soft_service_manager') && (
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
                                     Member Skills

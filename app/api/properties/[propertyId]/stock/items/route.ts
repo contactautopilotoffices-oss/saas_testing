@@ -113,7 +113,36 @@ export async function POST(
             });
         }
 
-        return NextResponse.json({ success: true, item }, { status: 201 });
+        // Auto-generate barcode for the new item
+        const { data: property } = await supabase
+            .from('properties')
+            .select('code')
+            .eq('id', propertyId)
+            .single();
+
+        const propCode = property?.code?.toUpperCase() || 'PROP';
+        const newBarcode = `${propCode}-${finalItemCode}-${Date.now().toString(36).toUpperCase()}`;
+
+        const qrCodeData = {
+            item_id: item.id,
+            item_code: finalItemCode,
+            name,
+            property_id: propertyId,
+            barcode: newBarcode,
+            generated_at: new Date().toISOString(),
+        };
+
+        await supabase
+            .from('stock_items')
+            .update({
+                barcode: newBarcode,
+                barcode_format: 'CODE128',
+                qr_code_data: qrCodeData,
+                barcode_generated_at: new Date().toISOString(),
+            })
+            .eq('id', item.id);
+
+        return NextResponse.json({ success: true, item: { ...item, barcode: newBarcode, qr_code_data: qrCodeData } }, { status: 201 });
     } catch (err) {
         return NextResponse.json(
             { error: err instanceof Error ? err.message : 'Unknown error' },

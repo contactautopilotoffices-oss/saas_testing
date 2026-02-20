@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { Search, Plus, Trash2, Edit2, Barcode, Scan } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, Barcode, Scan, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/frontend/utils/supabase/client';
 import Skeleton from '@/frontend/components/ui/Skeleton';
 import StockItemFormModal from './StockItemFormModal';
 import StockItemDetailsModal from './StockItemDetailsModal';
 import { Toast } from '@/frontend/components/ui/Toast';
+import JsBarcode from 'jsbarcode';
 
 const BarcodeScannerModal = dynamic(
     () => import('./BarcodeScannerModal'),
@@ -97,6 +98,27 @@ const StockItemList: React.FC<StockItemListProps> = ({ propertyId, onRefresh }) 
         setShowScanModal(false);
     };
 
+    const handleDownloadBarcode = (item: StockItem) => {
+        if (!item.barcode) return;
+        const canvas = document.createElement('canvas');
+        try {
+            JsBarcode(canvas, item.barcode, {
+                format: 'CODE128',
+                width: 2,
+                height: 80,
+                displayValue: true,
+                fontSize: 14,
+                margin: 10,
+            });
+            const link = document.createElement('a');
+            link.download = `barcode-${item.item_code || item.name}-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            setToast({ message: 'Error generating barcode image', type: 'error' });
+        }
+    };
+
     const filteredItems = items.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.item_code.toLowerCase().includes(searchTerm.toLowerCase());
@@ -120,7 +142,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ propertyId, onRefresh }) 
                         setEditingItem(null);
                         setShowFormModal(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-blue-500/20 font-semibold text-sm"
                 >
                     <Plus size={18} />
                     Add Item
@@ -201,11 +223,21 @@ const StockItemList: React.FC<StockItemListProps> = ({ propertyId, onRefresh }) 
                                     <td className={`py-3 px-4 text-right font-semibold ${isLowStock ? 'text-red-500' : ''}`}>
                                         <span className={`px-3 py-1 rounded-full text-sm ${isLowStock ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
                                             }`}>
-                                            {item.quantity} {item.unit || 'units'}
+                                            {item.quantity}
                                         </span>
+                                        <span className="text-xs text-gray-400 ml-1">{item.unit || 'units'}</span>
                                     </td>
                                     <td className="py-3 px-4 text-center text-sm">{item.location || '-'}</td>
                                     <td className="py-3 px-4 text-center flex justify-center gap-2">
+                                        {item.barcode && (
+                                            <button
+                                                onClick={() => handleDownloadBarcode(item)}
+                                                className="p-2 hover:bg-bg-secondary rounded-lg transition-colors"
+                                                title="Download Barcode"
+                                            >
+                                                <Download size={16} className="text-green-500" />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => {
                                                 setEditingItem(item);

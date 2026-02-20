@@ -28,6 +28,7 @@ export interface TicketCardProps {
     assignedTo?: string; // Full name
     photoUrl?: string;
     isSlaPaused?: boolean;
+    propertyName?: string; // Property name for Super Admin view
 
     // Actions
     onClick: () => void;
@@ -59,6 +60,7 @@ export default function TicketCard({
     assignedTo,
     photoUrl,
     isSlaPaused,
+    propertyName,
     onClick,
     onEdit,
     onDelete,
@@ -158,6 +160,15 @@ export default function TicketCard({
                 >
                     {status.replace('_', ' ')}
                 </span>
+
+                {propertyName && (
+                    <span className="inline-flex items-center gap-1 px-[clamp(0.4rem,1.5cqw,0.6rem)] py-[clamp(0.15rem,0.5cqw,0.25rem)] bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-[clamp(0.6rem,2.2cqw,0.7rem)] font-semibold">
+                        <svg className="w-[clamp(0.6rem,2cqw,0.75rem)] h-[clamp(0.6rem,2cqw,0.75rem)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        {propertyName}
+                    </span>
+                )}
             </div>
 
             {/* Assignee Information */}
