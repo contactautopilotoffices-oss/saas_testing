@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from '
 import {
     LayoutDashboard, Building2, Users, UserPlus, Ticket, Settings, UserCircle,
     Search, Plus, Filter, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
-    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload, FileBarChart, Zap
+    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload, FileBarChart, Zap, Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -23,9 +23,10 @@ import NotificationBell from './NotificationBell';
 import Image from 'next/image';
 import { ImportReportsView } from '@/frontend/components/snags';
 import TicketCreateModal from '@/frontend/components/tickets/TicketCreateModal';
+import StockReportView from '@/frontend/components/stock/StockReportView';
 
 // Types
-type Tab = 'overview' | 'properties' | 'requests' | 'reports' | 'visitors' | 'settings' | 'profile' | 'revenue' | 'users' | 'diesel' | 'electricity';
+type Tab = 'overview' | 'properties' | 'requests' | 'reports' | 'visitors' | 'settings' | 'profile' | 'revenue' | 'users' | 'diesel' | 'electricity' | 'stock_reports';
 
 interface Property {
     id: string;
@@ -187,7 +188,7 @@ const OrgAdminDashboard = () => {
     // Restore tab from URL
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['overview', 'properties', 'requests', 'reports', 'visitors', 'settings', 'profile', 'revenue', 'users', 'diesel', 'electricity'].includes(tab)) {
+        if (tab && ['overview', 'properties', 'requests', 'reports', 'visitors', 'settings', 'profile', 'revenue', 'users', 'diesel', 'electricity', 'stock_reports'].includes(tab)) {
             setActiveTab(tab as Tab);
         }
     }, [searchParams]);
@@ -593,6 +594,16 @@ const OrgAdminDashboard = () => {
                                 <Zap className="w-4 h-4" />
                                 Electricity Analytics
                             </button>
+                            <button
+                                onClick={() => handleTabChange('stock_reports')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'stock_reports'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Package className="w-4 h-4" />
+                                Stock Reports
+                            </button>
                         </div>
                     </div>
 
@@ -865,6 +876,10 @@ const OrgAdminDashboard = () => {
                                 propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId}
                                 orgId={org?.id}
                             />
+                        )}
+
+                        {activeTab === 'stock_reports' && org && (
+                            <StockReportView orgId={org.id} />
                         )}
 
                         {activeTab === 'settings' && <SettingsView />}

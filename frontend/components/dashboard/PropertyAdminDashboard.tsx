@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from '
 import {
     LayoutDashboard, Users, Ticket, Settings, UserCircle, UsersRound,
     Search, Plus, Filter, LogOut, ChevronRight, MapPin, Building2,
-    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload, FileBarChart, Menu, X, Zap, RefreshCw
+    Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload, FileBarChart, Menu, X, Zap, RefreshCw,
+    Package, ClipboardCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -31,9 +32,11 @@ import SettingsView from './SettingsView';
 import AddMemberModal from './InviteMemberModal';
 import { ImportReportsView } from '@/frontend/components/snags';
 import AdminRoomManager from '@/frontend/components/meeting-rooms/AdminRoomManager';
+import StockDashboard from '@/frontend/components/stock/StockDashboard';
+import SOPDashboard from '@/frontend/components/sop/SOPDashboard';
 
 // Types
-type Tab = 'overview' | 'requests' | 'reports' | 'users' | 'visitors' | 'rooms' | 'diesel' | 'diesel_analytics' | 'electricity' | 'electricity_analytics' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue';
+type Tab = 'overview' | 'requests' | 'reports' | 'users' | 'visitors' | 'rooms' | 'diesel' | 'diesel_analytics' | 'electricity' | 'electricity_analytics' | 'cafeteria' | 'settings' | 'profile' | 'units' | 'vendor_revenue' | 'stock' | 'sop';
 
 interface Property {
     id: string;
@@ -92,7 +95,7 @@ const PropertyAdminDashboard = () => {
     // Restore tab from URL
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['overview', 'requests', 'reports', 'users', 'visitors', 'diesel', 'diesel_analytics', 'electricity', 'electricity_analytics', 'cafeteria', 'settings', 'profile', 'units', 'vendor_revenue'].includes(tab)) {
+        if (tab && ['overview', 'requests', 'reports', 'users', 'visitors', 'diesel', 'diesel_analytics', 'electricity', 'electricity_analytics', 'cafeteria', 'settings', 'profile', 'units', 'vendor_revenue', 'stock', 'sop'].includes(tab)) {
             setActiveTab(tab as Tab);
         }
         const filter = searchParams.get('filter');
@@ -388,6 +391,26 @@ const PropertyAdminDashboard = () => {
                                 Electricity Analytics
                             </button>
                             <button
+                                onClick={() => handleTabChange('stock')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'stock'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Package className="w-4 h-4" />
+                                Stock Management
+                            </button>
+                            <button
+                                onClick={() => handleTabChange('sop')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'sop'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <ClipboardCheck className="w-4 h-4" />
+                                SOP Checklists
+                            </button>
+                            <button
                                 onClick={() => handleTabChange('vendor_revenue')}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'vendor_revenue'
                                     ? 'bg-primary text-text-inverse shadow-sm'
@@ -570,6 +593,8 @@ const PropertyAdminDashboard = () => {
                         {activeTab === 'diesel_analytics' && <DieselAnalyticsDashboard />}
                         {activeTab === 'electricity' && property && <ElectricityStaffDashboard propertyId={property.id} />}
                         {activeTab === 'electricity_analytics' && property && <ElectricityAnalyticsDashboard propertyId={property.id} />}
+                        {activeTab === 'stock' && property && <StockDashboard propertyId={property.id} />}
+                        {activeTab === 'sop' && property && <SOPDashboard propertyId={property.id} />}
                         {activeTab === 'settings' && <SettingsView />}
                         {activeTab === 'profile' && (
                             <div className="flex justify-center items-start py-8">

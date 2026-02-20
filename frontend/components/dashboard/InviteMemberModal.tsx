@@ -39,6 +39,14 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
             { code: 'technical', label: 'Technical', icon: Wrench },
             { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
         ],
+        soft_service_staff: [
+            { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
+            { code: 'housekeeping', label: 'Housekeeping', icon: Sparkles },
+        ],
+        soft_service_supervisor: [
+            { code: 'soft_services', label: 'Soft Services', icon: Sparkles },
+            { code: 'housekeeping', label: 'Housekeeping', icon: Sparkles },
+        ],
     };
 
     const toggleSkill = (code: string) => {
@@ -66,7 +74,7 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                     role,
                     property_id: role === 'org_super_admin' ? null : selectedPropertyId,
                     specialization: role === 'staff' ? specialization : undefined,
-                    skills: (role === 'staff' || role === 'mst') ? selectedSkills : undefined
+                    skills: (role === 'staff' || role === 'mst' || role === 'soft_service_staff' || role === 'soft_service_supervisor') ? selectedSkills : undefined
                 }),
             });
 
@@ -208,13 +216,23 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                                         onChange={(e) => setRole(e.target.value)}
                                         className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-slate-100 outline-none appearance-none"
                                     >
-                                        <option value="staff">Staff</option>
-                                        {!fixedPropertyId && <option value="org_super_admin">Org Super Admin</option>}
-                                        <option value="property_admin">Property Admin</option>
-                                        <option value="mst">MST</option>
-                                        <option value="security">Security</option>
-                                        <option value="tenant">Tenant</option>
-                                        <option value="vendor">Vendor</option>
+                                        <optgroup label="Administrative">
+                                            {!fixedPropertyId && <option value="org_super_admin">Org Super Admin</option>}
+                                            <option value="property_admin">Property Admin</option>
+                                        </optgroup>
+
+                                        <optgroup label="Service Staff">
+                                            <option value="staff">General Staff</option>
+                                            <option value="soft_service_staff">Soft Service Staff</option>
+                                            <option value="soft_service_supervisor">Soft Service Supervisor</option>
+                                            <option value="mst">MST (Maintenance)</option>
+                                        </optgroup>
+
+                                        <optgroup label="Other">
+                                            <option value="security">Security</option>
+                                            <option value="tenant">Tenant</option>
+                                            <option value="vendor">Vendor</option>
+                                        </optgroup>
                                     </select>
                                 </div>
                             </div>
@@ -268,7 +286,7 @@ const AddMemberModal = ({ isOpen, onClose, orgId, orgName, properties, fixedProp
                         )}
 
                         {/* Skills Selection */}
-                        {(role === 'mst' || role === 'staff') && (
+                        {(role === 'mst' || role === 'staff' || role === 'soft_service_staff' || role === 'soft_service_supervisor') && (
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
                                     Member Skills

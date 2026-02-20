@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
     LogOut, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, RefreshCw, Cog, X,
-    AlertOctagon, BarChart3, FileText, Camera, Menu, Pencil, Loader2, Zap, Activity, Filter, Calendar
+    AlertOctagon, BarChart3, FileText, Camera, Menu, Pencil, Loader2, Zap, Activity, Filter, Calendar, Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -26,9 +26,10 @@ import TicketFlowMap from '@/frontend/components/ops/TicketFlowMap';
 import TicketCard from '@/frontend/components/shared/TicketCard';
 import NotificationBell from './NotificationBell';
 import AdminRoomManager from '@/frontend/components/meeting-rooms/AdminRoomManager';
+import StockDashboard from '@/frontend/components/stock/StockDashboard';
 
 // Types
-type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'rooms' | 'diesel' | 'electricity' | 'settings' | 'profile' | 'flow-map';
+type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'rooms' | 'diesel' | 'electricity' | 'stock' | 'settings' | 'profile' | 'flow-map';
 
 interface Property {
     id: string;
@@ -527,6 +528,16 @@ const StaffDashboard = () => {
                                     Electricity Logger
                                 </button>
                             )}
+                            <button
+                                onClick={() => handleTabChange('stock')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'stock'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <Package className="w-4 h-4" />
+                                Inventory
+                            </button>
                         </div>
                     </div>
 
@@ -684,6 +695,9 @@ const StaffDashboard = () => {
                             {activeTab === 'diesel' && <DieselStaffDashboard />}
                             {activeTab === 'electricity' && canAccessElectricityLogger(userRole) && (
                                 property && <ElectricityStaffDashboard propertyId={property.id} isDark={isDarkMode} />
+                            )}
+                            {activeTab === 'stock' && property && (
+                                <StockDashboard propertyId={property.id} />
                             )}
                             {activeTab === 'settings' && <SettingsView />}
                             {activeTab === 'profile' && (

@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
     LogOut, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, Cog, X,
-    AlertOctagon, BarChart3, FileText, Wrench, Camera, Menu, Pencil, Loader2, Filter, Activity, Zap, Calendar
+    AlertOctagon, BarChart3, FileText, Wrench, Camera, Menu, Pencil, Loader2, Filter, Activity, Zap, Calendar, ClipboardCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -27,9 +27,10 @@ import TicketFlowMap from '@/frontend/components/ops/TicketFlowMap';
 import { ShiftToast } from '@/frontend/components/mst/ShiftStatus';
 import NavbarShiftStatus from '@/frontend/components/mst/NavbarShiftStatus';
 import TicketCard from '@/frontend/components/shared/TicketCard';
+import SOPDashboard from '@/frontend/components/sop/SOPDashboard';
 
 // Types
-type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'electricity' | 'settings' | 'profile' | 'flow-map';
+type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'diesel' | 'electricity' | 'settings' | 'profile' | 'flow-map' | 'sop';
 
 interface Property {
     id: string;
@@ -571,6 +572,16 @@ const MstDashboard = () => {
                                 <Zap className="w-4 h-4" />
                                 Electricity Logger
                             </button>
+                            <button
+                                onClick={() => handleTabChange('sop')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'sop'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <ClipboardCheck className="w-4 h-4" />
+                                SOP Checklists
+                            </button>
                         </div>
                     </div>
 
@@ -726,6 +737,7 @@ const MstDashboard = () => {
                             )}
                             {activeTab === 'diesel' && <DieselStaffDashboard isDark={isDarkMode} />}
                             {activeTab === 'electricity' && property && <ElectricityStaffDashboard propertyId={property.id} isDark={isDarkMode} />}
+                            {activeTab === 'sop' && property && <SOPDashboard propertyId={property.id} />}
                             {activeTab === 'settings' && <SettingsView />}
                             {activeTab === 'profile' && (
                                 <div className="flex justify-center items-start py-8">

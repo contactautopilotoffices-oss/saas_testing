@@ -8,6 +8,7 @@ export type RoleKey =
     | 'purchase_manager'
     | 'purchase_executive'
     | 'mst' | 'hk' | 'fe' | 'se' | 'technician' | 'field_staff' | 'bms_operator' | 'staff'
+    | 'soft_service_staff' | 'soft_service_supervisor'
     | 'tenant_user' | 'vendor';
 
 export type CapabilityDomain =
@@ -20,7 +21,8 @@ export type CapabilityDomain =
     | 'security'
     | 'dashboards'
     | 'reports'
-    | 'vendors';
+    | 'vendors'
+    | 'stock';
 
 export type CapabilityAction = 'view' | 'create' | 'update' | 'approve' | 'assign' | 'delete' | 'suspend';
 

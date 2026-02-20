@@ -79,5 +79,15 @@ export const CAPABILITY_MATRIX: Record<RoleKey, CapabilityMatrix> = {
     staff: {
         tickets: ['view', 'create', 'update'],
         dashboards: ['view']
+    },
+    soft_service_staff: {
+        stock: ['view', 'create', 'update', 'delete'],
+        dashboards: ['view']
+    },
+    soft_service_supervisor: {
+        stock: ['view', 'create', 'update', 'delete'],
+        tickets: ['view', 'approve'],
+        dashboards: ['view'],
+        reports: ['view']
     }
 };
