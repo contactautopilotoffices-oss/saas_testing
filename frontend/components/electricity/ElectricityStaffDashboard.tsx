@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { History, Settings, CheckCircle, AlertTriangle, ArrowLeft, Zap } from 'lucide-react';
+import { History, Settings, CheckCircle, AlertTriangle, ArrowLeft, Zap, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
 import ElectricityLoggerCard from './ElectricityLoggerCard';
 import ElectricityMeterConfigModal from './ElectricityMeterConfigModal';
 import ElectricityReadingHistory from './ElectricityReadingHistory';
+import ElectricityImportModal from './ElectricityImportModal';
 import { Toast } from '../ui/Toast';
 
 interface ElectricityMeter {
@@ -30,6 +31,7 @@ interface ElectricityReading {
     opening_reading: number;
     closing_reading: number;
     computed_units?: number;
+    final_units?: number;
     multiplier_id?: string;
     multiplier_value?: number;
     notes?: string;
@@ -58,13 +60,14 @@ interface GridTariff {
 interface ElectricityStaffDashboardProps {
     isDark?: boolean;
     propertyId?: string;
+    isEmbedded?: boolean;
 }
 
 /**
  * Staff Dashboard for daily electricity logging
  * v2.1: Simplified logger with per-card save and no cost display.
  */
-const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ isDark = false, propertyId: propIdFromProps }) => {
+const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ isDark = false, propertyId: propIdFromProps, isEmbedded = false }) => {
     const params = useParams();
     const router = useRouter();
     const propertyId = propIdFromProps || (params?.propertyId as string);
@@ -80,6 +83,7 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error', visible: boolean }>({
@@ -163,7 +167,8 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
                     const avgByMeter: Record<string, number[]> = {};
                     avgData.forEach((r: any) => {
                         if (!avgByMeter[r.meter_id]) avgByMeter[r.meter_id] = [];
-                        if (r.computed_units) avgByMeter[r.meter_id].push(r.computed_units);
+                        const units = r.final_units !== undefined ? r.final_units : r.computed_units;
+                        if (units) avgByMeter[r.meter_id].push(units);
                     });
                     const avgs: Record<string, number> = {};
                     Object.entries(avgByMeter).forEach(([meterId, values]) => {
@@ -238,8 +243,8 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
                     meter_id: meterId,
                     reading_date: r.reading_date || new Date().toISOString().split('T')[0],
                     ...r,
-                    alert_status: averages[meterId] && r.computed_units &&
-                        r.computed_units > averages[meterId] * 1.25 ? 'warning' : 'normal',
+                    alert_status: averages[meterId] && (r.final_units ?? r.computed_units) &&
+                        (r.final_units ?? r.computed_units)! > averages[meterId] * 1.25 ? 'warning' : 'normal',
                 }));
 
             const res = await fetch(`/api/properties/${propertyId}/electricity-readings`, {
@@ -340,42 +345,32 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
     // Add meter
     const handleAddMeter = async (data: any) => {
         console.log('[ElectricityDashboard] Adding meter:', data);
-        const { initial_multiplier, ...meterData } = data;
 
         const res = await fetch(`/api/properties/${propertyId}/electricity-meters`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(meterData),
+            body: JSON.stringify(data),
         });
 
         if (!res.ok) {
             const errData = await res.json();
             throw new Error(errData.error || 'Failed to add meter');
         }
-        const newMeter = await res.json();
-        if (initial_multiplier && newMeter?.id) {
-            try {
-                await fetch(`/api/properties/${propertyId}/meter-multipliers`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ meter_id: newMeter.id, ...initial_multiplier }),
-                });
-            } catch (e) { console.warn(e); }
-        }
+
         setToast({ message: 'Meter added successfully!', type: 'success', visible: true });
-        setTimeout(() => setSuccessMessage(null), 3000);
         fetchData();
     };
 
-    // Delete meter
     const handleDeleteMeter = async (meterId: string) => {
         try {
-            const { error } = await supabase
-                .from('electricity_meters')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('id', meterId);
+            const res = await fetch(`/api/properties/${propertyId}/electricity-meters?id=${meterId}`, {
+                method: 'DELETE'
+            });
 
-            if (error) throw error;
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Failed to delete meter');
+            }
 
             setToast({ message: 'Meter deleted successfully', type: 'success', visible: true });
             setTimeout(() => setSuccessMessage(null), 3000);
@@ -394,37 +389,91 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
     };
 
     if (!propertyId) return <div>Select Property</div>;
-    if (isLoading) return <div>Loading...</div>;
+    if (isLoading) return (
+        <div className={`${isEmbedded ? '' : 'min-h-screen'} bg-background pb-8`}>
+            <main className={`flex-1 w-full ${isEmbedded ? 'px-2 py-4' : 'max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+                {/* Header skeleton */}
+                <div className={`${isEmbedded ? 'mb-6' : 'mb-10'} flex flex-col md:flex-row md:items-end justify-between gap-4`}>
+                    <div className="space-y-2">
+                        <div className={`h-3 w-24 rounded-full animate-pulse ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                        <div className={`h-9 w-64 rounded-xl animate-pulse ${isDark ? 'bg-[#21262d]' : 'bg-slate-200'}`} />
+                        <div className={`h-4 w-96 rounded-full animate-pulse ${isDark ? 'bg-[#30363d]' : 'bg-slate-100'}`} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {[80, 96, 72].map((w, i) => (
+                            <div key={i} className={`h-9 rounded-lg animate-pulse ${isDark ? 'bg-[#21262d]' : 'bg-slate-200'}`} style={{ width: w }} />
+                        ))}
+                    </div>
+                </div>
+                {/* Meter cards skeleton */}
+                <div className={`grid gap-6 ${isEmbedded ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className={`rounded-2xl border overflow-hidden animate-pulse ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                            {/* Status strip */}
+                            <div className={`h-1 w-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                            <div className="p-5 space-y-4">
+                                {/* Meter name + type */}
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-1.5">
+                                        <div className={`h-5 w-36 rounded-lg ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                        <div className={`h-3 w-24 rounded-full ${isDark ? 'bg-[#21262d]' : 'bg-slate-100'}`} />
+                                    </div>
+                                    <div className={`h-7 w-7 rounded-lg ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                </div>
+                                {/* Date input */}
+                                <div className={`h-10 w-full rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                {/* Opening reading */}
+                                <div className="space-y-1">
+                                    <div className={`h-3 w-28 rounded-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                    <div className={`h-12 w-full rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                </div>
+                                {/* Closing reading */}
+                                <div className="space-y-1">
+                                    <div className={`h-3 w-28 rounded-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                    <div className={`h-14 w-full rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                </div>
+                                {/* Save button */}
+                                <div className={`h-12 w-full rounded-xl ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </main>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-background pb-24 transition-colors duration-300">
+        <div className={`${isEmbedded ? '' : 'min-h-screen'} bg-background pb-8 transition-colors duration-300`}>
 
 
             {/* Main Content */}
-            <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Feature Header */}
-                <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div>
-                        <div className={`flex items-center gap-2 mb-2 ${isDark ? 'text-primary' : 'text-primary'} font-bold tracking-wider text-xs uppercase`}>
-                            <span className={`w-2 h-2 rounded-full ${isDark ? 'bg-primary' : 'bg-primary'}`} />
-                            Live Logging
-                        </div>
-                        <h1 className={`text-3xl md:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            Daily Electricity Log
-                        </h1>
-                        <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium max-w-2xl`}>
-                            Enter meter readings for today. Consumption is calculated automatically based on opening/closing values.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setShowHistory(true)} className={`flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'text-slate-300 bg-[#161b22] border-[#30363d]' : 'text-slate-600 bg-white border-slate-200'} rounded-lg border`}>
-                            <History className="w-5 h-5" /> View History
-                        </button>
-                        <button onClick={() => setShowConfigModal(true)} className={`flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold ${isDark ? 'text-slate-300 bg-[#161b22] border-[#30363d]' : 'text-slate-600 bg-white border-slate-200'} rounded-lg border`}>
-                            <Settings className="w-5 h-5" /> Config
-                        </button>
-                    </div>
+            <main className={`flex-1 w-full ${isEmbedded ? 'px-2 py-4' : 'max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+                {/* Action Buttons */}
+                <div className={`${isEmbedded ? 'mb-6' : 'mb-6'} flex items-center gap-1.5`}>
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold ${isDark ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} rounded-lg border transition-all hover:scale-105 active:scale-95`}
+                    >
+                        <Upload className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline whitespace-nowrap">Import CSV</span>
+                    </button>
+                    <button onClick={() => setShowHistory(true)} className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold ${isDark ? 'text-slate-300 bg-[#161b22] border-[#30363d]' : 'text-slate-600 bg-white border-slate-200'} rounded-lg border transition-all hover:scale-105 active:scale-95`}>
+                        <History className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline whitespace-nowrap">View History</span>
+                    </button>
+                    <button onClick={() => setShowConfigModal(true)} className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold ${isDark ? 'text-slate-300 bg-[#161b22] border-[#30363d]' : 'text-slate-600 bg-white border-slate-200'} rounded-lg border transition-all hover:scale-105 active:scale-95`}>
+                        <Settings className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline whitespace-nowrap">Config</span>
+                    </button>
                 </div>
+
+                <ElectricityImportModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    propertyId={propertyId}
+                    meters={meters}
+                    onSuccess={(count) => {
+                        setToast({ message: `${count} readings imported successfully!`, type: 'success', visible: true });
+                        fetchData();
+                    }}
+                />
 
                 <Toast
                     message={toast.message}
@@ -441,7 +490,7 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
                         <button onClick={() => setShowConfigModal(true)} className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-lg">+ Add Meter</button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className={`grid gap-6 ${isEmbedded ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
                         {meters.map((meter) => (
                             <ElectricityLoggerCard
                                 key={meter.id}
@@ -462,29 +511,6 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
                 )}
             </main>
 
-            {/* Sticky Footer */}
-            <footer className={`fixed bottom-0 left-0 w-full ${isDark ? 'bg-[#161b22]/90 border-[#21262d]' : 'bg-white/90 border-slate-200'} backdrop-blur-lg border-t z-50`}>
-                <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-6">
-                            <button onClick={() => router.back()} className={`flex items-center gap-1 ${isDark ? 'text-slate-500 hover:text-white' : 'text-slate-500 hover:text-slate-900'} font-medium text-sm`}>
-                                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-                            </button>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={handleSubmitAll}
-                                disabled={isSubmitting || validReadingsCount === 0}
-                                className={`bg-primary text-white text-base font-bold py-3 px-8 rounded-lg shadow-lg flex items-center gap-2 disabled:opacity-50`}
-                            >
-                                <CheckCircle className="w-5 h-5" />
-                                {isSubmitting ? 'Submitting...' : 'SUBMIT ALL'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </footer>
-
             <ElectricityMeterConfigModal
                 isOpen={showConfigModal}
                 onClose={() => setShowConfigModal(false)}
@@ -493,7 +519,7 @@ const ElectricityStaffDashboard: React.FC<ElectricityStaffDashboardProps> = ({ i
             />
 
             {showHistory && (
-                <div className="fixed inset-0 lg:ml-64 z-[60] bg-background animate-in slide-in-from-right duration-300 shadow-2xl border-l border-slate-300">
+                <div className={`fixed inset-0 ${isEmbedded ? '' : 'lg:ml-64'} z-[60] bg-background animate-in slide-in-from-right duration-300 shadow-2xl border-l border-slate-300 overflow-y-auto`}>
                     <ElectricityReadingHistory
                         propertyId={propertyId}
                         isDark={isDark}

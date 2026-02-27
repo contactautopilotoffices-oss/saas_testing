@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
             .eq('user_id', user.id) // Ensure user owns this session
             .is('session_end', null) // Only update open sessions
             .select('id')
-            .single();
+            .maybeSingle();
 
         if (updateError) {
             // Session might not exist or already closed

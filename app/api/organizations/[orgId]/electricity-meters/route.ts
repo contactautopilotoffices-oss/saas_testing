@@ -24,11 +24,12 @@ export async function GET(
 
     const propertyIds = properties.map(p => p.id);
 
-    // Get all electricity meters for these properties
+    // Get all electricity meters for these properties (exclude soft-deleted)
     const { data, error } = await supabase
         .from('electricity_meters')
         .select('*')
-        .in('property_id', propertyIds);
+        .in('property_id', propertyIds)
+        .is('deleted_at', null);
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });

@@ -67,8 +67,12 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
             } else {
                 console.error('[SessionProvider] Failed to start session:', res.status);
             }
-        } catch (err) {
-            console.error('[SessionProvider] Error starting session:', err);
+        } catch (err: any) {
+            if (err instanceof TypeError && err.message === 'Failed to fetch') {
+                console.warn('[SessionProvider] Network error starting session (server might be restarting)');
+            } else {
+                console.error('[SessionProvider] Error starting session:', err);
+            }
         } finally {
             isStartingRef.current = false;
         }
@@ -100,8 +104,13 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
                 console.log('[SessionProvider] Session expired/invalid, starting new one');
                 await startSession();
             }
-        } catch (err) {
-            console.error('[SessionProvider] Ping error:', err);
+        } catch (err: any) {
+            if (err instanceof TypeError && err.message === 'Failed to fetch') {
+                // Silently ignore ping failures during server restarts to avoid console noise
+                // console.warn('[SessionProvider] Network error during ping');
+            } else {
+                console.error('[SessionProvider] Ping error:', err);
+            }
         }
     }, [sessionId, startSession]);
 

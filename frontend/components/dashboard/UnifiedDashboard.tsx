@@ -40,7 +40,7 @@ const UnifiedDashboard = () => {
     // Soft Service Manager/Supervisor — dedicated dashboard
     if (role === 'soft_service_manager' || role === 'soft_service_supervisor' || role === 'soft_service_staff') {
         const activePropertyId = propertyIds[0] || 'prop-1';
-        return <SoftServiceManagerDashboard propertyId={activePropertyId} />;
+        return <SoftServiceManagerDashboard propertyId={activePropertyId} userRole={role} />;
     }
 
     // Handle roles that might have multiple properties

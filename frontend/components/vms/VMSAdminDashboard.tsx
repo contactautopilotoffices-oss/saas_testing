@@ -157,8 +157,119 @@ const VMSAdminDashboard: React.FC<VMSAdminDashboardProps> = ({ propertyId }) => 
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+            <div className="space-y-8 animate-pulse">
+                {/* Stat cards skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[
+                        'bg-primary/10',
+                        'bg-emerald-50',
+                        'bg-rose-50',
+                    ].map((iconBg, i) => (
+                        <div key={i} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className={`w-12 h-12 ${iconBg} rounded-2xl`} />
+                                <div className="space-y-2">
+                                    <div className="h-2.5 w-24 bg-slate-100 rounded-full" />
+                                    <div className="h-8 w-12 bg-slate-200 rounded-lg" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Visitor log panel skeleton */}
+                <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+                    {/* Panel header */}
+                    <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="space-y-2">
+                            <div className="h-6 w-28 bg-slate-200 rounded-lg" />
+                            <div className="h-3 w-40 bg-slate-100 rounded-full" />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="h-9 w-48 bg-slate-100 rounded-xl" />
+                            <div className="h-9 w-28 bg-slate-100 rounded-xl" />
+                            <div className="h-9 w-24 bg-slate-100 rounded-xl" />
+                            <div className="h-9 w-9 bg-slate-100 rounded-xl" />
+                        </div>
+                    </div>
+
+                    {/* Table skeleton – desktop */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-slate-50 border-b border-slate-100">
+                                <tr>
+                                    {['Visitor', 'Category', 'Host / Purpose', 'Timing', 'Status', 'Action'].map(col => (
+                                        <th key={col} className="px-6 py-4">
+                                            <div className="h-2.5 w-16 bg-slate-200 rounded-full" />
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {[1, 2, 3, 4, 5].map(row => (
+                                    <tr key={row}>
+                                        {/* Visitor info */}
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-200 flex-shrink-0" />
+                                                <div className="space-y-1.5">
+                                                    <div className="h-3.5 w-28 bg-slate-200 rounded-full" />
+                                                    <div className="h-2.5 w-20 bg-slate-100 rounded-full" />
+                                                </div>
+                                            </div>
+                                        </td>
+                                        {/* Category */}
+                                        <td className="px-6 py-4">
+                                            <div className="h-6 w-20 bg-slate-100 rounded-full" />
+                                        </td>
+                                        {/* Host */}
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1.5">
+                                                <div className="h-3 w-24 bg-slate-200 rounded-full" />
+                                                <div className="h-2.5 w-20 bg-slate-100 rounded-full" />
+                                            </div>
+                                        </td>
+                                        {/* Timing */}
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1.5">
+                                                <div className="h-3 w-20 bg-slate-200 rounded-full" />
+                                                <div className="h-2.5 w-16 bg-slate-100 rounded-full" />
+                                            </div>
+                                        </td>
+                                        {/* Status */}
+                                        <td className="px-6 py-4">
+                                            <div className="h-6 w-24 bg-slate-100 rounded-full" />
+                                        </td>
+                                        {/* Action */}
+                                        <td className="px-6 py-4">
+                                            <div className="h-8 w-20 bg-slate-200 rounded-xl" />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile cards skeleton */}
+                    <div className="md:hidden divide-y divide-slate-50">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="p-4 space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-slate-200 flex-shrink-0" />
+                                    <div className="space-y-1.5 flex-1">
+                                        <div className="h-3.5 w-32 bg-slate-200 rounded-full" />
+                                        <div className="h-2.5 w-24 bg-slate-100 rounded-full" />
+                                    </div>
+                                    <div className="h-6 w-20 bg-slate-100 rounded-full" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="h-3 w-full bg-slate-100 rounded-full" />
+                                    <div className="h-3 w-full bg-slate-100 rounded-full" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }

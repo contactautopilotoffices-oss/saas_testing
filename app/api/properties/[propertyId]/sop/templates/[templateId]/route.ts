@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/frontend/utils/supabase/server';
+import { supabaseAdmin } from '@/backend/lib/supabase/admin';
 
 export async function GET(
     request: NextRequest,
@@ -46,7 +47,9 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const { title, description, category, frequency, applicable_roles, is_active, items } = body;
+        const { title, description, category, frequency, assigned_to, is_active, items } = body;
+
+
 
         const { data: template, error: updateError } = await supabase
             .from('sop_templates')
@@ -55,8 +58,11 @@ export async function PUT(
                 ...(description !== undefined && { description }),
                 ...(category && { category }),
                 ...(frequency && { frequency }),
-                ...(applicable_roles && { applicable_roles }),
+                ...(assigned_to && { assigned_to }),
+
                 ...(is_active !== undefined && { is_active }),
+
+
                 updated_at: new Date().toISOString(),
             })
             .eq('id', templateId)
@@ -70,18 +76,22 @@ export async function PUT(
 
         // Update items if provided
         if (items && Array.isArray(items)) {
-            // Delete existing items
-            await supabase
+            // Delete existing items (use supabaseAdmin to bypass RLS)
+            const { error: deleteItemsError } = await supabaseAdmin
                 .from('sop_checklist_items')
                 .delete()
                 .eq('template_id', templateId);
 
-            // Insert new items
+            if (deleteItemsError) {
+                return NextResponse.json({ error: 'Failed to update items: ' + deleteItemsError.message }, { status: 500 });
+            }
+
+            // Insert new items (use supabaseAdmin to bypass RLS)
             if (items.length > 0) {
                 const itemsToInsert = items.map((item: any, index: number) => ({
                     template_id: templateId,
                     title: item.title,
-                    description: item.description,
+                    description: item.description || '',
                     order_index: index,
                     type: item.type || 'checkbox',
                     is_optional: item.is_optional || false,
@@ -90,12 +100,12 @@ export async function PUT(
                     is_mandatory: item.is_mandatory !== false,
                 }));
 
-                const { error: itemsError } = await supabase
+                const { error: itemsError } = await supabaseAdmin
                     .from('sop_checklist_items')
                     .insert(itemsToInsert);
 
                 if (itemsError) {
-                    return NextResponse.json({ error: itemsError.message }, { status: 500 });
+                    return NextResponse.json({ error: 'Failed to insert items: ' + itemsError.message }, { status: 500 });
                 }
             }
         }

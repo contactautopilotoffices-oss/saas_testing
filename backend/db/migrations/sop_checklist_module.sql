@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS sop_templates (
     description TEXT,
     category TEXT DEFAULT 'general',
     frequency TEXT NOT NULL DEFAULT 'daily' CHECK (frequency IN ('daily', 'weekly', 'monthly', 'on_demand')),
-    applicable_roles TEXT[] NOT NULL DEFAULT '{}',
+    assigned_to TEXT[] NOT NULL DEFAULT '{}',
     is_active BOOLEAN DEFAULT TRUE,
     created_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -65,8 +65,17 @@ ALTER TABLE sop_completion_items ENABLE ROW LEVEL SECURITY;
 
 -- Templates: property members can view; admins can manage
 CREATE POLICY "sop_templates_read" ON sop_templates FOR SELECT USING (
-    public.is_master_admin_v2() OR public.is_org_admin_v2(organization_id) OR public.is_property_member_v2(property_id)
+    public.is_master_admin_v2() OR 
+    public.is_org_admin_v2(organization_id) OR 
+    (public.is_property_member_v2(property_id) AND (
+        assigned_to @> ARRAY[auth.uid()::text] OR
+        EXISTS (SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = sop_templates.property_id AND pm.role IN ('property_admin'))
+    ))
 );
+
+
+
+
 
 CREATE POLICY "sop_templates_manage" ON sop_templates FOR ALL USING (
     public.is_master_admin_v2() OR public.is_org_admin_v2(organization_id) OR
@@ -76,14 +85,27 @@ CREATE POLICY "sop_templates_manage" ON sop_templates FOR ALL USING (
 -- Checklist items: inherit from template access
 CREATE POLICY "sop_items_read" ON sop_checklist_items FOR SELECT USING (
     EXISTS (SELECT 1 FROM sop_templates t WHERE t.id = sop_checklist_items.template_id
-        AND (public.is_master_admin_v2() OR public.is_org_admin_v2(t.organization_id) OR public.is_property_member_v2(t.property_id)))
+        AND (
+            public.is_master_admin_v2() OR 
+            public.is_org_admin_v2(t.organization_id) OR 
+            (public.is_property_member_v2(t.property_id) AND (
+                t.assigned_to @> ARRAY[auth.uid()::text] OR
+                EXISTS (SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = t.property_id AND pm.role IN ('property_admin'))
+            ))
+        )
+    )
 );
+
+
 
 -- Completions: users can manage their own; admins see all
 CREATE POLICY "sop_completions_all_roles" ON sop_completions FOR SELECT USING (
-    completed_by = auth.uid() OR public.is_org_admin_v2(organization_id) OR
-    public.is_master_admin_v2() OR public.is_property_member_v2(property_id)
+    completed_by = auth.uid() OR 
+    public.is_org_admin_v2(organization_id) OR
+    public.is_master_admin_v2() OR
+    EXISTS (SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = sop_completions.property_id AND pm.role IN ('property_admin'))
 );
+
 
 CREATE POLICY "sop_completions_insert" ON sop_completions FOR INSERT WITH CHECK (
     completed_by = auth.uid() AND public.is_property_member_v2(property_id)
@@ -96,8 +118,15 @@ CREATE POLICY "sop_completions_update" ON sop_completions FOR UPDATE USING (
 -- Completion items: inherit from completion
 CREATE POLICY "sop_completion_items_manage" ON sop_completion_items FOR ALL USING (
     EXISTS (SELECT 1 FROM sop_completions c WHERE c.id = sop_completion_items.completion_id
-        AND (c.completed_by = auth.uid() OR public.is_org_admin_v2(c.organization_id) OR public.is_master_admin_v2()))
+        AND (
+            c.completed_by = auth.uid() OR 
+            public.is_org_admin_v2(c.organization_id) OR 
+            public.is_master_admin_v2() OR
+            EXISTS (SELECT 1 FROM property_memberships pm WHERE pm.user_id = auth.uid() AND pm.property_id = c.property_id AND pm.role IN ('property_admin'))
+        )
+    )
 );
+
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_sop_templates_property ON sop_templates(property_id, is_active);

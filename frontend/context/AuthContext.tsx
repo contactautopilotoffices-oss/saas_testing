@@ -155,10 +155,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [supabase, fetchMembership]);
 
     const signIn = useCallback(async (email: string, password: string) => {
-        const result = await supabase.auth.signInWithPassword({ email, password });
-        if (result.error) throw result.error;
-        return result;
-    }, [supabase]);
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Login failed');
+
+        // Sync session to browser client
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        // Manually update local state to trigger immediate UI response
+        if (data.session) {
+            setSession(data.session);
+            setUser(data.session.user);
+            await fetchMembership(data.session.user.id);
+        }
+
+        return {
+            data: {
+                user: data.session?.user || null,
+                session: data.session
+            },
+            error: null
+        };
+    }, [supabase, fetchMembership]);
 
     const signInWithGoogle = useCallback(async (propertyCode?: string, redirectPath?: string) => {
         const url = new URL(`${window.location.origin}/api/auth/callback`);
@@ -177,14 +201,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [supabase]);
 
     const signUp = useCallback(async (email: string, password: string, fullName: string) => {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: fullName } },
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, fullName }),
         });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Signup failed');
+
+        // Sync session to browser client
+        const { data: sessionData, error } = await supabase.auth.getSession();
         if (error) throw error;
-        return data;
-    }, [supabase]);
+
+        // Manually update local state if session exists
+        if (sessionData.session) {
+            setSession(sessionData.session);
+            setUser(sessionData.session.user);
+            await fetchMembership(sessionData.session.user.id);
+        }
+
+        return {
+            user: sessionData.session?.user || result.data?.user || null,
+            session: sessionData.session || result.data?.session || null
+        };
+    }, [supabase, fetchMembership]);
 
     const signOut = useCallback(async () => {
         if (user?.id) membershipCache.delete(user.id);

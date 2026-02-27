@@ -56,17 +56,19 @@ export default function SettingsView({ onUpdate }: SettingsViewProps) {
 
             if (userError) throw userError;
 
-            // 2. Fetch Organization Memberships
+            // 2. Fetch Organization Memberships (only active)
             const { data: orgMembers, error: orgError } = await supabase
                 .from('organization_memberships')
                 .select('role, organization:organizations(name)')
-                .eq('user_id', user?.id);
+                .eq('user_id', user?.id)
+                .eq('is_active', true);
 
-            // 3. Fetch Property Memberships
+            // 3. Fetch Property Memberships (only active)
             const { data: propMembers, error: propError } = await supabase
                 .from('property_memberships')
                 .select('role, property:properties(name)')
-                .eq('user_id', user?.id);
+                .eq('user_id', user?.id)
+                .eq('is_active', true);
 
             setProfile(userData);
             if (userData.user_photo_url) {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Plus, TrendingDown, AlertTriangle, Package, Scan, ArrowUpCircle, ArrowDownCircle, Clock } from 'lucide-react';
+import { TrendingDown, AlertTriangle, Package, Scan, ArrowUpCircle, ArrowDownCircle, Clock } from 'lucide-react';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { Toast } from '@/frontend/components/ui/Toast';
 import Skeleton from '@/frontend/components/ui/Skeleton';
@@ -13,6 +13,8 @@ type SubTab = 'inventory' | 'movements' | 'reports';
 
 interface StockDashboardProps {
     propertyId: string;
+    hideReports?: boolean;
+    hideInventory?: boolean;
 }
 
 interface Movement {
@@ -25,8 +27,8 @@ interface Movement {
     users: { full_name: string } | null;
 }
 
-const StockDashboard: React.FC<StockDashboardProps> = ({ propertyId }) => {
-    const [activeSubTab, setActiveSubTab] = useState<SubTab>('inventory');
+const StockDashboard: React.FC<StockDashboardProps> = ({ propertyId, hideReports = false, hideInventory = false }) => {
+    const [activeSubTab, setActiveSubTab] = useState<SubTab>(hideInventory ? 'movements' : 'inventory');
     const [showMovementModal, setShowMovementModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -129,78 +131,76 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ propertyId }) => {
     };
 
     return (
-        <div className="w-full space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Total Items</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalItems}</p>
-                        </div>
-                        <Package className="text-blue-500" size={32} />
+        <div className="w-full space-y-4 overflow-x-hidden">
+            {/* KPI Cards — same style across Inventory / Movements / Reports */}
+            <div className="grid grid-cols-3 gap-1.5">
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-2.5 overflow-hidden min-w-0">
+                    <div className="flex items-start justify-between gap-1 mb-1.5">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide leading-none">Items</p>
+                        <Package className="text-blue-400 flex-shrink-0" size={12} />
                     </div>
+                    <p className="text-2xl font-black text-gray-900 leading-none">{stats.totalItems}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Low Stock</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.lowStockCount}</p>
-                        </div>
-                        <AlertTriangle className="text-orange-500" size={32} />
+                <div className="bg-orange-50 border border-orange-100 rounded-2xl p-2.5 overflow-hidden min-w-0">
+                    <div className="flex items-start justify-between gap-1 mb-1.5">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide leading-none">Low<br />Stock</p>
+                        <AlertTriangle className="text-orange-400 flex-shrink-0" size={12} />
                     </div>
+                    <p className="text-2xl font-black text-orange-500 leading-none">{stats.lowStockCount}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Status</p>
-                            <p className="text-lg font-bold text-gray-900">Operational</p>
-                        </div>
-                        <TrendingDown className="text-green-500" size={32} />
+                <div className="bg-green-50 border border-green-100 rounded-2xl p-2.5 overflow-hidden min-w-0">
+                    <div className="flex items-start justify-between gap-1 mb-1.5">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide leading-none">Status</p>
+                        <TrendingDown className="text-green-400 flex-shrink-0" size={12} />
                     </div>
+                    <p className="text-2xl font-black text-green-600 leading-none">OK</p>
                 </div>
             </div>
 
             {/* Sub Tabs */}
-            <div className="flex gap-3 border-b border-gray-200">
-                <button
-                    onClick={() => setActiveSubTab('inventory')}
-                    className={`px-4 py-3 font-semibold text-sm transition-colors ${activeSubTab === 'inventory'
-                        ? 'text-blue-600 border-b-2 border-blue-600 -mb-px'
-                        : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    Inventory
-                </button>
+            <div className="flex gap-0 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+                {!hideInventory && (
+                    <button
+                        onClick={() => setActiveSubTab('inventory')}
+                        className={`flex-shrink-0 px-3 sm:px-5 py-2.5 font-semibold text-xs sm:text-sm transition-colors whitespace-nowrap ${activeSubTab === 'inventory'
+                            ? 'text-primary border-b-2 border-primary -mb-px'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Inventory
+                    </button>
+                )}
                 <button
                     onClick={() => setActiveSubTab('movements')}
-                    className={`px-4 py-3 font-semibold text-sm transition-colors ${activeSubTab === 'movements'
-                        ? 'text-blue-600 border-b-2 border-blue-600 -mb-px'
+                    className={`flex-shrink-0 px-3 sm:px-5 py-2.5 font-semibold text-xs sm:text-sm transition-colors whitespace-nowrap ${activeSubTab === 'movements'
+                        ? 'text-primary border-b-2 border-primary -mb-px'
                         : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
-                    Stock Movements
+                    Scanner
                 </button>
-                <button
-                    onClick={() => setActiveSubTab('reports')}
-                    className={`px-4 py-3 font-semibold text-sm transition-colors ${activeSubTab === 'reports'
-                        ? 'text-blue-600 border-b-2 border-blue-600 -mb-px'
-                        : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    Reports
-                </button>
+                {!hideReports && (
+                    <button
+                        onClick={() => setActiveSubTab('reports')}
+                        className={`flex-shrink-0 px-3 sm:px-5 py-2.5 font-semibold text-xs sm:text-sm transition-colors whitespace-nowrap ${activeSubTab === 'reports'
+                            ? 'text-primary border-b-2 border-primary -mb-px'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Reports
+                    </button>
+                )}
             </div>
 
             {/* Content */}
-            <div className="mt-6">
+            <div className="mt-2">
                 {isLoading ? (
                     <Skeleton className="h-96" />
                 ) : (
                     <>
-                        {activeSubTab === 'inventory' && (
+                        {activeSubTab === 'inventory' && !hideInventory && (
                             <StockItemList
                                 propertyId={propertyId}
                                 onRefresh={fetchStats}
@@ -214,10 +214,10 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ propertyId }) => {
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <button
                                         onClick={() => setShowMovementModal(true)}
-                                        className="flex-1 flex items-center justify-center gap-3 px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-blue-500/20 font-semibold"
+                                        className="flex-1 flex items-center justify-center gap-3 px-5 py-4 bg-primary text-text-inverse rounded-2xl hover:opacity-90 transition-all font-bold active:scale-[0.98]"
                                     >
                                         <Scan size={22} />
-                                        Scan Barcode & Record Movement
+                                        Scan Barcode &amp; Record Movement
                                     </button>
                                 </div>
 
@@ -233,28 +233,28 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ propertyId }) => {
                                             <p className="text-sm mt-1">Scan a barcode to record your first movement</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-2">
+                                        <div className="divide-y divide-gray-100">
                                             {movements.map(mv => (
-                                                <div key={mv.id} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 transition-colors">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${mv.action === 'add' ? 'bg-emerald-100' : mv.action === 'remove' ? 'bg-red-100' : 'bg-blue-100'}`}>
+                                                <div key={mv.id} className="flex items-center gap-2 py-2 px-1">
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${mv.action === 'add' ? 'bg-emerald-100' : mv.action === 'remove' ? 'bg-red-100' : 'bg-blue-100'}`}>
                                                         {mv.action === 'add' ? (
-                                                            <ArrowUpCircle size={20} className="text-emerald-600" />
+                                                            <ArrowUpCircle size={14} className="text-emerald-600" />
                                                         ) : mv.action === 'remove' ? (
-                                                            <ArrowDownCircle size={20} className="text-red-600" />
+                                                            <ArrowDownCircle size={14} className="text-red-600" />
                                                         ) : (
-                                                            <Package size={20} className="text-blue-600" />
+                                                            <Package size={14} className="text-blue-600" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="font-semibold text-gray-900 text-sm">
+                                                        <p className="font-semibold text-gray-900 text-sm truncate">
                                                             {(mv.stock_items as any)?.name || 'Unknown Item'}
                                                         </p>
-                                                        <p className="text-xs text-gray-400">
+                                                        <p className="text-xs text-gray-400 truncate">
                                                             {mv.users?.full_name || 'System'}
                                                             {mv.notes && ` • ${mv.notes}`}
                                                         </p>
                                                     </div>
-                                                    <div className="text-right flex-shrink-0">
+                                                    <div className="text-right shrink-0">
                                                         <span className={`text-sm font-bold ${mv.action === 'add' ? 'text-emerald-600' : mv.action === 'remove' ? 'text-red-600' : 'text-blue-600'}`}>
                                                             {mv.action === 'add' ? '+' : mv.action === 'remove' ? '−' : '↔'}{mv.quantity} {(mv.stock_items as any)?.unit || ''}
                                                         </span>
@@ -268,7 +268,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ propertyId }) => {
                             </div>
                         )}
 
-                        {activeSubTab === 'reports' && (
+                        {activeSubTab === 'reports' && !hideReports && (
                             <StockReportView propertyId={propertyId} />
                         )}
                     </>

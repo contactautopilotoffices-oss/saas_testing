@@ -17,6 +17,11 @@ interface ElectricityMeter {
 interface MeterMultiplier {
     id: string;
     multiplier_value: number;
+    ct_ratio_primary: number;
+    ct_ratio_secondary: number;
+    pt_ratio_primary: number;
+    pt_ratio_secondary: number;
+    meter_constant: number;
     effective_from: string;
     reason?: string;
 }
@@ -25,6 +30,7 @@ interface ElectricityReading {
     opening_reading: number;
     closing_reading: number;
     computed_units?: number;
+    final_units?: number;
     multiplier_id?: string;
     multiplier_value?: number;
     notes?: string;
@@ -73,8 +79,12 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
     const [selectedMultiplierId, setSelectedMultiplierId] = useState<string | null>(null);
     const [selectedMultiplierValue, setSelectedMultiplierValue] = useState<number>(1);
 
-    // Multiplier editor state (card back) - Simplified
-    const [editMultiplierValue, setEditMultiplierValue] = useState<number>(1);
+    // Multiplier editor state (card back)
+    const [editCtPrimary, setEditCtPrimary] = useState<string>('200');
+    const [editCtSecondary, setEditCtSecondary] = useState<string>('5');
+    const [editPtPrimary, setEditPtPrimary] = useState<string>('11000');
+    const [editPtSecondary, setEditPtSecondary] = useState<string>('110');
+    const [editMeterConstant, setEditMeterConstant] = useState<string>('1');
     const [editEffectiveFrom, setEditEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
     const [editReason, setEditReason] = useState('');
     const [isSavingMultiplier, setIsSavingMultiplier] = useState(false);
@@ -91,7 +101,11 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
             setSelectedMultiplierValue(active.multiplier_value || 1);
 
             // Pre-fill editor
-            setEditMultiplierValue(active.multiplier_value || 1);
+            setEditCtPrimary(active.ct_ratio_primary?.toString() || '200');
+            setEditCtSecondary(active.ct_ratio_secondary?.toString() || '5');
+            setEditPtPrimary(active.pt_ratio_primary?.toString() || '11000');
+            setEditPtSecondary(active.pt_ratio_secondary?.toString() || '110');
+            setEditMeterConstant(active.meter_constant?.toString() || '1');
         }
     }, [multipliers, selectedMultiplierId]);
 
@@ -114,6 +128,7 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
                 opening_reading: openingReading,
                 closing_reading: numVal,
                 computed_units: numVal - openingReading,
+                final_units: (numVal - openingReading) * selectedMultiplierValue,
                 multiplier_id: selectedMultiplierId || undefined,
                 multiplier_value: selectedMultiplierValue,
                 reading_date: date,
@@ -131,6 +146,7 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
                 opening_reading: openingReading,
                 closing_reading: numVal,
                 computed_units: numVal - openingReading,
+                final_units: (numVal - openingReading) * selectedMultiplierValue,
                 multiplier_id: selectedMultiplierId || undefined,
                 multiplier_value: selectedMultiplierValue,
                 reading_date: readingDate,
@@ -149,18 +165,26 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
     const handleSaveMultiplier = async () => {
         if (!onMultiplierSave) return;
         setIsSavingMultiplier(true);
+
+        const cP = parseFloat(editCtPrimary) || 0;
+        const cS = parseFloat(editCtSecondary) || 1;
+        const pP = parseFloat(editPtPrimary) || 0;
+        const pS = parseFloat(editPtSecondary) || 1;
+        const mC = parseFloat(editMeterConstant) || 0;
+
+        const computedVal = (cP / (cS || 1)) * (pP / (pS || 1)) * mC;
+
         try {
             await onMultiplierSave(meter.id, {
                 meter_id: meter.id,
-                multiplier_value: editMultiplierValue,
+                ct_ratio_primary: cP,
+                ct_ratio_secondary: cS,
+                pt_ratio_primary: pP,
+                pt_ratio_secondary: pS,
+                meter_constant: mC,
+                multiplier_value: computedVal,
                 effective_from: editEffectiveFrom,
-                reason: editReason,
-                // Legacy fields required by DB but hidden from UI - setting defaults
-                ct_ratio_primary: 1,
-                ct_ratio_secondary: 1,
-                pt_ratio_primary: 1,
-                pt_ratio_secondary: 1,
-                meter_constant: editMultiplierValue
+                reason: editReason
             });
             setIsFlipped(false);
         } catch (error) {
@@ -188,112 +212,125 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
             >
                 {/* Front */}
                 <div
-                    className={`relative w-full h-full min-h-[520px] backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border`}
+                    className={`relative w-full backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border`}
                     style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                 >
-                    <div className="p-5 md:p-6 flex flex-col min-h-full justify-between relative">
-                        {/* Status Strip */}
-                        <div className={`absolute top-0 left-0 w-1.5 h-full ${hasValidReading ? 'bg-primary' : (isDark ? 'bg-[#21262d]' : 'bg-slate-200')} transition-colors z-10 rounded-l-2xl`} />
+                    {/* Status Strip */}
+                    <div className={`absolute top-0 left-0 w-1.5 h-full ${hasValidReading ? 'bg-primary' : (isDark ? 'bg-[#21262d]' : 'bg-slate-200')} transition-colors z-10 rounded-l-3xl`} />
 
-                        {/* Header */}
-                        <div className="flex justify-between items-start mb-4 pl-3">
-                            <div>
-                                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'} mb-1`}>{meter.name}</h2>
-                                <p className={`text-sm font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <div className="p-4 sm:p-5 pl-5 sm:pl-6 space-y-4">
+                        {/* Header row: name + action buttons inline */}
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                                <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'} leading-tight truncate`}>{meter.name}</h2>
+                                <p className={`text-sm font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'} truncate`}>
                                     {meter.meter_type === 'main' ? 'Main Grid' : meter.meter_type || 'Meter'} · {meter.meter_number || 'No #'}
                                 </p>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleDelete}
-                                className={`${isDark ? 'text-red-400 hover:text-red-300 bg-[#21262d]' : 'text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100'} p-2 rounded-lg transition-colors`}
-                                title="Delete Meter"
-                            >
-                                <Trash2 className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={() => setIsFlipped(true)}
-                                className={`${isDark ? 'text-slate-600 hover:text-primary bg-[#21262d]' : 'text-slate-400 hover:text-primary bg-slate-100'} p-2 rounded-lg transition-colors`}
-                                title="Configure Multiplier"
-                            >
-                                <Settings2 className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                    onClick={handleDelete}
+                                    className={`${isDark ? 'text-red-400 hover:text-red-300 bg-[#21262d]' : 'text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100'} p-2 rounded-lg transition-colors`}
+                                    title="Delete Meter"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => setIsFlipped(true)}
+                                    className={`${isDark ? 'text-slate-600 hover:text-primary bg-[#21262d]' : 'text-slate-400 hover:text-primary bg-slate-100'} p-2 rounded-lg transition-colors`}
+                                    title="Configure Multiplier"
+                                >
+                                    <Settings2 className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Inputs */}
-                        <div className="space-y-6 flex-1 flex flex-col justify-center pl-3">
-                            {/* Date Selection */}
-                            <div>
-                                <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide block mb-2`}>
-                                    Reading Date
-                                </span>
+                        {/* Date Selection */}
+                        <div>
+                            <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide block mb-1.5`}>
+                                Reading Date
+                            </span>
+                            <input
+                                type="date"
+                                value={readingDate}
+                                onChange={(e) => handleDateChange(e.target.value)}
+                                className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-white border-slate-200 text-slate-900'} font-bold rounded-xl p-3 border focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                                max={new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
+
+                        {/* Opening Reading (Auto) */}
+                        <div className={`${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-slate-50 border-slate-200'} rounded-xl p-3 border border-dashed`}>
+                            <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide block mb-1`}>
+                                Opening Reading (Auto)
+                            </span>
+                            <div className={`text-lg font-mono font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                {openingReading.toFixed(2)} <span className="text-xs font-bold">kVAh</span>
+                            </div>
+                        </div>
+
+                        {/* Closing Reading (User) */}
+                        <div>
+                            <span className={`text-xs font-bold text-primary uppercase tracking-wide block mb-1.5`}>
+                                Closing Reading
+                            </span>
+                            <div className="relative">
                                 <input
-                                    type="date"
-                                    value={readingDate}
-                                    onChange={(e) => handleDateChange(e.target.value)}
-                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-white border-slate-200 text-slate-900'} font-bold rounded-lg p-3 border focus:outline-none focus:ring-2 focus:ring-primary/20`}
-                                    max={new Date().toISOString().split('T')[0]} // Prevent future dates
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={closingReading}
+                                    onChange={(e) => handleClosingChange(e.target.value)}
+                                    className={`w-full ${isDark ? 'bg-[#0d1117] border-primary/50 text-white placeholder-slate-600' : 'bg-white border-primary/30 text-slate-900 placeholder-slate-300'} border-2 focus:ring-4 focus:ring-primary/10 text-lg font-bold rounded-xl py-3.5 pl-4 pr-14 shadow-sm transition-all outline-none`}
+                                    placeholder="Reading"
                                 />
-                            </div>
-
-                            {/* Opening Reading (Auto) */}
-                            <div className={`${isDark ? 'bg-[#0d1117] border-[#21262d]' : 'bg-slate-50 border-slate-200'} rounded-xl p-4 border border-dashed`}>
-                                <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase tracking-wide block mb-1`}>
-                                    Opening Reading (Auto)
-                                </span>
-                                <div className={`text-lg md:text-xl font-mono font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'} break-all`}>
-                                    {openingReading.toFixed(2)} <span className="text-xs">kVAh</span>
-                                </div>
-                            </div>
-
-                            {/* Closing Reading (User) */}
-                            <div>
-                                <span className={`text-xs font-bold ${isDark ? 'text-primary' : 'text-primary'} uppercase tracking-wide block mb-2`}>
-                                    Closing Reading
-                                </span>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        value={closingReading}
-                                        onChange={(e) => handleClosingChange(e.target.value)}
-                                        className={`w-full ${isDark ? 'bg-[#0d1117] border-primary/50 text-white placeholder-slate-600' : 'bg-white border-primary/30 text-slate-900 placeholder-slate-300'} border-2 focus:ring-4 ${isDark ? 'focus:ring-primary/10' : 'focus:ring-primary/10'} text-lg md:text-xl font-bold rounded-xl py-4 pl-5 pr-16 shadow-sm transition-all outline-none`}
-                                        placeholder="Reading"
-                                    />
-                                    <span className={`absolute right-5 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-600' : 'text-slate-400'} font-bold pointer-events-none`}>kVAh</span>
-                                </div>
+                                <span className={`absolute right-4 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-600' : 'text-slate-400'} font-bold text-sm pointer-events-none`}>kVAh</span>
                             </div>
                         </div>
+
+                        {/* Consumption Preview */}
+                        {hasValidReading && (
+                            <div className={`${isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/5 border-primary/10'} rounded-xl p-3 border`}>
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <span className="text-xs font-bold text-primary uppercase">Multiplied Consumption</span>
+                                    <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} font-mono`}>×{selectedMultiplierValue.toFixed(2)}</span>
+                                </div>
+                                <div className="text-2xl font-black text-primary flex items-baseline gap-1">
+                                    {((numericClosing - openingReading) * selectedMultiplierValue).toFixed(1)}
+                                    <span className="text-sm font-bold opacity-60">kVAh</span>
+                                </div>
+                                <p className={`text-[10px] mt-0.5 ${isDark ? 'text-slate-600' : 'text-slate-400 font-medium'}`}>
+                                    Raw: {(numericClosing - openingReading).toFixed(1)} kVAh
+                                </p>
+                            </div>
+                        )}
 
                         {/* Save Button */}
-                        <div className="mt-6 pl-3">
-                            <button
-                                onClick={handleSaveEntry}
-                                disabled={!hasValidReading || isSubmitting}
-                                className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${hasValidReading
-                                    ? 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/20 hover:scale-[1.02]'
-                                    : `${isDark ? 'bg-[#21262d] text-slate-600' : 'bg-slate-100 text-slate-400'} cursor-not-allowed`
-                                    }`}
-                            >
-                                {isSubmitting ? (
-                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        <Save className="w-5 h-5" />
-                                        Save Entry
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleSaveEntry}
+                            disabled={!hasValidReading || isSubmitting}
+                            className={`w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all ${hasValidReading
+                                ? 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/20 active:scale-[0.98]'
+                                : `${isDark ? 'bg-[#21262d] text-slate-600' : 'bg-slate-100 text-slate-400'} cursor-not-allowed`
+                                }`}
+                        >
+                            {isSubmitting ? (
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <Save className="w-5 h-5" />
+                                    Save Entry
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
 
                 {/* Back */}
                 <div
-                    className={`absolute inset-0 backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border`}
+                    className={`absolute inset-0 backface-hidden ${isDark ? 'bg-[#161b22] border-[#21262d]' : 'bg-white border-slate-200'} rounded-3xl shadow-md border overflow-y-auto`}
                     style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
-                    <div className="p-5 md:p-6 flex flex-col min-h-full bg-white">
+                    <div className="p-4 sm:p-5 flex flex-col bg-white">
                         {/* Header */}
                         <div className="flex justify-between items-center mb-6">
                             <div>
@@ -308,38 +345,95 @@ const ElectricityLoggerCard: React.FC<ElectricityLoggerCardProps> = ({
                             </button>
                         </div>
 
-                        {/* Simple Inputs */}
-                        <div className="flex-1 space-y-5">
-                            <label className="flex flex-col gap-2">
-                                <span className="text-xs font-bold text-slate-500 uppercase">Multiplier Value (Constant)</span>
+                        {/* Multiplier Configuration Details */}
+                        <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+                            {/* CT Ratio */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">CT Primary (A)</span>
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={editCtPrimary}
+                                        onChange={(e) => setEditCtPrimary(e.target.value)}
+                                        className="w-full bg-slate-50 border-slate-200 text-slate-900 font-bold p-2 text-sm rounded-lg border focus:ring-2 focus:ring-primary/20 outline-none"
+                                    />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">CT Secondary (A)</span>
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={editCtSecondary}
+                                        onChange={(e) => setEditCtSecondary(e.target.value)}
+                                        className="w-full bg-slate-50 border-slate-200 text-slate-900 font-bold p-2 text-sm rounded-lg border focus:ring-2 focus:ring-primary/20 outline-none"
+                                    />
+                                </label>
+                            </div>
+
+                            {/* PT Ratio */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">PT Primary (V)</span>
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={editPtPrimary}
+                                        onChange={(e) => setEditPtPrimary(e.target.value)}
+                                        className="w-full bg-slate-50 border-slate-200 text-slate-900 font-bold p-2 text-sm rounded-lg border focus:ring-2 focus:ring-primary/20 outline-none"
+                                    />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">PT Secondary (V)</span>
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={editPtSecondary}
+                                        onChange={(e) => setEditPtSecondary(e.target.value)}
+                                        className="w-full bg-slate-50 border-slate-200 text-slate-900 font-bold p-2 text-sm rounded-lg border focus:ring-2 focus:ring-primary/20 outline-none"
+                                    />
+                                </label>
+                            </div>
+
+                            <label className="flex flex-col gap-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Meter Constant</span>
                                 <input
-                                    type="number"
-                                    step="0.01"
-                                    value={editMultiplierValue}
-                                    onChange={(e) => setEditMultiplierValue(parseFloat(e.target.value) || 1)}
-                                    className="w-full bg-slate-50 border-slate-200 text-slate-900 font-bold text-lg rounded-lg p-3 border focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                    placeholder="e.g. 1.0, 40.0"
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={editMeterConstant}
+                                    onChange={(e) => setEditMeterConstant(e.target.value)}
+                                    className="w-full bg-slate-50 border-slate-200 text-slate-900 font-bold p-2 rounded-lg border focus:ring-2 focus:ring-primary/20 outline-none"
                                 />
                             </label>
 
-                            <label className="flex flex-col gap-2">
-                                <span className="text-xs font-bold text-slate-500 uppercase">Effective From</span>
-                                <input
-                                    type="date"
-                                    value={editEffectiveFrom}
-                                    onChange={(e) => setEditEffectiveFrom(e.target.value)}
-                                    className="w-full bg-slate-50 border-slate-200 text-slate-900 font-medium rounded-lg p-3 border focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                />
-                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Effective From</span>
+                                    <input
+                                        type="date"
+                                        value={editEffectiveFrom}
+                                        onChange={(e) => setEditEffectiveFrom(e.target.value)}
+                                        className="w-full bg-slate-50 border-slate-200 text-slate-900 font-medium p-2 text-xs rounded-lg border outline-none"
+                                    />
+                                </label>
+                                <div className="flex flex-col justify-end">
+                                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 text-center">
+                                        <span className="text-[10px] font-bold text-primary block">TOTAL FACTOR</span>
+                                        <span className="text-sm font-black text-primary">
+                                            ×{((parseFloat(editCtPrimary) || 0) / (parseFloat(editCtSecondary) || 1) * (parseFloat(editPtPrimary) || 0) / (parseFloat(editPtSecondary) || 1) * (parseFloat(editMeterConstant) || 0)).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <label className="flex flex-col gap-2">
-                                <span className="text-xs font-bold text-slate-500 uppercase">Reason (Optional)</span>
+                            <label className="flex flex-col gap-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Reason (Optional)</span>
                                 <input
                                     type="text"
                                     value={editReason}
                                     onChange={(e) => setEditReason(e.target.value)}
-                                    placeholder="Reason for change..."
-                                    className="w-full bg-slate-50 border-slate-200 text-slate-900 font-medium rounded-lg p-3 border focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    placeholder="e.g. CT Change"
+                                    className="w-full bg-slate-50 border-slate-200 text-slate-900 font-medium p-2 text-sm rounded-lg border outline-none"
                                 />
                             </label>
                         </div>

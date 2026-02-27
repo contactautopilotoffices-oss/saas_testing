@@ -3,13 +3,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Package, AlertTriangle, ArrowUpCircle, ArrowDownCircle,
-    TrendingUp, Loader2, BarChart3, Activity, ShieldAlert, Box
+    TrendingUp, Loader2, BarChart3, Activity, ShieldAlert, Box,
+    Calendar as CalendarIcon
 } from 'lucide-react';
+import { format, subDays, startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
 import { createClient } from '@/frontend/utils/supabase/client';
 
 interface StockReportViewProps {
     propertyId?: string;
     orgId?: string;
+    propertyName?: string;
 }
 
 interface StockItem {
@@ -20,6 +23,7 @@ interface StockItem {
     min_threshold: number;
     category?: string;
     unit?: string;
+    per_unit_cost?: number;
 }
 
 interface Movement {
@@ -32,12 +36,15 @@ interface Movement {
     users: { full_name: string }[];
 }
 
-const StockReportView: React.FC<StockReportViewProps> = ({ propertyId }) => {
+const StockReportView: React.FC<StockReportViewProps> = ({ propertyId, propertyName }) => {
     const [items, setItems] = useState<StockItem[]>([]);
     const [movements, setMovements] = useState<Movement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [dateRange, setDateRange] = useState<'7d' | '30d' | 'all'>('30d');
+    const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | 'this_month' | 'all' | 'custom'>('30d');
+    const [customStart, setCustomStart] = useState<string>(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
+    const [customEnd, setCustomEnd] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const supabase = useMemo(() => createClient(), []);
+    const [isExporting, setIsExporting] = useState(false);
 
     const fetchData = useCallback(async () => {
         if (!propertyId) return;
@@ -47,7 +54,7 @@ const StockReportView: React.FC<StockReportViewProps> = ({ propertyId }) => {
             // Fetch items
             const { data: itemsData } = await supabase
                 .from('stock_items')
-                .select('id, name, item_code, quantity, min_threshold, category, unit')
+                .select('id, name, item_code, quantity, min_threshold, category, unit, per_unit_cost')
                 .eq('property_id', propertyId)
                 .order('name');
 
@@ -56,14 +63,35 @@ const StockReportView: React.FC<StockReportViewProps> = ({ propertyId }) => {
                 .from('stock_movements')
                 .select('id, action, quantity_change, created_at, item_id, stock_items:item_id(name, item_code, unit), users:user_id(full_name)')
                 .eq('property_id', propertyId)
-                .order('created_at', { ascending: false })
-                .limit(500);
+                .order('created_at', { ascending: false });
+
+            // Only limit if it's 'all' or a very small subset without range
+            if (dateRange === 'all') {
+                movementQuery = movementQuery.limit(1000);
+            }
 
             if (dateRange !== 'all') {
-                const days = dateRange === '7d' ? 7 : 30;
-                const since = new Date();
-                since.setDate(since.getDate() - days);
-                movementQuery = movementQuery.gte('created_at', since.toISOString());
+                let start: Date;
+                let end: Date = endOfDay(new Date());
+
+                if (dateRange === 'today') {
+                    start = startOfDay(new Date());
+                } else if (dateRange === '7d') {
+                    start = startOfDay(subDays(new Date(), 6));
+                } else if (dateRange === '30d') {
+                    start = startOfDay(subDays(new Date(), 29));
+                } else if (dateRange === 'this_month') {
+                    const now = new Date();
+                    start = new Date(now.getFullYear(), now.getMonth(), 1);
+                    end = endOfDay(now);
+                } else { // custom
+                    start = startOfDay(new Date(customStart));
+                    end = endOfDay(new Date(customEnd));
+                }
+
+                movementQuery = movementQuery
+                    .gte('created_at', start.toISOString())
+                    .lte('created_at', end.toISOString());
             }
 
             const { data: movementsData } = await movementQuery;
@@ -75,11 +103,241 @@ const StockReportView: React.FC<StockReportViewProps> = ({ propertyId }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [propertyId, supabase, dateRange]);
+    }, [propertyId, supabase, dateRange, customStart, customEnd]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    const itemCategoryMap: Record<string, string> = {
+        'Urnial Pad': 'HK Material Equipment',
+        'Scotch Bright': 'HK Material Equipment',
+        'Wet Mop Stick': 'HK Material Equipment',
+        'Wet Mop Refill': 'HK Material Equipment',
+        'Wet Mop Clip': 'HK Material Equipment',
+        'Dry Mop Stick': 'HK Material Equipment',
+        'Dry Mop Refill': 'HK Material Equipment',
+        'Duster': 'HK Material Equipment',
+        'Garbage Bag Small 19*21': 'HK Material Equipment',
+        'Garbage Bag Big 29*39': 'HK Material Equipment',
+        'Toilet Choke Up Pump': 'HK Material Equipment',
+        'Soft Broom': 'HK Material Equipment',
+        'Hard Room': 'HK Material Equipment',
+        'Ceiling Broom': 'HK Material Equipment',
+        'Feather Brush': 'HK Material Equipment',
+        'Hand Hard Brush': 'HK Material Equipment',
+        'Toilet Brush Hockey': 'HK Material Equipment',
+        'Toilet Brush Round': 'HK Material Equipment',
+        'Wiper': 'HK Material Equipment',
+        'Dambar Goli': 'HK Material Equipment',
+        'Colour Goli': 'HK Material Equipment',
+        'Dust Pan': 'HK Material Equipment',
+        'Bucket': 'HK Material Equipment',
+        'Mug': 'HK Material Equipment',
+        'Spray Bottle': 'HK Material Equipment',
+        'Multi Purpose Cleaner (R2)': 'HK Chemical',
+        'Glass Cleaning Liquid (R3)': 'HK Chemical',
+        'Furniture Polish (R4)': 'HK Chemical',
+        'Air Freshner (R5)': 'HK Chemical',
+        'Toilet Cleaning Liquid (R6)': 'HK Chemical',
+        'Steal Polish (R7)': 'HK Chemical',
+        'Dish Wash Liquid': 'HK Chemical',
+        'Hand Washing Liquid': 'HK Chemical',
+        'Carpet Spot Cleaning Liquid': 'HK Chemical',
+        'Carpet Shampooing Liquid': 'HK Chemical',
+        'Sanitizer': 'HK Chemical',
+        'R1': 'HK Chemical',
+        '20 Litre Water Bottle': 'Mineral Water Expenses Sources',
+        '500 Ml Water Bottle': 'Mineral Water Expenses Sources',
+        '250 Ml Water Bottle': 'Mineral Water Expenses Sources',
+        'Milk in litre': 'Tea and Coffee Expenses',
+        'Pre Mix Tea per cup': 'Tea and Coffee Expenses',
+        'Pre Mix Coffee per cup': 'Tea and Coffee Expenses',
+        'Pre Mix Lemon per cup': 'Tea and Coffee Expenses',
+        'Paper Cups 70ml': 'Tea and Coffee Expenses',
+        'M Fold Tissue': 'Tissue Paper Expenses',
+        'Toilet Rolls': 'Tissue Paper Expenses',
+        'Table Top': 'Tissue Paper Expenses'
+    };
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const ExcelJS = await import('exceljs');
+            const workbook = new ExcelJS.Workbook();
+
+            let start: Date;
+            let end: Date = endOfDay(new Date());
+
+            if (dateRange === 'today') {
+                start = startOfDay(new Date());
+            } else if (dateRange === '7d') {
+                start = startOfDay(subDays(new Date(), 6)); // 6 days ago + today = 7 days
+            } else if (dateRange === '30d') {
+                start = startOfDay(subDays(new Date(), 29)); // 29 days ago + today = 30 days
+            } else if (dateRange === 'this_month') {
+                const now = new Date();
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = endOfDay(now);
+            } else if (dateRange === 'custom') {
+                start = startOfDay(new Date(customStart));
+                end = endOfDay(new Date(customEnd));
+            } else { // 'all'
+                // For 'all', we'll use the earliest movement date if available, otherwise default to 30 days
+                const earliestMovementDate = movements.length > 0
+                    ? new Date(Math.min(...movements.map(m => new Date(m.created_at).getTime())))
+                    : subDays(new Date(), 29);
+                start = startOfDay(earliestMovementDate);
+            }
+
+            // Loop through each day in the range
+            let current = startOfDay(new Date(start));
+            const last = endOfDay(new Date(end));
+
+            while (current.getTime() <= last.getTime()) {
+                const day = new Date(current);
+                const sheetName = format(day, 'dd.MM.yyyy');
+                const worksheet = workbook.addWorksheet(sheetName);
+
+                const categories = [
+                    'HK Material Equipment',
+                    'HK Chemical',
+                    'Mineral Water Expenses Sources',
+                    'Tea and Coffee Expenses',
+                    'Tissue Paper Expenses'
+                ];
+
+                // Define column headers
+                worksheet.columns = [
+                    { width: 35 }, // Item Name
+                    { width: 25 }, // Average Monthly Consumption
+                    { width: 15 }, // Unit Utilized
+                    { width: 15 }, // Per Unit Cost
+                    { width: 25 }  // Total Cost
+                ];
+
+                // Filter movements for this specific day
+                const dayMovements = movements.filter(m => {
+                    const mDate = new Date(m.created_at);
+                    return format(mDate, 'dd.MM.yyyy') === format(day, 'dd.MM.yyyy');
+                });
+
+                categories.forEach(category => {
+                    const groupItems = items.filter(item => (itemCategoryMap[item.name] || item.category) === category);
+                    if (groupItems.length === 0) return;
+
+                    // Set category specific headers
+                    let unitHeader = 'Unit Utilized';
+                    let costHeader = 'Per Unit Cost';
+                    let totalHeader = 'Total Cost for the Day';
+
+                    if (category === 'Mineral Water Expenses Sources') {
+                        unitHeader = 'Bottle Utilized';
+                        costHeader = 'Per bottle Cost';
+                        totalHeader = 'Total Mineral Water Cost for the Day';
+                    } else if (category === 'HK Chemical') {
+                        costHeader = 'Per Litre Cost';
+                    }
+
+                    // Add Category Header Row
+                    const headerRow = worksheet.addRow([category, 'Average Monthly Consumption', unitHeader, costHeader, totalHeader]);
+                    headerRow.eachCell((cell) => {
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'DDEBF7' } // Light Blue
+                        };
+                        cell.font = { bold: true };
+                        cell.border = {
+                            top: { style: 'thin' },
+                            left: { style: 'thin' },
+                            bottom: { style: 'thin' },
+                            right: { style: 'thin' }
+                        };
+                    });
+
+                    let groupTotal = 0;
+
+                    groupItems.forEach(item => {
+                        const itemDayMovements = dayMovements.filter(m => m.item_id === item.id && m.action === 'remove');
+                        const utilized = itemDayMovements.reduce((sum, m) => sum + Math.abs(m.quantity_change), 0);
+                        const costPerUnit = item.per_unit_cost || 0;
+                        const totalCost = utilized * costPerUnit;
+                        groupTotal += totalCost;
+
+                        const row = worksheet.addRow([
+                            item.name,
+                            '-',
+                            utilized || 0,
+                            costPerUnit,
+                            totalCost || 0
+                        ]);
+
+                        row.eachCell(cell => {
+                            cell.border = {
+                                top: { style: 'thin' },
+                                left: { style: 'thin' },
+                                bottom: { style: 'thin' },
+                                right: { style: 'thin' }
+                            };
+                        });
+                    });
+
+                    // Add Total row for category
+                    const totalRowLabel = `Total ${category.replace(' Expenses Sources', '').replace(' Expenses', '')} Expenses`;
+                    const totalRow = worksheet.addRow([totalRowLabel, '', '', '', groupTotal]);
+
+                    // Merge cells A-D for the label
+                    worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
+
+                    totalRow.eachCell((cell) => {
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFFF00' } // Yellow
+                        };
+                        cell.font = { bold: true };
+                        cell.border = {
+                            top: { style: 'thin' },
+                            left: { style: 'thin' },
+                            bottom: { style: 'thin' },
+                            right: { style: 'thin' }
+                        };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    });
+
+                    // Correct the total value cell
+                    const totalValueCell = totalRow.getCell(5);
+                    totalValueCell.value = groupTotal;
+                    totalValueCell.alignment = { horizontal: 'right' };
+
+                    // Add an empty row for spacing
+                    worksheet.addRow([]);
+                });
+
+                current = startOfDay(addDays(current, 1));
+            }
+
+            // Write and download
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            const filename = propertyName
+                ? `${propertyName.replace(/\s+/g, '_')}_Stock_Report_${format(start, 'dd.MM.yyyy')}_to_${format(end, 'dd.MM.yyyy')}.xlsx`
+                : `Stock_Report_${format(start, 'dd.MM.yyyy')}_to_${format(end, 'dd.MM.yyyy')}.xlsx`;
+            anchor.download = filename;
+            anchor.click();
+            window.URL.revokeObjectURL(url);
+
+        } catch (err) {
+            console.error('Export failed:', err);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
 
     // ---- Computed analytics ----
     const totalItems = items.length;
@@ -156,27 +414,66 @@ const StockReportView: React.FC<StockReportViewProps> = ({ propertyId }) => {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Date Range Filter */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <BarChart3 size={20} className="text-blue-500" />
-                    Stock Analytics
-                </h3>
-                <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-                    {(['7d', '30d', 'all'] as const).map(range => (
-                        <button
-                            key={range}
-                            onClick={() => setDateRange(range)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${dateRange === range
-                                ? 'bg-white text-gray-900 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : 'All Time'}
-                        </button>
-                    ))}
+        <div className="space-y-4">
+            {/* Date Range Filter — mobile-friendly stacked layout */}
+            <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2 shrink-0">
+                        <BarChart3 size={18} className="text-blue-500" />
+                        Stock Analytics
+                    </h3>
+                    <button
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                    >
+                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <ArrowDownCircle size={13} />}
+                        Export
+                    </button>
                 </div>
+
+                {/* Date pills — horizontally scrollable on mobile */}
+                <div className="overflow-x-auto scrollbar-hide -mx-0">
+                    <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-max">
+                        {[
+                            { id: 'today', label: 'Today' },
+                            { id: '7d', label: '7 Days' },
+                            { id: '30d', label: '30 Days' },
+                            { id: 'this_month', label: 'Month' },
+                            { id: 'all', label: 'All' },
+                            { id: 'custom', label: 'Custom' }
+                        ].map((range) => (
+                            <button
+                                key={range.id}
+                                onClick={() => setDateRange(range.id as any)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${dateRange === range.id
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                {range.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {dateRange === 'custom' && (
+                    <div className="flex items-center gap-2 bg-gray-100 p-2 rounded-xl">
+                        <input
+                            type="date"
+                            value={customStart}
+                            onChange={(e) => setCustomStart(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none flex-1 min-w-0"
+                        />
+                        <span className="text-gray-400 text-[10px] font-bold shrink-0">TO</span>
+                        <input
+                            type="date"
+                            value={customEnd}
+                            onChange={(e) => setCustomEnd(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none flex-1 min-w-0"
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Summary KPIs */}

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Paperclip, Send, Loader2, CheckCircle, AlertCircle, Camera } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Send, Loader2, CheckCircle, AlertCircle, Camera, Image as ImageIcon, Video, Play, Pause } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { playTickleSound } from '@/frontend/utils/sounds';
-import CameraCaptureModal from '@/frontend/components/shared/CameraCaptureModal';
+import MediaCaptureModal, { MediaFile } from '@/frontend/components/shared/MediaCaptureModal';
 
 interface TicketCreateModalProps {
     isOpen: boolean;
@@ -37,9 +37,10 @@ export default function TicketCreateModal({
 }: TicketCreateModalProps) {
     const [description, setDescription] = useState('');
     const [isInternal, setIsInternal] = useState(false);
-    const [photoFile, setPhotoFile] = useState<File | null>(null);
-    const [showCameraModal, setShowCameraModal] = useState(false);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [showMediaModal, setShowMediaModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [classification, setClassification] = useState<Classification | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -51,14 +52,12 @@ export default function TicketCreateModal({
     const [availableProperties, setAvailableProperties] = useState<any[]>(properties || []);
     const supabase = createClient();
 
-    // Sync available properties if passed from parent
     useEffect(() => {
         if (properties && properties.length > 0) {
             setAvailableProperties(properties);
         }
     }, [properties]);
 
-    // Fetch properties when org changes in admin mode
     const handleOrgChange = async (orgId: string) => {
         setSelectedOrgId(orgId);
         setSelectedPropId('');
@@ -74,51 +73,9 @@ export default function TicketCreateModal({
         }
     };
 
-    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            processFile(file);
-        }
-    };
-
-    const handleCameraCapture = (file: File) => {
-        processFile(file);
-        setShowCameraModal(false);
-    };
-
-    const processFile = (file: File) => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const maxSize = 800;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height && width > maxSize) {
-                height = (height * maxSize) / width;
-                width = maxSize;
-            } else if (height > maxSize) {
-                width = (width * maxSize) / height;
-                height = maxSize;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0, width, height);
-
-            canvas.toBlob(
-                (blob) => {
-                    if (blob) {
-                        setPhotoFile(new File([blob], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' }));
-                        setPhotoPreview(canvas.toDataURL('image/webp', 0.8));
-                    }
-                },
-                'image/webp',
-                0.8
-            );
-        };
-        img.src = URL.createObjectURL(file);
+    const handleMediaCapture = (media: MediaFile) => {
+        setMediaFile(media);
+        setShowMediaModal(false);
     };
 
     const handleSubmit = async () => {
@@ -139,7 +96,7 @@ export default function TicketCreateModal({
         setError(null);
 
         try {
-            // 1. Create the ticket first
+            // 1. Create the ticket
             const response = await fetch('/api/tickets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -152,30 +109,23 @@ export default function TicketCreateModal({
             });
 
             const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to create ticket');
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to create ticket');
-            }
-
-            // 2. Upload photo if exists - as "before" photo
-            if (photoFile && data.ticket?.id) {
+            // 2. Upload media if present
+            if (mediaFile && data.ticket?.id) {
                 const formData = new FormData();
-                formData.append('file', photoFile);
+                formData.append('file', mediaFile.file);
                 formData.append('type', 'before');
 
-                const photoResponse = await fetch(`/api/tickets/${data.ticket.id}/photos`, {
-                    method: 'POST',
-                    body: formData,
-                });
+                const endpoint = mediaFile.type === 'video'
+                    ? `/api/tickets/${data.ticket.id}/videos`
+                    : `/api/tickets/${data.ticket.id}/photos`;
 
-                if (!photoResponse.ok) {
-                    console.error('Photo upload failed, but ticket was created');
-                }
+                const mediaResponse = await fetch(endpoint, { method: 'POST', body: formData });
+                if (!mediaResponse.ok) console.error('Media upload failed, but ticket was created');
             }
 
-            // Play tickle sound on success
             playTickleSound();
-
             setClassification(data.classification);
             setSuccess(true);
             onSuccess?.(data.ticket);
@@ -194,8 +144,7 @@ export default function TicketCreateModal({
     const handleReset = () => {
         setDescription('');
         setIsInternal(false);
-        setPhotoFile(null);
-        setPhotoPreview(null);
+        setMediaFile(null);
         setClassification(null);
         setError(null);
         setSuccess(false);
@@ -269,7 +218,7 @@ export default function TicketCreateModal({
                                     </div>
                                 )}
 
-                                {/* Description Input */}
+                                {/* Description */}
                                 <div>
                                     <label className="text-sm font-bold text-slate-700 mb-2 block">Description</label>
                                     <textarea
@@ -280,16 +229,50 @@ export default function TicketCreateModal({
                                     />
                                 </div>
 
-                                {/* Photo Preview */}
-                                {photoPreview && (
-                                    <div className="relative">
-                                        <img src={photoPreview} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+                                {/* Media Preview */}
+                                {mediaFile && (
+                                    <div className="relative rounded-xl overflow-hidden bg-black">
+                                        {mediaFile.type === 'image' ? (
+                                            <img src={mediaFile.preview} alt="Preview" className="w-full h-40 object-cover" />
+                                        ) : (
+                                            <div className="relative w-full h-40">
+                                                <video
+                                                    ref={videoRef}
+                                                    src={mediaFile.preview}
+                                                    className="w-full h-full object-cover"
+                                                    onEnded={() => setIsVideoPlaying(false)}
+                                                    onPause={() => setIsVideoPlaying(false)}
+                                                    onPlay={() => setIsVideoPlaying(true)}
+                                                />
+                                                {/* Overlay — hidden while playing, shown when paused */}
+                                                <div
+                                                    className={`absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-opacity ${isVideoPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}
+                                                    onClick={() => {
+                                                        if (!videoRef.current) return;
+                                                        if (videoRef.current.paused) {
+                                                            videoRef.current.play();
+                                                        } else {
+                                                            videoRef.current.pause();
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 hover:bg-white/30 transition-colors">
+                                                        {isVideoPlaying
+                                                            ? <Pause className="w-6 h-6 text-white fill-white" />
+                                                            : <Play className="w-6 h-6 text-white fill-white" />
+                                                        }
+                                                    </div>
+                                                    {!isVideoPlaying && (
+                                                        <span className="absolute bottom-2 left-3 text-white text-xs font-bold bg-black/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                            <Video className="w-3 h-3" /> Video attached
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <button
-                                            onClick={() => {
-                                                setPhotoFile(null);
-                                                setPhotoPreview(null);
-                                            }}
-                                            className="absolute top-2 right-2 bg-error text-text-inverse p-1 rounded-full hover:bg-error/90 transition-smooth"
+                                            onClick={() => { setMediaFile(null); setIsVideoPlaying(false); }}
+                                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -298,24 +281,12 @@ export default function TicketCreateModal({
 
                                 {/* Actions Row */}
                                 <div className="flex items-center gap-3 pt-4">
-                                    {/* Gallery Upload */}
-                                    <label className="flex-1 flex flex-col items-center justify-center gap-1 px-2 py-3 bg-slate-100 border border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors active:scale-95 text-center h-20">
-                                        <Paperclip className="w-6 h-6 sm:w-5 sm:h-5 text-slate-600" />
-                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide hidden sm:block">Gallery</span>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={handlePhotoSelect}
-                                        />
-                                    </label>
-
-                                    {/* Camera Button */}
+                                    {/* Camera / Media button */}
                                     <button
-                                        onClick={() => setShowCameraModal(true)}
+                                        onClick={() => setShowMediaModal(true)}
                                         className="flex-1 flex flex-col items-center justify-center gap-1 px-2 py-3 bg-slate-100 border border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors active:scale-95 text-center h-20"
                                     >
-                                        <Camera className="w-6 h-6 sm:w-5 sm:h-5 text-slate-600" />
+                                        <Camera className="w-6 h-6 text-slate-600" />
                                         <span className="text-xs font-bold text-slate-700 uppercase tracking-wide hidden sm:block">Camera</span>
                                     </button>
 
@@ -323,7 +294,7 @@ export default function TicketCreateModal({
                                     <button
                                         onClick={handleSubmit}
                                         disabled={isSubmitting || !description.trim()}
-                                        className="flex-[1.5] flex flex-col items-center justify-center gap-1 px-2 py-3 bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-primary/30 active:scale-95 h-20"
+                                        className="flex-[2] flex flex-col items-center justify-center gap-1 px-2 py-3 bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-primary/30 active:scale-95 h-20"
                                     >
                                         {isSubmitting ? (
                                             <Loader2 className="w-5 h-5 animate-spin mb-1" />
@@ -345,10 +316,11 @@ export default function TicketCreateModal({
                         )}
                     </div>
 
-                    <CameraCaptureModal
-                        isOpen={showCameraModal}
-                        onClose={() => setShowCameraModal(false)}
-                        onCapture={handleCameraCapture}
+                    <MediaCaptureModal
+                        isOpen={showMediaModal}
+                        onClose={() => setShowMediaModal(false)}
+                        onCapture={handleMediaCapture}
+                        title="Add Photo or Video"
                     />
                 </motion.div>
             </motion.div>

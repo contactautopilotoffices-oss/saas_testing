@@ -40,7 +40,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage } from '@/frontend/utils/image-compression';
 import { useTheme } from '@/frontend/context/ThemeContext';
-import CameraCaptureModal from '@/frontend/components/shared/CameraCaptureModal';
+import MediaCaptureModal, { type MediaFile } from '@/frontend/components/shared/MediaCaptureModal';
+import VideoPreviewModal from '@/frontend/components/shared/VideoPreviewModal';
+import { playTickleSound } from '@/frontend/utils/sounds';
 
 // Types
 interface Ticket {
@@ -64,6 +66,8 @@ interface Ticket {
     floor_number?: number;
     photo_before_url?: string;
     photo_after_url?: string;
+    video_before_url?: string;
+    video_after_url?: string;
     raised_by: string;
     created_by?: string; // Support both for safety
     assigned_to?: string;
@@ -106,6 +110,7 @@ export default function TicketDetailPage() {
     const [userRole, setUserRole] = useState<'admin' | 'staff' | 'tenant' | 'mst' | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [commentText, setCommentText] = useState('');
     const [isInternalComment, setIsInternalComment] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -133,6 +138,8 @@ export default function TicketDetailPage() {
 
     // Camera Modal State
     const [showCameraModal, setShowCameraModal] = useState(false);
+    const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
+    const [previewVideoTitle, setPreviewVideoTitle] = useState('');
     const [activeCameraType, setActiveCameraType] = useState<'before' | 'after' | null>(null);
 
     // Initial Fetch
@@ -238,9 +245,12 @@ export default function TicketDetailPage() {
 
             // Fetch Related Data
             await Promise.all([fetchActivities(), fetchComments()]);
-        } catch (err) {
-            console.error('Error loading ticket:', err);
-            // handle error
+        } catch (err: any) {
+            // Supabase errors have non-enumerable props — extract them explicitly
+            const msg = err?.message || err?.error_description || err?.details || JSON.stringify(err);
+            const code = err?.code || '';
+            console.error('Error loading ticket:', code, msg, err);
+            setFetchError(`${code ? `[${code}] ` : ''}${msg || 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
@@ -398,6 +408,9 @@ export default function TicketDetailPage() {
 
             // Refresh ticket data
             fetchTicketDetails(userId, true);
+            if (newStatus === 'resolved' || newStatus === 'closed') {
+                playTickleSound();
+            }
             showToast(`Ticket ${newStatus.replace('_', ' ')}`, 'success');
         } catch (err: any) {
             console.error('Status Change Error:', err);
@@ -562,13 +575,16 @@ export default function TicketDetailPage() {
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
         if (!event.target.files || event.target.files.length === 0) return;
         const file = event.target.files[0];
-        await processFile(file, type);
+        if (file.type.startsWith('video/')) {
+            await processVideo(file, type);
+        } else {
+            await processFile(file, type);
+        }
     };
 
     const processFile = async (file: File, type: 'before' | 'after') => {
         setUploading(true);
         try {
-            // COMPRESSION STEP: Max 1280px, WebP, < 500KB
             const compressedFile = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.8 });
 
             const fileName = `${ticketId}/${type}_${Date.now()}.webp`;
@@ -588,21 +604,51 @@ export default function TicketDetailPage() {
                 .update({ [updateField]: publicUrl })
                 .eq('id', ticketId);
 
-            if (dbError) {
-                console.error('DB Update Error:', dbError);
-                throw dbError;
-            }
+            if (dbError) throw dbError;
 
-            // Log Activity
-            await logActivity('photo_upload', null, `Uploaded ${type} photo`);
-
-            // Update local state
+            const takenAt = new Date(file.lastModified).toISOString();
+            await logActivity(`photo_${type}_uploaded`, takenAt, publicUrl);
             setTicket(prev => prev ? { ...prev, [updateField]: publicUrl } : null);
-
             showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} photo uploaded`, 'success');
         } catch (err: any) {
-            console.error('Photo Upload Process Error:', err);
+            console.error('Photo Upload Error:', err);
             showToast(err.message || 'Failed to upload photo', 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const processVideo = async (file: File, type: 'before' | 'after') => {
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop() || 'mp4';
+            const fileName = `${ticketId}/${type}_${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('ticket_videos')
+                .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('ticket_videos')
+                .getPublicUrl(fileName);
+
+            const updateField = type === 'before' ? 'video_before_url' : 'video_after_url';
+            const { error: dbError } = await supabase
+                .from('tickets')
+                .update({ [updateField]: publicUrl })
+                .eq('id', ticketId);
+
+            if (dbError) throw dbError;
+
+            const takenAt = new Date(file.lastModified).toISOString();
+            await logActivity(`video_${type}_uploaded`, takenAt, publicUrl);
+            setTicket(prev => prev ? { ...prev, [updateField]: publicUrl } : null);
+            showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} video uploaded`, 'success');
+        } catch (err: any) {
+            console.error('Video Upload Error:', err);
+            showToast(err.message || 'Failed to upload video', 'error');
         } finally {
             setUploading(false);
         }
@@ -613,11 +659,14 @@ export default function TicketDetailPage() {
         setShowCameraModal(true);
     };
 
-    const handleCameraCapture = async (file: File) => {
-        if (activeCameraType) {
-            await processFile(file, activeCameraType);
-        }
+    const handleMediaCapture = async (media: MediaFile) => {
+        if (!activeCameraType) return;
         setShowCameraModal(false);
+        if (media.type === 'video') {
+            await processVideo(media.file, activeCameraType);
+        } else {
+            await processFile(media.file, activeCameraType);
+        }
         setActiveCameraType(null);
     };
 
@@ -719,6 +768,22 @@ export default function TicketDetailPage() {
     };
 
     if (loading || isDeleting) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div></div>;
+
+    if (fetchError) return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 p-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="w-7 h-7 text-red-500" />
+            </div>
+            <div>
+                <p className="font-bold text-slate-800 mb-1">Failed to load ticket</p>
+                <p className="text-xs text-slate-400 font-mono break-all max-w-sm">{fetchError}</p>
+            </div>
+            <button onClick={() => { setFetchError(null); setLoading(true); fetchTicketDetails(); }} className="px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-700 transition-colors">
+                Retry
+            </button>
+        </div>
+    );
+
     if (!ticket) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-bold">Ticket not found</div>;
 
     const isAssignedToMe = userId === ticket?.assigned_to;
@@ -1045,28 +1110,85 @@ export default function TicketDetailPage() {
                                             <span className="text-[9px] sm:text-[10px] text-primary/60 italic font-medium whitespace-nowrap">Click to change</span>
                                         )}
                                     </div>
-                                    {ticket.photo_before_url ? (
+                                    {(ticket.photo_before_url || ticket.video_before_url) ? (
                                         <div className={`relative aspect-video rounded-xl overflow-hidden ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-100'} border group`}>
-                                            <img src={ticket.photo_before_url} alt="Before" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-3">
-                                                <a href={ticket.photo_before_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-2xl hover:bg-primary transition-colors shadow-lg`}>
-                                                    View Full
-                                                </a>
-                                                {canManagePhotos && (
-                                                    <div className="flex items-center gap-4">
-                                                        <label className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-primary text-white transition-all shadow-lg`}>
-                                                            <Paperclip className="w-5 h-5" />
-                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'before')} />
-                                                        </label>
-                                                        <button
-                                                            onClick={() => openCamera('before')}
-                                                            className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-primary text-white transition-all shadow-lg`}
-                                                        >
-                                                            <Camera className="w-5 h-5" />
-                                                        </button>
+                                            {ticket.video_before_url ? (
+                                                <>
+                                                    {/* Video poster — tap to open VideoPreviewModal */}
+                                                    <div
+                                                        className="absolute inset-0 bg-black flex items-center justify-center cursor-pointer"
+                                                        onClick={() => { setPreviewVideoUrl(ticket.video_before_url!); setPreviewVideoTitle('Before Work — Video'); }}
+                                                    >
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center hover:bg-white/30 transition-colors">
+                                                                <PlayCircle className="w-8 h-8 text-white" />
+                                                            </div>
+                                                            <span className="text-white/60 text-[9px] font-bold uppercase tracking-widest">Tap to play</span>
+                                                        </div>
+                                                        <span className="absolute top-2 left-3 text-white/50 text-[9px] font-bold uppercase tracking-widest bg-black/50 px-2 py-0.5 rounded">Video</span>
                                                     </div>
-                                                )}
-                                            </div>
+                                                    {/* Upload controls — appear on hover */}
+                                                    {canManagePhotos && (
+                                                        <div className="absolute bottom-3 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                            <div className="flex items-center gap-3">
+                                                                <label className={`flex items-center justify-center w-12 h-12 ${isDark ? 'bg-[#21262d]' : 'bg-black/60 backdrop-blur-md'} rounded-xl cursor-pointer hover:bg-primary text-white transition-all shadow-lg`} onClick={e => e.stopPropagation()}>
+                                                                    <Paperclip className="w-4 h-4" />
+                                                                    <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => handleFileUpload(e, 'before')} />
+                                                                </label>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); openCamera('before'); }}
+                                                                    className={`flex items-center justify-center w-12 h-12 ${isDark ? 'bg-[#21262d]' : 'bg-black/60 backdrop-blur-md'} rounded-xl hover:bg-primary text-white transition-all shadow-lg`}
+                                                                >
+                                                                    <Camera className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <img src={ticket.photo_before_url} alt="Before" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-3">
+                                                        <button
+                                                            onClick={() => ticket.photo_before_url && window.open(ticket.photo_before_url, '_blank')}
+                                                            className={`text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-2xl hover:bg-primary transition-colors shadow-lg`}
+                                                        >
+                                                            View Full
+                                                        </button>
+                                                        {canManagePhotos && (
+                                                            <div className="flex items-center gap-4">
+                                                                <label className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-primary text-white transition-all shadow-lg`}>
+                                                                    <Paperclip className="w-5 h-5" />
+                                                                    <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => handleFileUpload(e, 'before')} />
+                                                                </label>
+                                                                <button
+                                                                    onClick={() => openCamera('before')}
+                                                                    className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-primary text-white transition-all shadow-lg`}
+                                                                >
+                                                                    <Camera className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {/* Timestamp Overlay */}
+                                            {(() => {
+                                                const act = activities.find((a: any) =>
+                                                    a.action === 'photo_before_uploaded' ||
+                                                    a.action === 'video_before_uploaded' ||
+                                                    (a.action === 'photo_upload' && a.new_value?.includes('before')) ||
+                                                    (a.action === 'video_upload' && a.new_value?.includes('before'))
+                                                );
+                                                const ts = act?.old_value;
+                                                if (!ts) return null;
+                                                return (
+                                                    <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-black/80 rounded text-[9px] text-white font-bold font-mono border border-white/30 backdrop-blur-sm pointer-events-none z-20 shadow-lg" key="ts-before">
+                                                        {new Date(ts).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(',', '')}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     ) : (
                                         <div className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'} transition-all gap-2 p-4`}>
@@ -1104,28 +1226,85 @@ export default function TicketDetailPage() {
                                             <span className="text-[9px] sm:text-[10px] text-emerald-500/60 italic font-medium whitespace-nowrap">Click to change</span>
                                         )}
                                     </div>
-                                    {ticket.photo_after_url ? (
+                                    {(ticket.photo_after_url || ticket.video_after_url) ? (
                                         <div className={`relative aspect-video rounded-xl overflow-hidden ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-100'} border group`}>
-                                            <img src={ticket.photo_after_url} alt="After" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-3">
-                                                <a href={ticket.photo_after_url} target="_blank" rel="noreferrer" className={`text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-2xl hover:bg-emerald-500 transition-colors shadow-lg`}>
-                                                    View Full
-                                                </a>
-                                                {canManagePhotos && (
-                                                    <div className="flex items-center gap-4">
-                                                        <label className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-emerald-500 text-white transition-all shadow-lg`}>
-                                                            <Paperclip className="w-5 h-5" />
-                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'after')} />
-                                                        </label>
-                                                        <button
-                                                            onClick={() => openCamera('after')}
-                                                            className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-emerald-500 text-white transition-all shadow-lg`}
-                                                        >
-                                                            <Camera className="w-5 h-5" />
-                                                        </button>
+                                            {ticket.video_after_url ? (
+                                                <>
+                                                    {/* Video poster — tap to open VideoPreviewModal */}
+                                                    <div
+                                                        className="absolute inset-0 bg-black flex items-center justify-center cursor-pointer"
+                                                        onClick={() => { setPreviewVideoUrl(ticket.video_after_url!); setPreviewVideoTitle('After Work — Video'); }}
+                                                    >
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center hover:bg-white/30 transition-colors">
+                                                                <PlayCircle className="w-8 h-8 text-white" />
+                                                            </div>
+                                                            <span className="text-white/60 text-[9px] font-bold uppercase tracking-widest">Tap to play</span>
+                                                        </div>
+                                                        <span className="absolute top-2 left-3 text-white/50 text-[9px] font-bold uppercase tracking-widest bg-black/50 px-2 py-0.5 rounded">Video</span>
                                                     </div>
-                                                )}
-                                            </div>
+                                                    {/* Upload controls — appear on hover */}
+                                                    {canManagePhotos && (
+                                                        <div className="absolute bottom-3 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                            <div className="flex items-center gap-3">
+                                                                <label className={`flex items-center justify-center w-12 h-12 ${isDark ? 'bg-[#21262d]' : 'bg-black/60 backdrop-blur-md'} rounded-xl cursor-pointer hover:bg-emerald-500 text-white transition-all shadow-lg`} onClick={e => e.stopPropagation()}>
+                                                                    <Paperclip className="w-4 h-4" />
+                                                                    <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => handleFileUpload(e, 'after')} />
+                                                                </label>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); openCamera('after'); }}
+                                                                    className={`flex items-center justify-center w-12 h-12 ${isDark ? 'bg-[#21262d]' : 'bg-black/60 backdrop-blur-md'} rounded-xl hover:bg-emerald-500 text-white transition-all shadow-lg`}
+                                                                >
+                                                                    <Camera className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <img src={ticket.photo_after_url} alt="After" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-3">
+                                                        <button
+                                                            onClick={() => ticket.photo_after_url && window.open(ticket.photo_after_url, '_blank')}
+                                                            className={`text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 ${isDark ? 'bg-[#161b22]' : 'bg-white/10 backdrop-blur-md'} rounded-2xl hover:bg-emerald-500 transition-colors shadow-lg`}
+                                                        >
+                                                            View Full
+                                                        </button>
+                                                        {canManagePhotos && (
+                                                            <div className="flex items-center gap-4">
+                                                                <label className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-emerald-500 text-white transition-all shadow-lg`}>
+                                                                    <Paperclip className="w-5 h-5" />
+                                                                    <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => handleFileUpload(e, 'after')} />
+                                                                </label>
+                                                                <button
+                                                                    onClick={() => openCamera('after')}
+                                                                    className={`flex items-center justify-center w-14 h-14 ${isDark ? 'bg-[#21262d]' : 'bg-white/20 backdrop-blur-md'} rounded-2xl cursor-pointer hover:bg-emerald-500 text-white transition-all shadow-lg`}
+                                                                >
+                                                                    <Camera className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {/* Timestamp Overlay */}
+                                            {(() => {
+                                                const act = activities.find((a: any) =>
+                                                    a.action === 'photo_after_uploaded' ||
+                                                    a.action === 'video_after_uploaded' ||
+                                                    (a.action === 'photo_upload' && a.new_value?.includes('after')) ||
+                                                    (a.action === 'video_upload' && a.new_value?.includes('after'))
+                                                );
+                                                const ts = act?.old_value;
+                                                if (!ts) return null;
+                                                return (
+                                                    <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-black/80 rounded text-[9px] text-white font-bold font-mono border border-white/30 backdrop-blur-sm pointer-events-none z-20 shadow-lg" key="ts-after">
+                                                        {new Date(ts).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(',', '')}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     ) : (
                                         <div className={`flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'} transition-all gap-2 p-4`}>
@@ -1447,11 +1626,18 @@ export default function TicketDetailPage() {
                 </AnimatePresence>
 
                 {/* Camera Modal */}
-                <CameraCaptureModal
+                <MediaCaptureModal
                     isOpen={showCameraModal}
-                    onClose={() => setShowCameraModal(false)}
-                    onCapture={handleCameraCapture}
+                    onClose={() => { setShowCameraModal(false); setActiveCameraType(null); }}
+                    onCapture={handleMediaCapture}
                     title={activeCameraType === 'before' ? 'Capture Before Site' : 'Capture After Site'}
+                />
+
+                <VideoPreviewModal
+                    isOpen={!!previewVideoUrl}
+                    onClose={() => { setPreviewVideoUrl(null); setPreviewVideoTitle(''); }}
+                    videoUrl={previewVideoUrl}
+                    title={previewVideoTitle}
                 />
             </div>
         </div>

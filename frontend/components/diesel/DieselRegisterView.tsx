@@ -31,6 +31,7 @@ interface Reading {
     computed_run_hours?: number;
     computed_consumed_litres?: number;
     computed_cost?: number;
+    notes?: string;
     generator?: Generator;
 }
 
@@ -243,6 +244,8 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                             <th className={thClass}>Opening (kWh)</th>
                             <th className={thClass}>Closing (kWh)</th>
                             <th className={thClass}>Consumption</th>
+                            <th className={thClass}>Cost</th>
+                            <th className={thClass}>Notes</th>
                             <th className={thClass}></th>
                         </tr>
                     </thead>
@@ -276,6 +279,16 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                             }`}>
                                             +{consumption.toLocaleString()}
                                         </span>
+                                    </td>
+                                    <td className={tdClass}>
+                                        <span className={`text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                                            {r.computed_cost ? `₹${r.computed_cost.toLocaleString()}` : '-'}
+                                        </span>
+                                    </td>
+                                    <td className={tdClass}>
+                                        <div className="max-w-[150px] truncate text-xs opacity-60" title={r.notes}>
+                                            {r.notes || '-'}
+                                        </div>
                                     </td>
                                     <td className={tdClass}>
                                         {isEditing ? (
@@ -318,6 +331,7 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                             <th className={thClass}>Opening (Hrs)</th>
                             <th className={thClass}>Closing (Hrs)</th>
                             <th className={thClass}>Consumption</th>
+                            <th className={thClass}>Notes</th>
                             <th className={thClass}></th>
                         </tr>
                     </thead>
@@ -352,6 +366,11 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                             }`}>
                                             +{consumption.toFixed(1)}
                                         </span>
+                                    </td>
+                                    <td className={tdClass}>
+                                        <div className="max-w-[150px] truncate text-xs opacity-60" title={r.notes}>
+                                            {r.notes || '-'}
+                                        </div>
                                     </td>
                                     <td className={tdClass}>
                                         {isEditing ? (
@@ -395,6 +414,8 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                         <th className={thClass}>Added (L)</th>
                         <th className={thClass}>Closing (L)</th>
                         <th className={thClass}>Consumed (L)</th>
+                        <th className={thClass}>Cost</th>
+                        <th className={thClass}>Notes</th>
                         <th className={thClass}></th>
                     </tr>
                 </thead>
@@ -442,6 +463,16 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                         }`}>
                                         {consumed.toFixed(0)} L
                                     </span>
+                                </td>
+                                <td className={tdClass}>
+                                    <span className={`text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                                        {r.computed_cost ? `₹${r.computed_cost.toLocaleString()}` : '-'}
+                                    </span>
+                                </td>
+                                <td className={tdClass}>
+                                    <div className="max-w-[150px] truncate text-xs opacity-60" title={r.notes}>
+                                        {r.notes || '-'}
+                                    </div>
                                 </td>
                                 <td className={tdClass}>
                                     {isEditing ? (

@@ -8,9 +8,12 @@ export function usePushNotifications() {
     const [message, setMessage] = useState('');
 
     useEffect(() => {
+        const isDev = process.env.NODE_ENV === 'development';
         if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
             setIsSupported(true);
-            registerServiceWorker();
+            if (!isDev) {
+                registerServiceWorker();
+            }
         }
     }, []);
 

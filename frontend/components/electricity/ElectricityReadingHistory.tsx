@@ -17,11 +17,14 @@ interface ReadingLog {
     opening_reading: number;
     closing_reading: number;
     computed_units: number;
+    final_units?: number;
     meter: {
         id: string;
         name: string;
         meter_number: string;
     };
+    notes?: string;
+    computed_cost?: number;
     created_at: string;
 }
 
@@ -83,7 +86,7 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
                 let query = supabase
                     .from('electricity_readings')
                     .select(`
-                        id, reading_date, opening_reading, closing_reading, computed_units, created_at,
+                        id, reading_date, opening_reading, closing_reading, computed_units, final_units, notes, computed_cost, created_at,
                         meter:electricity_meters(id, name, meter_number)
                     `)
                     .in('meter_id', meterIds)
@@ -149,10 +152,10 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
     };
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-[#0d1117] text-slate-300' : 'bg-slate-50 text-slate-600'}`}>
+        <div className={`min-h-screen flex flex-col ${isDark ? 'bg-[#0d1117] text-slate-300' : 'bg-slate-50 text-slate-600'}`}>
             {/* Header */}
             <div className={`sticky top-0 z-10 px-4 py-4 border-b ${isDark ? 'bg-[#161b22]/90 border-[#30363d]' : 'bg-white/90 border-slate-200'} backdrop-blur-md`}>
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <button
                             onClick={onBack}
@@ -218,7 +221,7 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
             </div>
 
             {/* Content */}
-            <div className="max-w-6xl mx-auto px-4 py-8">
+            <div className="max-w-[1600px] mx-auto px-4 py-8 flex-1 overflow-y-auto">
                 {isLoading ? (
                     <div className="text-center py-20 opacity-50">Loading history...</div>
                 ) : readings.length === 0 ? (
@@ -239,7 +242,11 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
                                         <th className="px-6 py-4">Meter Name</th>
                                         <th className="px-6 py-4 text-right">Opening</th>
                                         <th className="px-6 py-4 text-right">Closing</th>
-                                        <th className="px-6 py-4 text-right">Consumption</th>
+                                        <th className="px-6 py-4 text-right">Diff (Raw)</th>
+                                        <th className="px-6 py-4 text-right">Factor</th>
+                                        <th className="px-6 py-4 text-right">Total (Multiplied)</th>
+                                        <th className="px-6 py-4 text-right">Cost</th>
+                                        <th className="px-6 py-4">Notes</th>
                                         <th className="px-6 py-4 text-center">Action</th>
                                     </tr>
                                 </thead>
@@ -261,13 +268,31 @@ const ElectricityReadingHistory: React.FC<ElectricityReadingHistoryProps> = ({
                                             <td className="px-6 py-4 text-right font-mono font-bold">
                                                 {log.closing_reading.toFixed(1)}
                                             </td>
+                                            <td className="px-6 py-4 text-right font-mono text-xs opacity-50">
+                                                {log.computed_units.toFixed(1)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono text-xs opacity-50">
+                                                {log.final_units && log.computed_units > 0
+                                                    ? (log.final_units / log.computed_units).toFixed(1)
+                                                    : '1.0'}
+                                            </td>
                                             <td className="px-6 py-4 text-right">
-                                                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-black ${log.computed_units > 0
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-black ${((log.final_units ?? log.computed_units ?? 0)) > 0
                                                     ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
                                                     : (isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')
                                                     }`}>
-                                                    {log.computed_units.toFixed(1)} kVAh
+                                                    {(log.final_units ?? log.computed_units ?? 0).toFixed(1)} kVAh
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                <span className={`text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                                                    {log.computed_cost ? `₹${log.computed_cost.toLocaleString()}` : '-'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="max-w-[150px] truncate text-xs opacity-60" title={log.notes}>
+                                                    {log.notes || '-'}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <button

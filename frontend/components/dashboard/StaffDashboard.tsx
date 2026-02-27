@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Ticket, Clock, CheckCircle2, AlertCircle, Plus,
     LogOut, Settings, Search, UserCircle, Coffee, Fuel, UsersRound,
     ClipboardList, FolderKanban, Moon, Sun, ChevronRight, RefreshCw, Cog, X,
-    AlertOctagon, BarChart3, FileText, Camera, Menu, Pencil, Loader2, Zap, Activity, Filter, Calendar, Package
+    AlertOctagon, BarChart3, FileText, Camera, Menu, Pencil, Loader2, Zap, Activity, Filter, Calendar, Package, Scan
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -27,9 +27,11 @@ import TicketCard from '@/frontend/components/shared/TicketCard';
 import NotificationBell from './NotificationBell';
 import AdminRoomManager from '@/frontend/components/meeting-rooms/AdminRoomManager';
 import StockDashboard from '@/frontend/components/stock/StockDashboard';
+import StockMovementModal from '@/frontend/components/stock/StockMovementModal';
+import SOPDashboard from '@/frontend/components/sop/SOPDashboard';
 
 // Types
-type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'rooms' | 'diesel' | 'electricity' | 'stock' | 'settings' | 'profile' | 'flow-map';
+type Tab = 'dashboard' | 'requests' | 'create_request' | 'visitors' | 'rooms' | 'diesel' | 'electricity' | 'stock' | 'sop' | 'settings' | 'profile' | 'flow-map';
 
 interface Property {
     id: string;
@@ -102,6 +104,7 @@ const StaffDashboard = () => {
     const [requestFilter, setRequestFilter] = useState<'all' | 'active' | 'completed'>(
         (searchParams.get('filter') as any) || 'all'
     );
+    const [showScannerModal, setShowScannerModal] = useState(false);
 
     const supabase = createClient();
 
@@ -433,6 +436,15 @@ const StaffDashboard = () => {
                                 </div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-center">New Request</span>
                             </button>
+                            <button
+                                onClick={() => setShowScannerModal(true)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border border-border group shadow-sm"
+                            >
+                                <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                                    <Scan className="w-4 h-4 font-black" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-center">Scanner</span>
+                            </button>
                         </div>
                     )}
                 </div>
@@ -536,7 +548,17 @@ const StaffDashboard = () => {
                                     }`}
                             >
                                 <Package className="w-4 h-4" />
-                                Inventory
+                                Stock Management
+                            </button>
+                            <button
+                                onClick={() => handleTabChange('sop')}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all text-sm font-bold ${activeTab === 'sop'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <ClipboardList className="w-4 h-4" />
+                                Checklists
                             </button>
                         </div>
                     </div>
@@ -581,7 +603,7 @@ const StaffDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 lg:ml-64 flex flex-col bg-background border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
+            <div className="flex-1 min-w-0 overflow-x-hidden lg:ml-64 flex flex-col bg-background border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
                 {/* Top Header */}
                 <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
                     <div className="flex items-center gap-4">
@@ -613,7 +635,8 @@ const StaffDashboard = () => {
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-6 bg-slate-50/50">
+                <main className={`flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden ${activeTab === 'sop' ? 'p-0' : 'p-2 sm:p-4 md:p-6'} bg-slate-50/50`}>
+
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -697,7 +720,13 @@ const StaffDashboard = () => {
                                 property && <ElectricityStaffDashboard propertyId={property.id} isDark={isDarkMode} />
                             )}
                             {activeTab === 'stock' && property && (
-                                <StockDashboard propertyId={property.id} />
+                                <StockDashboard
+                                    propertyId={property.id}
+                                    hideReports={true}
+                                />
+                            )}
+                            {activeTab === 'sop' && property && (
+                                <SOPDashboard propertyId={property.id} />
                             )}
                             {activeTab === 'settings' && <SettingsView />}
                             {activeTab === 'profile' && (
@@ -774,6 +803,13 @@ const StaffDashboard = () => {
                                                         {user?.email}
                                                     </span>
                                                 </div>
+                                                <button
+                                                    onClick={() => setShowScannerModal(true)}
+                                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:opacity-95 shadow-lg shadow-primary/20 transition-all mt-6"
+                                                >
+                                                    <Scan className="w-4 h-4" />
+                                                    Scan Stock Item
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -782,6 +818,14 @@ const StaffDashboard = () => {
                         </motion.div>
                     </AnimatePresence>
                 </main>
+
+                <StockMovementModal
+                    isOpen={showScannerModal}
+                    onClose={() => setShowScannerModal(false)}
+                    propertyId={propertyId}
+                    autoOpenScanner={true}
+                    onSuccess={fetchTickets}
+                />
             </div>
 
             <SignOutModal
@@ -884,6 +928,12 @@ const isStaffTechnical = (role: string): boolean => {
 const canAccessElectricityLogger = (role: string): boolean => {
     const normalizedRole = role.toLowerCase().replace(/\s+/g, '_');
     return ELECTRICITY_LOGGER_ROLES.includes(normalizedRole) || normalizedRole.includes('staff') || normalizedRole.includes('mst') || normalizedRole.includes('security') || normalizedRole.includes('admin');
+};
+
+// Soft service roles should not see Inventory in staff sidebar
+const isSoftServiceRole = (role: string): boolean => {
+    const normalizedRole = role.toLowerCase().replace(/\s+/g, '_');
+    return normalizedRole.includes('soft_service');
 };
 
 // Helper Sub-component for Ticket Row - DEPRECATED - Use shared/TicketCard

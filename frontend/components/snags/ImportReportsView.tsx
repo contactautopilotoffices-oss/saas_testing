@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     FileText, Download, Calendar, User, CheckCircle, AlertCircle,
-    Loader2, RefreshCw, Filter, ChevronDown, FileSpreadsheet, Clock, Eye, Trash2
+    Loader2, RefreshCw, Filter, ChevronDown, FileSpreadsheet, Clock, Eye, Trash2, Upload
 } from 'lucide-react';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -382,6 +382,15 @@ export default function ImportReportsView({ propertyId, organizationId }: Import
                         className="p-2.5 bg-white border border-border rounded-xl text-text-secondary hover:bg-muted transition-colors"
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
+
+                    {/* Bulk Snags Button */}
+                    <button
+                        onClick={() => router.push(`/property/${propertyId}/snags/intake`)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold hover:bg-secondary/90 transition-colors shadow-sm shadow-secondary/25"
+                    >
+                        <Upload className="w-4 h-4" />
+                        bulk snags
                     </button>
 
                     {/* Export All Button */}

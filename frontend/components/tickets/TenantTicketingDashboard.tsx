@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Paperclip, Send, Clock, Star, User, ChevronRight, X, MessageSquare, Loader2, CheckCircle, Camera, Filter } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Send, Star, User, ChevronRight, X, MessageSquare, Loader2, CheckCircle, Camera, Filter, Video, Play, Pause } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { compressImage } from '@/frontend/utils/image-compression';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import { playTickleSound } from '@/frontend/utils/sounds';
-import CameraCaptureModal from '@/frontend/components/shared/CameraCaptureModal';
+import MediaCaptureModal, { MediaFile } from '@/frontend/components/shared/MediaCaptureModal';
 
 interface Ticket {
     id: string;
@@ -61,9 +60,10 @@ export default function TenantTicketingDashboard({
     const [resolvedTickets, setResolvedTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
     const [showCameraModal, setShowCameraModal] = useState(false);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const [ratingTicket, setRatingTicket] = useState<Ticket | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
     const [filter, setFilter] = useState<'all' | 'in_progress' | 'completed'>(
@@ -93,32 +93,10 @@ export default function TenantTicketingDashboard({
         }
     };
 
-    const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            await processPhoto(file);
-        }
-    };
-
-    const handleCameraCapture = async (file: File) => {
-        await processPhoto(file);
+    const handleMediaCapture = (media: MediaFile) => {
+        setMediaFile(media);
+        setIsVideoPlaying(false);
         setShowCameraModal(false);
-    };
-
-    const processPhoto = async (file: File) => {
-        try {
-            const compressedFile = await compressImage(file, { maxWidth: 1280, maxHeight: 1280 });
-            setPhotoFile(compressedFile);
-
-            // Create preview URL
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPhotoPreview(reader.result as string);
-            };
-            reader.readAsDataURL(compressedFile);
-        } catch (error) {
-            console.error('Compression failed:', error);
-        }
     };
 
     const handleSubmit = async () => {
@@ -148,21 +126,21 @@ export default function TenantTicketingDashboard({
                 setClassification(data.classification);
                 setShowSuccess(true);
 
-                // Upload photo if exists
-                if (photoFile && data.ticket?.id) {
+                // Upload media (photo or video) if present
+                if (mediaFile && data.ticket?.id) {
                     const formData = new FormData();
-                    formData.append('file', photoFile);
+                    formData.append('file', mediaFile.file);
                     formData.append('type', 'before');
-
-                    await fetch(`/api/tickets/${data.ticket.id}/photos`, {
-                        method: 'POST',
-                        body: formData,
-                    });
+                    const endpoint = mediaFile.type === 'video'
+                        ? `/api/tickets/${data.ticket.id}/videos`
+                        : `/api/tickets/${data.ticket.id}/photos`;
+                    await fetch(endpoint, { method: 'POST', body: formData });
                 }
 
                 setDescription('');
-                setPhotoFile(null);
-                setPhotoPreview(null);
+                if (mediaFile?.preview.startsWith('blob:')) URL.revokeObjectURL(mediaFile.preview);
+                setMediaFile(null);
+                setIsVideoPlaying(false);
                 fetchTickets();
                 if (onSuccess) onSuccess();
                 setTimeout(() => {
@@ -271,12 +249,44 @@ export default function TenantTicketingDashboard({
                                 {!isDark && <div className="absolute inset-0 rounded-2xl border border-primary/5 pointer-events-none group-focus-within:border-primary/20 transition-smooth"></div>}
                             </div>
 
-                            {/* Photo Preview */}
-                            {photoPreview && (
-                                <div className="relative mt-4">
-                                    <img src={photoPreview} alt="Preview" className={`w-full h-32 object-cover rounded-2xl border ${isDark ? 'border-[#30363d]' : 'border-border/10'}`} />
+                            {/* Media Preview (photo or video) */}
+                            {mediaFile && (
+                                <div className={`relative mt-4 rounded-2xl overflow-hidden border ${isDark ? 'border-[#30363d]' : 'border-border/10'} bg-black`}>
+                                    {mediaFile.type === 'image' ? (
+                                        <img src={mediaFile.preview} alt="Preview" className="w-full h-36 object-cover" />
+                                    ) : (
+                                        <div className="relative w-full h-36">
+                                            <video
+                                                ref={videoRef}
+                                                src={mediaFile.preview}
+                                                className="w-full h-full object-cover"
+                                                onPlay={() => setIsVideoPlaying(true)}
+                                                onPause={() => setIsVideoPlaying(false)}
+                                                onEnded={() => setIsVideoPlaying(false)}
+                                            />
+                                            <div
+                                                className={`absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-opacity ${isVideoPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}
+                                                onClick={() => {
+                                                    if (!videoRef.current) return;
+                                                    videoRef.current.paused ? videoRef.current.play() : videoRef.current.pause();
+                                                }}
+                                            >
+                                                <div className={`rounded-full p-3 backdrop-blur-sm hover:bg-white/30 transition-colors ${isDark ? 'bg-white/10' : 'bg-white/20'}`}>
+                                                    {isVideoPlaying
+                                                        ? <Pause className="w-6 h-6 text-white fill-white" />
+                                                        : <Play className="w-6 h-6 text-white fill-white" />
+                                                    }
+                                                </div>
+                                                {!isVideoPlaying && (
+                                                    <span className="absolute bottom-2 left-3 text-white text-[10px] font-bold bg-black/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                        <Video className="w-3 h-3" /> Video attached
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                     <button
-                                        onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                                        onClick={() => { if (mediaFile.preview.startsWith('blob:')) URL.revokeObjectURL(mediaFile.preview); setMediaFile(null); setIsVideoPlaying(false); }}
                                         className="absolute top-3 right-3 bg-rose-500 text-white rounded-full p-2 shadow-xl hover:scale-110 transition-all"
                                     >
                                         <X className="w-4 h-4" />
@@ -286,11 +296,6 @@ export default function TenantTicketingDashboard({
 
                             <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between mt-6 md:mt-10 gap-4">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <label className={`flex items-center justify-center gap-2 ${isDark ? 'text-slate-400 hover:text-white hover:bg-[#21262d]' : 'text-text-secondary hover:text-primary hover:bg-primary/5'} cursor-pointer transition-all text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border border-border/10 bg-surface-elevated`}>
-                                        <Paperclip className="w-4 h-4" />
-                                        <span>Attach File</span>
-                                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSelect} />
-                                    </label>
                                     <button
                                         onClick={() => setShowCameraModal(true)}
                                         className={`flex items-center justify-center gap-2 ${isDark ? 'text-slate-400 hover:text-white hover:bg-[#21262d]' : 'text-text-secondary hover:text-primary hover:bg-primary/5'} cursor-pointer transition-all text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border border-border/10 bg-surface-elevated`}
@@ -507,10 +512,11 @@ export default function TenantTicketingDashboard({
                     </motion.div>
                 )}
             </AnimatePresence>
-            <CameraCaptureModal
+            <MediaCaptureModal
                 isOpen={showCameraModal}
                 onClose={() => setShowCameraModal(false)}
-                onCapture={handleCameraCapture}
+                onCapture={handleMediaCapture}
+                title="Add Photo or Video"
             />
         </div >
     );

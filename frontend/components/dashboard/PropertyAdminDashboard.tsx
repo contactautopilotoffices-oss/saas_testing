@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Users, Ticket, Settings, UserCircle, UsersRound,
     Search, Plus, Filter, LogOut, ChevronRight, MapPin, Building2,
     Calendar, CheckCircle2, AlertCircle, Clock, Coffee, IndianRupee, FileDown, Fuel, Store, Activity, Upload, FileBarChart, Menu, X, Zap, RefreshCw,
-    Package, ClipboardCheck
+    Package, ClipboardCheck, Scan
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -33,6 +33,7 @@ import AddMemberModal from './InviteMemberModal';
 import { ImportReportsView } from '@/frontend/components/snags';
 import AdminRoomManager from '@/frontend/components/meeting-rooms/AdminRoomManager';
 import StockDashboard from '@/frontend/components/stock/StockDashboard';
+import StockMovementModal from '@/frontend/components/stock/StockMovementModal';
 import SOPDashboard from '@/frontend/components/sop/SOPDashboard';
 
 // Types
@@ -80,6 +81,7 @@ const PropertyAdminDashboard = () => {
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [statsVersion, setStatsVersion] = useState(0);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [showScannerModal, setShowScannerModal] = useState(false);
     const [pendingStatusFilter, setPendingStatusFilter] = useState('all');
 
     // Ref to prevent duplicate fetches
@@ -260,13 +262,13 @@ const PropertyAdminDashboard = () => {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">New Request</span>
                                 </button>
                                 <button
-                                    onClick={() => router.push(`/property/${propertyId}/snags/intake`)}
-                                    className="flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-amber-500/20 group shadow-sm"
+                                    onClick={() => setShowScannerModal(true)}
+                                    className="flex flex-col items-center justify-center gap-1.5 p-2.5 bg-white text-text-primary rounded-xl hover:bg-muted transition-all border-2 border-primary/20 group shadow-sm"
                                 >
-                                    <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
-                                        <Upload className="w-5 h-5 font-black" />
+                                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                        <Scan className="w-5 h-5 font-black" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Bulk Snags</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-center mt-1">Scanner</span>
                                 </button>
                             </div>
                         </div>
@@ -408,7 +410,7 @@ const PropertyAdminDashboard = () => {
                                     }`}
                             >
                                 <ClipboardCheck className="w-4 h-4" />
-                                SOP Checklists
+                                Checklists
                             </button>
                             <button
                                 onClick={() => handleTabChange('vendor_revenue')}
@@ -486,7 +488,7 @@ const PropertyAdminDashboard = () => {
             }
 
             {/* Main Content */}
-            <main className="flex-1 lg:ml-72 flex flex-col bg-white border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
+            <main className="flex-1 min-w-0 overflow-x-hidden lg:ml-72 flex flex-col bg-white border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10">
                 {activeTab !== 'overview' && (
                     <header className="h-20 flex justify-between items-center px-4 md:px-8 lg:px-12 mb-2 md:mb-4 border-b border-border/10">
                         <div className="flex items-center gap-4">
@@ -537,7 +539,8 @@ const PropertyAdminDashboard = () => {
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}
-                        className={activeTab === 'overview' ? '' : 'px-0 md:px-8 lg:px-12 pt-0 md:pt-4 pb-8'}
+                        className={['overview', 'sop'].includes(activeTab) ? '' : 'px-0 md:px-8 lg:px-12 pt-0 md:pt-4 pb-8'}
+
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
@@ -686,6 +689,14 @@ const PropertyAdminDashboard = () => {
                 orgName={orgSlug || 'Organization'}
                 properties={property ? [property] : []}
                 fixedPropertyId={propertyId}
+                onSuccess={() => setStatsVersion(v => v + 1)}
+            />
+
+            <StockMovementModal
+                isOpen={showScannerModal}
+                onClose={() => setShowScannerModal(false)}
+                propertyId={propertyId}
+                autoOpenScanner={true}
                 onSuccess={() => setStatsVersion(v => v + 1)}
             />
         </div>

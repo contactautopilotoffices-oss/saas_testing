@@ -15,7 +15,7 @@ const securityHeaders = {
     // Control referrer information
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     // Restrict browser features/APIs
-    'Permissions-Policy': 'camera=(self), microphone=(), geolocation=()',
+    'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=()',
     // HTTP Strict Transport Security (enable in production with HTTPS)
     ...(process.env.NODE_ENV === 'production' ? {
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
@@ -26,6 +26,7 @@ const securityHeaders = {
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: blob: https://xvucakstcmtfoanmgcql.supabase.co",
+        "media-src 'self' blob: https://xvucakstcmtfoanmgcql.supabase.co",
         "font-src 'self' data: https://fonts.gstatic.com",
         "connect-src 'self' http://localhost:3000 ws://localhost:3000 https://xvucakstcmtfoanmgcql.supabase.co wss://xvucakstcmtfoanmgcql.supabase.co https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://*.firebaseio.com",
         "frame-ancestors 'none'",
@@ -101,26 +102,28 @@ export async function proxy(request: NextRequest) {
         }
     )
 
-    // Get user session
-    const { data: { user }, error } = await supabase.auth.getUser()
+    // For protected routes or specific public routes (login/signup), get user session
+    let user = null;
+    if (!isPublicRoute || pathname === '/login' || pathname === '/signup') {
+        const { data: { user: authUser }, error } = await supabase.auth.getUser()
+        user = authUser;
 
-    // For protected routes, redirect to login if not authenticated
-    if (!isPublicRoute && !user) {
-        const loginUrl = new URL('/login', request.url)
-        loginUrl.searchParams.set('redirect', pathname)
-        return NextResponse.redirect(loginUrl)
-    }
+        // For protected routes, redirect to login if not authenticated
+        if (!isPublicRoute && !user) {
+            const loginUrl = new URL('/login', request.url)
+            loginUrl.searchParams.set('redirect', pathname)
+            return NextResponse.redirect(loginUrl)
+        }
 
-    // If user is authenticated and tries to access login page, redirect to home
-    // The home page or client-side routing will handle proper dashboard redirect
-    if (user && (pathname === '/login' || pathname === '/signup')) {
-        // Don't redirect if there's a mode parameter (e.g., password reset)
-        const mode = request.nextUrl.searchParams.get('mode')
-        if (!mode) {
-            // Redirect to home - the client-side auth context will handle proper routing
-            return NextResponse.redirect(new URL('/', request.url))
+        // If user is authenticated and tries to access login page, redirect to home
+        if (user && (pathname === '/login' || pathname === '/signup')) {
+            const mode = request.nextUrl.searchParams.get('mode')
+            if (!mode) {
+                return NextResponse.redirect(new URL('/', request.url))
+            }
         }
     }
+
 
     return response
 }

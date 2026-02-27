@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Fuel, Zap, Settings, CheckCircle, Plus,
-    AlertTriangle, History, BarChart3, Coins, ArrowLeft
+    AlertTriangle, History, BarChart3, Coins, ArrowLeft, Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
@@ -13,6 +13,7 @@ import LiquidDieselGauge from './LiquidDieselGauge';
 import GeneratorConfigModal from './GeneratorConfigModal';
 import DieselRegisterView from './DieselRegisterView';
 import DGTariffModal from './DGTariffModal';
+import DieselImportModal from './DieselImportModal';
 import { Toast } from '../ui/Toast';
 
 interface Generator {
@@ -73,6 +74,7 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [showTariffModal, setShowTariffModal] = useState(false);
     const [showRegisterView, setShowRegisterView] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error', visible: boolean }>({
@@ -271,7 +273,75 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
         }
     };
 
-    if (isLoading) return <div className="p-12 text-center text-slate-500">Loading...</div>;
+    if (isLoading) return (
+        <div className={`min-h-screen ${isDark ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-12">
+                {/* Header skeleton */}
+                <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-2">
+                        <div className={`h-7 w-7 rounded-md animate-pulse ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                        <div className={`h-10 w-72 rounded-xl animate-pulse ${isDark ? 'bg-[#21262d]' : 'bg-slate-200'}`} />
+                        <div className={`h-4 w-96 rounded-full animate-pulse ${isDark ? 'bg-[#30363d]' : 'bg-slate-100'}`} />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                        {[100, 96, 112, 96].map((w, i) => (
+                            <div key={i} className={`h-10 rounded-xl animate-pulse ${isDark ? 'bg-[#21262d]' : 'bg-slate-200'}`} style={{ width: w }} />
+                        ))}
+                    </div>
+                </div>
+                {/* Generator cards skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {[1, 2].map(i => (
+                        <div key={i} className={`rounded-2xl border overflow-hidden animate-pulse ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            {/* Card header */}
+                            <div className={`p-5 border-b ${isDark ? 'border-[#30363d]' : 'border-slate-100'}`}>
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-2">
+                                        <div className={`h-5 w-40 rounded-lg ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                        <div className={`h-3 w-28 rounded-full ${isDark ? 'bg-[#21262d]' : 'bg-slate-100'}`} />
+                                    </div>
+                                    <div className={`h-6 w-16 rounded-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                </div>
+                            </div>
+                            <div className="p-5 space-y-4">
+                                {/* Date row */}
+                                <div className={`h-8 w-40 rounded-lg ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                {/* Run hours row */}
+                                <div className="space-y-1.5">
+                                    <div className={`h-3 w-24 rounded-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                    <div className="flex gap-3">
+                                        <div className={`h-10 w-28 rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                        <div className={`h-10 flex-1 rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                    </div>
+                                </div>
+                                {/* Energy row */}
+                                <div className="space-y-1.5">
+                                    <div className={`h-3 w-24 rounded-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                    <div className="flex gap-3">
+                                        <div className={`h-10 w-28 rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                        <div className={`h-10 flex-1 rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                    </div>
+                                </div>
+                                {/* Diesel level + added row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <div className={`h-3 w-20 rounded-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                        <div className={`h-10 w-full rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className={`h-3 w-20 rounded-full ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                                        <div className={`h-10 w-full rounded-xl ${isDark ? 'bg-[#0d1117]' : 'bg-slate-100'}`} />
+                                    </div>
+                                </div>
+                                {/* Save button */}
+                                <div className={`h-11 w-full rounded-xl ${isDark ? 'bg-[#30363d]' : 'bg-slate-200'}`} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </main>
+        </div>
+    );
 
     // Render full-page Register View
     if (showRegisterView) {
@@ -290,51 +360,37 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
 
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
-                <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="p-1.5 bg-primary/10 rounded-md">
-                                <Fuel className="w-5 h-5 text-primary" />
-                            </div>
-                            <span className="text-xs font-bold text-primary tracking-widest uppercase">Diesel Logger</span>
-                        </div>
-                        <h1 className={`text-2xl sm:text-3xl md:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            Generator Readings
-                        </h1>
-                        <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium max-w-2xl text-xs sm:text-sm leading-relaxed`}>
-                            Enter closing hours and fuel added for each generator. Consumption is calculated automatically.
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                        <div>
-                            <button
-                                onClick={() => setShowTariffModal(true)}
-                                className={`flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'} rounded-xl border transition-all shadow-sm`}
-                            >
-                                <Coins className="w-4 h-4 text-emerald-500 shrink-0" />
-                                <span>Fuel Costs</span>
-                            </button>
-                        </div>
-                        <div>
-                            <button
-                                onClick={() => setShowRegisterView(true)}
-                                className={`flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold ${isDark ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' : 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10'} rounded-xl border transition-all shadow-sm`}
-                            >
-                                <History className="w-4 h-4 shrink-0" />
-                                <span>View Register</span>
-                            </button>
-                        </div>
-                        <div>
-                            <button
-                                onClick={() => setShowConfigModal(true)}
-                                className={`flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-xl border transition-all shadow-sm`}
-                            >
-                                <Plus className="w-4 h-4 shrink-0" />
-                                <span>Add Generator</span>
-                            </button>
-                        </div>
-                    </div>
+            <main className="max-w-7xl mx-auto px-2 py-3 pb-6">
+                {/* Action Buttons */}
+                <div className="mb-6 flex items-center gap-1.5">
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold ${isDark ? 'bg-emerald-900/20 text-emerald-400 border-emerald-800/50 hover:bg-emerald-900/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'} rounded-lg border transition-all hover:scale-105 active:scale-95`}
+                    >
+                        <Upload className="w-4 h-4 shrink-0" />
+                        <span className="hidden sm:inline whitespace-nowrap">Import CSV</span>
+                    </button>
+                    <button
+                        onClick={() => setShowTariffModal(true)}
+                        className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'} rounded-lg border transition-all hover:scale-105 active:scale-95`}
+                    >
+                        <Coins className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span className="hidden sm:inline whitespace-nowrap">Fuel Costs</span>
+                    </button>
+                    <button
+                        onClick={() => setShowRegisterView(true)}
+                        className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold ${isDark ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' : 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10'} rounded-lg border transition-all hover:scale-105 active:scale-95`}
+                    >
+                        <History className="w-4 h-4 shrink-0" />
+                        <span className="hidden sm:inline whitespace-nowrap">View Register</span>
+                    </button>
+                    <button
+                        onClick={() => setShowConfigModal(true)}
+                        className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold ${isDark ? 'bg-[#21262d] text-white border-[#30363d] hover:bg-[#30363d]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-lg border transition-all hover:scale-105 active:scale-95`}
+                    >
+                        <Plus className="w-4 h-4 shrink-0" />
+                        <span className="hidden sm:inline whitespace-nowrap">Add Generator</span>
+                    </button>
                 </div>
 
                 <Toast
@@ -369,21 +425,7 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                 </div>
             </main>
 
-            {/* Footer - Minimal with padding for FAB */}
-            <footer className={`fixed bottom-0 left-0 w-full ${isDark ? 'bg-[#0d1117]/90 border-[#30363d]' : 'bg-white/95 border-slate-200'} backdrop-blur-xl border-t z-50 pl-16 pr-4 sm:px-6 lg:px-8 py-4`}>
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <button
-                        onClick={() => router.back()}
-                        className={`flex items-center gap-2 text-xs sm:text-sm font-bold ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'} transition-colors pl-2`}
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Analytics
-                    </button>
-                    <div className="text-[10px] sm:text-xs font-bold text-slate-400">
-                        {Object.keys(readings).length} active entries
-                    </div>
-                </div>
-            </footer>
+
 
             {/* Config Modal */}
             <GeneratorConfigModal
@@ -410,7 +452,18 @@ const DieselStaffDashboard: React.FC<DieselStaffDashboardProps> = ({ propertyId:
                 generators={generators}
                 isDark={isDark}
             />
-        </div>
+
+            <DieselImportModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                propertyId={propertyId}
+                generators={generators}
+                onSuccess={(count) => {
+                    setToast({ message: `✅ ${count} readings imported successfully!`, type: 'success', visible: true });
+                    fetchData();
+                }}
+            />
+        </div >
     );
 };
 

@@ -29,24 +29,30 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
     const [name, setName] = useState('');
     const [meterNumber, setMeterNumber] = useState('');
     const [meterType, setMeterType] = useState('main');
-    const [lastReading, setLastReading] = useState<number>(0);
+    const [lastReading, setLastReading] = useState<string>('0');
 
     // Multiplier configuration (v2)
     const [showMultiplier, setShowMultiplier] = useState(true);
-    const [ctPrimary, setCtPrimary] = useState<number>(200);
-    const [ctSecondary, setCtSecondary] = useState<number>(5);
-    const [ptPrimary, setPtPrimary] = useState<number>(11000);
-    const [ptSecondary, setPtSecondary] = useState<number>(110);
-    const [meterConstant, setMeterConstant] = useState<number>(1);
+    const [ctPrimary, setCtPrimary] = useState<string>('200');
+    const [ctSecondary, setCtSecondary] = useState<string>('5');
+    const [ptPrimary, setPtPrimary] = useState<string>('11000');
+    const [ptSecondary, setPtSecondary] = useState<string>('110');
+    const [meterConstant, setMeterConstant] = useState<string>('1');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Calculate multiplier preview
     const computedMultiplier = () => {
-        const ct = ctPrimary / (ctSecondary || 1);
-        const pt = ptPrimary / (ptSecondary || 1);
-        return ct * pt * meterConstant;
+        const cP = parseFloat(ctPrimary) || 0;
+        const cS = parseFloat(ctSecondary) || 1;
+        const pP = parseFloat(ptPrimary) || 0;
+        const pS = parseFloat(ptSecondary) || 1;
+        const mC = parseFloat(meterConstant) || 0;
+
+        const ct = cP / (cS || 1);
+        const pt = pP / (pS || 1);
+        return ct * pt * mC;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -64,15 +70,15 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
                 name: name.trim(),
                 meter_number: meterNumber.trim() || null,
                 meter_type: meterType,
-                last_reading: lastReading || 0,
+                last_reading: parseFloat(lastReading) || 0,
                 status: 'active',
                 // v2: Include initial multiplier config
                 initial_multiplier: {
-                    ct_ratio_primary: ctPrimary,
-                    ct_ratio_secondary: ctSecondary,
-                    pt_ratio_primary: ptPrimary,
-                    pt_ratio_secondary: ptSecondary,
-                    meter_constant: meterConstant,
+                    ct_ratio_primary: parseFloat(ctPrimary) || 0,
+                    ct_ratio_secondary: parseFloat(ctSecondary) || 0,
+                    pt_ratio_primary: parseFloat(ptPrimary) || 0,
+                    pt_ratio_secondary: parseFloat(ptSecondary) || 0,
+                    meter_constant: parseFloat(meterConstant) || 0,
                     multiplier_value: computedMultiplier(),
                     effective_from: new Date().toISOString().split('T')[0]
                 }
@@ -82,12 +88,12 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
             setName('');
             setMeterNumber('');
             setMeterType('main');
-            setLastReading(0);
-            setCtPrimary(200);
-            setCtSecondary(5);
-            setPtPrimary(11000);
-            setPtSecondary(110);
-            setMeterConstant(1);
+            setLastReading('0');
+            setCtPrimary('200');
+            setCtSecondary('5');
+            setPtPrimary('11000');
+            setPtSecondary('110');
+            setMeterConstant('1');
             onClose();
         } catch (err: any) {
             setError(err.message || 'Failed to add meter');
@@ -190,9 +196,10 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
                                 Current Reading (kVAh)
                             </span>
                             <input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 value={lastReading}
-                                onChange={(e) => setLastReading(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => setLastReading(e.target.value)}
                                 placeholder="Starting meter reading"
                                 className={`${isDark ? 'bg-[#0d1117] border-[#21262d] text-white focus:border-primary' : 'bg-white border-slate-200 focus:border-primary'} border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-primary/20' : 'focus:ring-primary/20'}`}
                             />
@@ -240,9 +247,10 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
                                                 <label className="flex flex-col gap-1">
                                                     <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase`}>CT Primary (A)</span>
                                                     <input
-                                                        type="number"
+                                                        type="text"
+                                                        inputMode="decimal"
                                                         value={ctPrimary}
-                                                        onChange={(e) => setCtPrimary(parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => setCtPrimary(e.target.value)}
                                                         placeholder="200"
                                                         className={`${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200'} font-medium rounded-lg p-2.5 text-sm border focus:outline-none focus:ring-2 focus:ring-primary/20`}
                                                     />
@@ -250,9 +258,10 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
                                                 <label className="flex flex-col gap-1">
                                                     <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase`}>CT Secondary (A)</span>
                                                     <input
-                                                        type="number"
+                                                        type="text"
+                                                        inputMode="decimal"
                                                         value={ctSecondary}
-                                                        onChange={(e) => setCtSecondary(parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => setCtSecondary(e.target.value)}
                                                         placeholder="5"
                                                         className={`${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200'} font-medium rounded-lg p-2.5 text-sm border focus:outline-none focus:ring-2 focus:ring-primary/20`}
                                                     />
@@ -264,9 +273,10 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
                                                 <label className="flex flex-col gap-1">
                                                     <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase`}>PT Primary (V)</span>
                                                     <input
-                                                        type="number"
+                                                        type="text"
+                                                        inputMode="decimal"
                                                         value={ptPrimary}
-                                                        onChange={(e) => setPtPrimary(parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => setPtPrimary(e.target.value)}
                                                         placeholder="11000"
                                                         className={`${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200'} font-medium rounded-lg p-2.5 text-sm border focus:outline-none focus:ring-2 focus:ring-primary/20`}
                                                     />
@@ -274,9 +284,10 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
                                                 <label className="flex flex-col gap-1">
                                                     <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase`}>PT Secondary (V)</span>
                                                     <input
-                                                        type="number"
+                                                        type="text"
+                                                        inputMode="decimal"
                                                         value={ptSecondary}
-                                                        onChange={(e) => setPtSecondary(parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => setPtSecondary(e.target.value)}
                                                         placeholder="110"
                                                         className={`${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200'} font-medium rounded-lg p-2.5 text-sm border focus:outline-none focus:ring-2 focus:ring-primary/20`}
                                                     />
@@ -287,10 +298,10 @@ const ElectricityMeterConfigModal: React.FC<ElectricityMeterConfigModalProps> = 
                                             <label className="flex flex-col gap-1">
                                                 <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'} uppercase`}>Meter Constant</span>
                                                 <input
-                                                    type="number"
-                                                    step="0.01"
+                                                    type="text"
+                                                    inputMode="decimal"
                                                     value={meterConstant}
-                                                    onChange={(e) => setMeterConstant(parseFloat(e.target.value) || 1)}
+                                                    onChange={(e) => setMeterConstant(e.target.value)}
                                                     placeholder="1.0"
                                                     className={`${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200'} font-medium rounded-lg p-2.5 text-sm border focus:outline-none focus:ring-2 focus:ring-primary/20`}
                                                 />

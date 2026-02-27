@@ -614,4 +614,58 @@ export class NotificationService {
             }
         }
     }
+
+    /**
+     * Notify the SOP checklist completer when an admin rates one of their items.
+     */
+    static async afterSOPItemRated(
+        completionId: string,
+        completionItemId: string,
+        rating: 1 | 2 | 3,
+        ratedByUserId: string
+    ) {
+        try {
+            const RATING_LABELS: Record<number, string> = { 1: 'Needs Work', 2: 'Acceptable', 3: 'Excellent' };
+
+            // Fetch the completion (to get who did it and the property/org info)
+            const { data: completion, error: completionError } = await supabaseAdmin
+                .from('sop_completions')
+                .select('completed_by, property_id, organization_id, template:sop_templates(title)')
+                .eq('id', completionId)
+                .single();
+
+            if (completionError || !completion) {
+                console.error('[NotificationService] afterSOPItemRated: could not fetch completion', completionError);
+                return;
+            }
+
+            const completedBy = String(completion.completed_by);
+
+            // Don't notify the admin if they rated their own entry
+            if (completedBy === ratedByUserId) return;
+
+            // Fetch the admin's name
+            const { data: rater } = await supabaseAdmin
+                .from('users')
+                .select('full_name')
+                .eq('id', ratedByUserId)
+                .single();
+
+            const raterName = rater?.full_name || 'An admin';
+            const templateTitle = (completion.template as any)?.title || 'SOP Checklist';
+            const ratingLabel = RATING_LABELS[rating];
+
+            await this.send({
+                userId: completedBy,
+                propertyId: String(completion.property_id),
+                organizationId: completion.organization_id ? String(completion.organization_id) : undefined,
+                type: 'SOP_RATING',
+                title: `Your checklist was rated: ${ratingLabel}`,
+                message: `${raterName} rated your completion of "${templateTitle}" as "${ratingLabel}".`,
+                deepLink: `/properties/${completion.property_id}/sop?completion=${completionId}`,
+            });
+        } catch (err) {
+            console.error('[NotificationService] afterSOPItemRated error:', err);
+        }
+    }
 }

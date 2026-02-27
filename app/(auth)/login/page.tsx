@@ -369,10 +369,10 @@ function AuthContent() {
                                 </div>
 
                                 {(authMode === 'signin' || authMode === 'signup') && (
-                                    <div className="flex gap-2 mb-8 p-1 bg-surface-elevated rounded-[var(--radius-md)] border border-border">
+                                    <div className="flex gap-1 mb-8 p-1 bg-muted rounded-xl border border-border w-full">
                                         <button
                                             onClick={() => setAuthMode('signin')}
-                                            className={`flex-1 py-3 px-4 rounded-[var(--radius-sm)] font-semibold text-sm transition-smooth ${authMode === 'signin'
+                                            className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-smooth ${authMode === 'signin'
                                                 ? 'bg-primary text-text-inverse shadow-sm'
                                                 : 'text-text-secondary hover:text-text-primary'
                                                 }`}
@@ -381,7 +381,7 @@ function AuthContent() {
                                         </button>
                                         <button
                                             onClick={() => setAuthMode('signup')}
-                                            className={`flex-1 py-3 px-4 rounded-[var(--radius-sm)] font-semibold text-sm transition-smooth ${authMode === 'signup'
+                                            className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-smooth ${authMode === 'signup'
                                                 ? 'bg-primary text-text-inverse shadow-sm'
                                                 : 'text-text-secondary hover:text-text-primary'
                                                 }`}

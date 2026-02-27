@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, User, MapPin, Send, CheckCircle, Circle, Camera, AlertTriangle, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Clock, User, MapPin, Send, CheckCircle, Circle, Camera, AlertTriangle, Pause, Play, Video, Upload, X, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import EnhancedClassificationBadge from './EnhancedClassificationBadge';
+import MediaCaptureModal, { MediaFile } from '@/frontend/components/shared/MediaCaptureModal';
 
 interface TicketDetailProps {
     ticketId: string;
@@ -25,6 +26,74 @@ interface Comment {
     user?: { full_name: string; avatar_url?: string };
 }
 
+interface Activity {
+    id: string;
+    action: string;
+    new_value?: string | null;
+    old_value?: string | null;
+    created_at: string;
+    user?: { full_name: string };
+}
+
+function MediaSlot({
+    label,
+    photoUrl,
+    videoUrl,
+    timestamp,
+    onUpload,
+}: {
+    label: string;
+    photoUrl?: string | null;
+    videoUrl?: string | null;
+    timestamp?: string | null;
+    onUpload?: () => void;
+}) {
+    const hasVideo = Boolean(videoUrl);
+    const hasPhoto = Boolean(photoUrl);
+    const hasMedia = hasVideo || hasPhoto;
+
+    return (
+        <div>
+            <p className="text-sm text-gray-400 mb-2">{label}</p>
+            <div className="aspect-video bg-[#0d1117] border border-dashed border-[#30363d] rounded-xl overflow-hidden relative flex items-center justify-center">
+                {hasVideo ? (
+                    <video
+                        src={videoUrl!}
+                        controls
+                        playsInline
+                        className="w-full h-full object-cover"
+                    />
+                ) : hasPhoto ? (
+                    <img src={photoUrl!} alt={label} className="w-full h-full object-cover" />
+                ) : (
+                    <div className="text-center text-gray-500">
+                        <Camera className="w-8 h-8 mx-auto mb-2" />
+                        <span className="text-xs">No media</span>
+                    </div>
+                )}
+
+                {/* Timestamp overlay */}
+                {timestamp && (
+                    <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-black/90 rounded text-[10px] text-white font-bold font-mono backdrop-blur-sm pointer-events-none border border-white/30 shadow-2xl z-20">
+                        {new Date(timestamp).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(',', '')}
+                    </div>
+                )}
+
+                {/* Upload overlay button */}
+                {onUpload && (
+                    <button
+                        onClick={onUpload}
+                        className="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors backdrop-blur-sm"
+                        title={`Upload ${label} media`}
+                    >
+                        <Upload className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function TicketDetail({ ticketId, onBack, isAdmin = false }: TicketDetailProps) {
     const [ticket, setTicket] = useState<Record<string, unknown> | null>(null);
     const [timeline, setTimeline] = useState<TimelineStep[]>([]);
@@ -32,6 +101,13 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
     const [loading, setLoading] = useState(true);
     const [newComment, setNewComment] = useState('');
     const [sendingComment, setSendingComment] = useState(false);
+
+    // Media upload state
+    const [showMediaModal, setShowMediaModal] = useState(false);
+    const [uploadingType, setUploadingType] = useState<'before' | 'after' | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    const [activities, setActivities] = useState<Activity[]>([]);
 
     useEffect(() => {
         fetchTicketDetail();
@@ -41,11 +117,11 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
         try {
             const response = await fetch(`/api/tickets/${ticketId}`);
             const data = await response.json();
-
             if (response.ok) {
                 setTicket(data.ticket);
                 setTimeline(data.timeline || []);
                 setComments(data.comments || []);
+                setActivities(data.activities || []);
             }
         } catch (error) {
             console.error('Error fetching ticket:', error);
@@ -56,7 +132,6 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
 
     const handleSendComment = async () => {
         if (!newComment.trim()) return;
-
         setSendingComment(true);
         try {
             const response = await fetch(`/api/tickets/${ticketId}/comments`, {
@@ -64,7 +139,6 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ comment: newComment }),
             });
-
             if (response.ok) {
                 const data = await response.json();
                 setComments([...comments, data.comment]);
@@ -84,12 +158,45 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status }),
             });
-
-            if (response.ok) {
-                fetchTicketDetail();
-            }
+            if (response.ok) fetchTicketDetail();
         } catch (error) {
             console.error('Error updating status:', error);
+        }
+    };
+
+    const openUpload = (type: 'before' | 'after') => {
+        setUploadingType(type);
+        setUploadError(null);
+        setShowMediaModal(true);
+    };
+
+    const handleMediaUpload = async (media: MediaFile) => {
+        if (!uploadingType) return;
+        setShowMediaModal(false);
+        setIsUploading(true);
+        setUploadError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', media.file);
+            formData.append('type', uploadingType);
+            formData.append('takenAt', media.takenAt);
+
+            const endpoint = media.type === 'video'
+                ? `/api/tickets/${ticketId}/videos`
+                : `/api/tickets/${ticketId}/photos`;
+
+            const res = await fetch(endpoint, { method: 'POST', body: formData });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Upload failed');
+            }
+            await fetchTicketDetail();
+        } catch (err) {
+            setUploadError(err instanceof Error ? err.message : 'Upload failed');
+        } finally {
+            setIsUploading(false);
+            setUploadingType(null);
         }
     };
 
@@ -131,7 +238,6 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                         {category?.name && (
                             <span className="px-3 py-1 bg-[#21262d] rounded-full text-sm">{category.name}</span>
                         )}
-                        {/* Enhanced classification indicator (subtle) */}
                         <EnhancedClassificationBadge
                             enhanced={ticket.enhanced_classification as boolean}
                             zone={ticket.classification_zone as string}
@@ -183,8 +289,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                     <div className="flex items-center justify-between">
                         {timeline.map((step, index) => (
                             <div key={step.step} className="flex flex-col items-center">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step.completed ? 'bg-green-500' : 'bg-[#30363d]'
-                                    }`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step.completed ? 'bg-green-500' : 'bg-[#30363d]'}`}>
                                     {step.completed ? (
                                         <CheckCircle className="w-5 h-5 text-white" />
                                     ) : (
@@ -202,13 +307,11 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                         ))}
                     </div>
 
-                    {/* Action badges */}
                     <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-[#30363d]">
                         {timeline.map((step) => (
                             <span
                                 key={step.step}
-                                className={`px-3 py-1 rounded text-xs ${step.completed ? 'bg-green-500/20 text-green-400' : 'bg-[#21262d] text-gray-500'
-                                    }`}
+                                className={`px-3 py-1 rounded text-xs ${step.completed ? 'bg-green-500/20 text-green-400' : 'bg-[#21262d] text-gray-500'}`}
                             >
                                 {step.step} {step.completed && '✓'}
                             </span>
@@ -216,37 +319,54 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                     </div>
                 </div>
 
-                {/* Photos Section */}
+                {/* Media Section — Photos + Videos */}
                 <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
-                    <h2 className="text-lg font-semibold mb-4">Photos</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold">Photos & Videos</h2>
+                        {isUploading && (
+                            <div className="flex items-center gap-2 text-cyan-400 text-sm">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Uploading…
+                            </div>
+                        )}
+                    </div>
+
+                    {uploadError && (
+                        <div className="mb-4 flex items-center gap-2 text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2">
+                            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                            {uploadError}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-sm text-gray-400 mb-2">Before</p>
-                            <div className="aspect-video bg-[#0d1117] border border-dashed border-[#30363d] rounded-xl flex items-center justify-center">
-                                {ticket.photo_before_url ? (
-                                    <img src={ticket.photo_before_url as string} alt="Before" className="w-full h-full object-cover rounded-xl" />
-                                ) : (
-                                    <div className="text-center text-gray-500">
-                                        <Camera className="w-8 h-8 mx-auto mb-2" />
-                                        <span className="text-xs">No photo</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-400 mb-2">After</p>
-                            <div className="aspect-video bg-[#0d1117] border border-dashed border-[#30363d] rounded-xl flex items-center justify-center">
-                                {ticket.photo_after_url ? (
-                                    <img src={ticket.photo_after_url as string} alt="After" className="w-full h-full object-cover rounded-xl" />
-                                ) : (
-                                    <div className="text-center text-gray-500">
-                                        <Camera className="w-8 h-8 mx-auto mb-2" />
-                                        <span className="text-xs">No photo</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        <MediaSlot
+                            label="Before"
+                            photoUrl={ticket.photo_before_url as string | null}
+                            videoUrl={ticket.video_before_url as string | null}
+                            timestamp={
+                                activities.find(a =>
+                                    a.action === 'photo_before_uploaded' ||
+                                    a.action === 'video_before_uploaded' ||
+                                    (a.action === 'photo_upload' && a.new_value?.includes('before')) ||
+                                    (a.action === 'video_upload' && a.new_value?.includes('before'))
+                                )?.old_value
+                            }
+                            onUpload={() => openUpload('before')}
+                        />
+                        <MediaSlot
+                            label="After"
+                            photoUrl={ticket.photo_after_url as string | null}
+                            videoUrl={ticket.video_after_url as string | null}
+                            timestamp={
+                                activities.find(a =>
+                                    a.action === 'photo_after_uploaded' ||
+                                    a.action === 'video_after_uploaded' ||
+                                    (a.action === 'photo_upload' && a.new_value?.includes('after')) ||
+                                    (a.action === 'video_upload' && a.new_value?.includes('after'))
+                                )?.old_value
+                            }
+                            onUpload={() => openUpload('after')}
+                        />
                     </div>
                 </div>
 
@@ -294,7 +414,6 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                         )}
                     </div>
 
-                    {/* Comment Input */}
                     <div className="flex gap-3 pt-4 border-t border-[#30363d]">
                         <input
                             type="text"
@@ -320,28 +439,27 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                     <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
                         <h2 className="text-lg font-semibold mb-4">Admin Actions</h2>
                         <div className="flex flex-wrap gap-3">
-                            <button
-                                onClick={() => handleUpdateStatus('in_progress')}
-                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm"
-                            >
+                            <button onClick={() => handleUpdateStatus('in_progress')} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm">
                                 Start Work
                             </button>
-                            <button
-                                onClick={() => handleUpdateStatus('resolved')}
-                                className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm"
-                            >
+                            <button onClick={() => handleUpdateStatus('resolved')} className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm">
                                 Mark Resolved
                             </button>
-                            <button
-                                onClick={() => handleUpdateStatus('closed')}
-                                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm"
-                            >
+                            <button onClick={() => handleUpdateStatus('closed')} className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm">
                                 Close Ticket
                             </button>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Media Capture Modal */}
+            <MediaCaptureModal
+                isOpen={showMediaModal}
+                onClose={() => { setShowMediaModal(false); setUploadingType(null); }}
+                onCapture={handleMediaUpload}
+                title={`Upload ${uploadingType === 'before' ? 'Before' : 'After'} Media`}
+            />
         </div>
     );
 }

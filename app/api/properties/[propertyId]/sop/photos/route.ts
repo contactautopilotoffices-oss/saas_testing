@@ -9,10 +9,32 @@ export async function POST(
     const supabase = await createClient();
 
     try {
+        // Try getUser first (secure), with a fallback to getSession if it fails/slows down
+        // Note: in high-latency environments, getUser can be unreliable
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        let authenticatedUser = user;
+        if (!authenticatedUser) {
+            console.warn('[SOP Photo Upload] getUser failed/returned null, trying getSession fallback...');
+            const { data: { session } } = await supabase.auth.getSession();
+            authenticatedUser = session?.user || null;
         }
+
+        if (!authenticatedUser) {
+            console.error('[SOP Photo Upload] Auth Error:', {
+                error: authError?.message,
+                status: authError?.status,
+                hasUser: !!user,
+                propertyId
+            });
+            return NextResponse.json({
+                error: 'Unauthorized',
+                details: 'Please ensure you are logged in. (Session not found)'
+            }, { status: 401 });
+        }
+
+        console.log('[SOP Photo Upload] Auth Success:', { userId: authenticatedUser.id, propertyId });
+
 
         const formData = await request.formData();
         const file = formData.get('file') as File;

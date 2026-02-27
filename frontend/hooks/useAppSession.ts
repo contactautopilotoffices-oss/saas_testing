@@ -34,34 +34,39 @@ export function useAppSession() {
                 role = 'master_admin';
             }
 
-            // Fetch memberships
+            // Fetch ACTIVE memberships only
             const { data: orgMem } = await supabase
                 .from('organization_memberships')
-                .select('role')
+                .select('role, organization_id')
                 .eq('user_id', user.id)
+                .eq('is_active', true)
                 .maybeSingle();
 
             const { data: propMems } = await supabase
                 .from('property_memberships')
                 .select('property_id, role')
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .eq('is_active', true);
 
             // Prioritize roles: Org Member > Property Member > Metadata > Default (tenant)
-            // Filter out generic roles if possible, or just take first non-empty
             const propRole = propMems?.find(p => p.role && p.role !== 'tenant')?.role || propMems?.[0]?.role;
             const membershipRole = orgMem?.role || propRole;
+
+            // Resolve org_id from active org membership, or from property's org
+            const resolvedOrgId = orgMem?.organization_id || org_id;
 
             console.log('[useAppSession] Role resolution:', {
                 orgRole: orgMem?.role,
                 propRole,
                 metadataRole: role,
-                resolved: membershipRole || role
+                resolved: membershipRole || role,
+                activeProperties: propMems?.length || 0
             });
 
             setSession({
                 user_id: user.id,
                 role: (membershipRole || role) as any,
-                org_id,
+                org_id: resolvedOrgId,
                 property_ids: propMems?.map(pm => pm.property_id) || [],
                 available_modules: ['ticketing', 'viewer', 'analytics', 'stock', 'sop']
             });

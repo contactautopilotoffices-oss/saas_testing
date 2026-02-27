@@ -30,7 +30,55 @@ export default function UserManagementTable() {
         setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: newStatus } : u));
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading users...</div>;
+    if (loading) return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            {['User', 'Role', 'Property', 'Status', 'Actions'].map(col => (
+                                <th key={col} className="px-6 py-4">
+                                    <div className="h-3 w-16 bg-gray-200 rounded-full" />
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <tr key={i}>
+                                {/* User: avatar + name + email */}
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                                        <div className="space-y-1.5">
+                                            <div className="h-3.5 w-32 bg-gray-200 rounded-full" />
+                                            <div className="h-2.5 w-40 bg-gray-100 rounded-full" />
+                                        </div>
+                                    </div>
+                                </td>
+                                {/* Role badge */}
+                                <td className="px-6 py-4">
+                                    <div className="h-5 w-20 bg-blue-100 rounded-full" />
+                                </td>
+                                {/* Property */}
+                                <td className="px-6 py-4">
+                                    <div className="h-3 w-28 bg-gray-100 rounded-full" />
+                                </td>
+                                {/* Status badge */}
+                                <td className="px-6 py-4">
+                                    <div className="h-5 w-14 bg-green-100 rounded-full" />
+                                </td>
+                                {/* Action */}
+                                <td className="px-6 py-4 text-right">
+                                    <div className="h-3 w-14 bg-gray-200 rounded-full ml-auto" />
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

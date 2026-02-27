@@ -166,12 +166,12 @@ const ElectricityAnalyticsDashboard: React.FC<ElectricityAnalyticsDashboardProps
                 // v2.5: Dynamic fallback if cost was logged as 0 (due to missing tariff at logging time)
                 let cost = r.computed_cost || 0;
                 if (cost === 0 && activeTariff > 0) {
-                    cost = (r.final_units || r.computed_units || 0) * activeTariff;
+                    cost = (r.final_units ?? r.computed_units ?? 0) * activeTariff;
                 }
 
                 return {
                     cost: acc.cost + cost,
-                    units: acc.units + (r.final_units || r.computed_units || 0)
+                    units: acc.units + (r.final_units ?? r.computed_units ?? 0)
                 };
             }, { cost: 0, units: 0 });
         };
@@ -216,12 +216,12 @@ const ElectricityAnalyticsDashboard: React.FC<ElectricityAnalyticsDashboardProps
             const dayTotals = dayReadings.reduce((acc, r) => {
                 let cost = r.computed_cost || 0;
                 if (cost === 0 && activeTariff > 0) {
-                    cost = (r.final_units || r.computed_units || 0) * activeTariff;
+                    cost = (r.final_units ?? r.computed_units ?? 0) * activeTariff;
                 }
 
                 return {
                     cost: acc.cost + cost,
-                    units: acc.units + (r.final_units || r.computed_units || 0)
+                    units: acc.units + (r.final_units ?? r.computed_units ?? 0)
                 };
             }, { cost: 0, units: 0 });
 
@@ -241,7 +241,7 @@ const ElectricityAnalyticsDashboard: React.FC<ElectricityAnalyticsDashboardProps
     };
     const fmtUnits = (val: number) => {
         if (val === 0 || !val) return '—';
-        return `${Math.round(val).toLocaleString()} kVAh`;
+        return `${(val || 0).toFixed(1).toLocaleString()} kVAh`;
     };
 
     // Current Display Values based on Toggles
@@ -635,16 +635,16 @@ const ElectricityAnalyticsDashboard: React.FC<ElectricityAnalyticsDashboardProps
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="h-full w-full max-w-2xl bg-white shadow-2xl overflow-y-auto"
+                            className="h-full w-full max-w-4xl bg-white shadow-2xl overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="absolute top-4 right-4 z-10">
+                            <div className="sticky top-0 right-0 z-10 flex justify-end p-4">
                                 <button onClick={() => { setShowLogModal(false); fetchData(); }} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
                                     <X className="w-5 h-5 text-slate-500" />
                                 </button>
                             </div>
-                            <div className="p-2">
-                                <ElectricityStaffDashboard propertyId={propertyId} />
+                            <div className="px-4 pb-4 -mt-4">
+                                <ElectricityStaffDashboard propertyId={propertyId} isEmbedded />
                             </div>
                         </motion.div>
                     </motion.div>

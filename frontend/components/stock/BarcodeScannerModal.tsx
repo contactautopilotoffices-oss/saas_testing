@@ -43,7 +43,7 @@ export default function BarcodeScannerModal({
     const [cameraActive, setCameraActive] = useState(false);
     const [galleryProcessing, setGalleryProcessing] = useState(false);
     const [galleryPreview, setGalleryPreview] = useState<string | null>(null);
-    const [isTransitioning, setIsTransitioning] = useState(false);
+    const isTransitioningRef = useRef(false);
     const isMounted = useRef(true);
 
     // Identification & Update States
@@ -136,7 +136,7 @@ export default function BarcodeScannerModal({
         return html5QrCodeRef.current;
     }, [isOpen]);
 
-    const startCamera = async () => {
+    const startCamera = async (isRetry = false) => {
         if (cameraActive || identifiedItem || !isOpen) return;
 
         // Robust recursive check for container dimensions
@@ -158,40 +158,49 @@ export default function BarcodeScannerModal({
         const scanner = getScanner();
         if (!scanner) return;
 
+        const scanConfig = {
+            fps: 60,
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                const minDim = Math.min(viewfinderWidth, viewfinderHeight);
+                const size = Math.max(250, minDim * 0.75);
+                return { width: size, height: size };
+            },
+            aspectRatio: 1.0,
+            disableFlip: true
+        };
+
+        const onSuccess = (decodedText: string) => {
+            const code = decodedText.trim();
+            if (onScanSuccess) {
+                onScanSuccess(code, 'unknown');
+                handleClose();
+            } else {
+                fetchItemByBarcode(code);
+            }
+        };
+
         try {
             setLoading(true);
             setError(null);
-
-            await scanner.start(
-                { facingMode: 'environment' },
-                {
-                    fps: 60,
-                    qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        // Create a square scanning area that is ideal for QR codes
-                        const minDim = Math.min(viewfinderWidth, viewfinderHeight);
-                        const size = Math.max(250, minDim * 0.75);
-                        return { width: size, height: size };
-                    },
-                    aspectRatio: 1.0,
-                    disableFlip: true
-                },
-                (decodedText) => {
-                    const code = decodedText.trim();
-                    if (onScanSuccess) {
-                        onScanSuccess(code, 'unknown');
-                        handleClose();
-                    } else {
-                        fetchItemByBarcode(code);
-                    }
-                },
-                () => { /* ignore */ }
-            );
-
+            await scanner.start({ facingMode: 'environment' }, scanConfig, onSuccess, () => { });
             setCameraActive(true);
             setLoading(false);
         } catch (err: any) {
+            const msg: string = err?.message || err?.toString() || '';
+            // Html5Qrcode internal state machine conflict — destroy instance and retry once
+            if (!isRetry && msg.toLowerCase().includes('transition')) {
+                console.warn('[Scanner] Transition conflict detected, resetting instance and retrying...');
+                try {
+                    await html5QrCodeRef.current?.stop().catch(() => { });
+                    html5QrCodeRef.current?.clear();
+                } catch { /* ignore cleanup errors */ }
+                html5QrCodeRef.current = null;
+                setCameraActive(false);
+                await new Promise(r => setTimeout(r, 400));
+                if (isMounted.current && isOpen) await startCamera(true);
+                return;
+            }
             console.error('Failed to start camera:', err);
-            // Only show error if we're still in camera mode and modal is open
             if (scanMode === 'camera' && isOpen) {
                 setError('Camera access denied or busy.');
             }
@@ -205,8 +214,8 @@ export default function BarcodeScannerModal({
         if (!isOpen) return;
 
         const syncScanner = async () => {
-            if (isTransitioning) return;
-            setIsTransitioning(true);
+            if (isTransitioningRef.current) return;
+            isTransitioningRef.current = true;
 
             try {
                 // Always ensure a clean slate when switching modes
@@ -218,7 +227,7 @@ export default function BarcodeScannerModal({
                     if (isMounted.current && isOpen) await startCamera();
                 }
             } finally {
-                if (isMounted.current) setIsTransitioning(false);
+                if (isMounted.current) isTransitioningRef.current = false;
             }
         };
 

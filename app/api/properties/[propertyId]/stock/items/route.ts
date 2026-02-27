@@ -58,6 +58,67 @@ export async function GET(
     }
 }
 
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ propertyId: string }> }
+) {
+    const { propertyId } = await params;
+    const supabase = await createClient();
+
+    try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { itemIds } = body;
+
+        if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+            return NextResponse.json(
+                { error: 'itemIds array is required' },
+                { status: 400 }
+            );
+        }
+
+        // Verify all items belong to this property
+        const { data: existingItems, error: fetchError } = await supabase
+            .from('stock_items')
+            .select('id')
+            .eq('property_id', propertyId)
+            .in('id', itemIds);
+
+        if (fetchError) {
+            return NextResponse.json({ error: fetchError.message }, { status: 500 });
+        }
+
+        const validIds = (existingItems || []).map(i => i.id);
+        if (validIds.length === 0) {
+            return NextResponse.json({ error: 'No matching items found' }, { status: 404 });
+        }
+
+        // Delete items (stock_movements will have item_id set to NULL via FK constraint)
+        const { error: deleteError } = await supabase
+            .from('stock_items')
+            .delete()
+            .in('id', validIds);
+
+        if (deleteError) {
+            return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        }
+
+        return NextResponse.json({
+            success: true,
+            deletedCount: validIds.length,
+        });
+    } catch (err) {
+        return NextResponse.json(
+            { error: err instanceof Error ? err.message : 'Unknown error' },
+            { status: 500 }
+        );
+    }
+}
+
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ propertyId: string }> }
@@ -72,7 +133,7 @@ export async function POST(
         }
 
         const body = await request.json();
-        const { name, category, unit = 'units', quantity = 0, min_threshold = 10, location, description, item_code } = body;
+        const { name, category, unit = 'units', quantity = 0, min_threshold = 10, per_unit_cost = 0, location, description, item_code } = body;
 
         if (!name) {
             return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -92,6 +153,7 @@ export async function POST(
                 unit,
                 quantity,
                 min_threshold,
+                per_unit_cost,
                 location,
                 description,
                 created_by: user.id,

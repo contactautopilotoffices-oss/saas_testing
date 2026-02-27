@@ -3,13 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/frontend/utils/supabase/client';
-import { ArrowLeft, MapPin, Clock, AlertTriangle, User, CheckCircle2, Ticket, Activity } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, AlertTriangle, User, CheckCircle2, Activity, Camera, Video, Upload, Loader2, Play } from 'lucide-react';
+import MediaCaptureModal, { MediaFile } from '@/frontend/components/shared/MediaCaptureModal';
 
 function formatTimeAgo(dateString: string) {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " years ago";
     interval = seconds / 2592000;
@@ -23,6 +23,68 @@ function formatTimeAgo(dateString: string) {
     return Math.floor(seconds) + " seconds ago";
 }
 
+function MediaSlotCard({
+    label,
+    photoUrl,
+    videoUrl,
+    onUpload,
+    isUploading,
+}: {
+    label: string;
+    photoUrl?: string | null;
+    videoUrl?: string | null;
+    onUpload: () => void;
+    isUploading?: boolean;
+}) {
+    const hasVideo = Boolean(videoUrl);
+    const hasPhoto = Boolean(photoUrl);
+    const hasMedia = hasVideo || hasPhoto;
+
+    return (
+        <div className="bg-[#0f1419] border border-[#21262d] rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-[#21262d]">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+                <button
+                    onClick={onUpload}
+                    disabled={isUploading}
+                    className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 disabled:opacity-50 transition-colors"
+                >
+                    {isUploading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                    )}
+                    {isUploading ? 'Uploading…' : 'Upload'}
+                </button>
+            </div>
+
+            <div className="aspect-video relative flex items-center justify-center bg-[#0d1117]">
+                {hasVideo ? (
+                    <video
+                        src={videoUrl!}
+                        controls
+                        playsInline
+                        className="w-full h-full object-cover"
+                    />
+                ) : hasPhoto ? (
+                    <img src={photoUrl!} alt={label} className="w-full h-full object-cover" />
+                ) : (
+                    <div className="flex flex-col items-center gap-2 text-slate-600">
+                        <Camera className="w-8 h-8" />
+                        <span className="text-xs">No media yet</span>
+                        <button
+                            onClick={onUpload}
+                            className="mt-1 flex items-center gap-1.5 text-xs text-emerald-500 hover:text-emerald-400 transition-colors"
+                        >
+                            <Upload className="w-3.5 h-3.5" /> Add photo or video
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function RequestDetailsPage() {
     const params = useParams();
     const router = useRouter();
@@ -32,49 +94,82 @@ export default function RequestDetailsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [property, setProperty] = useState<any>(null);
 
+    // Media upload state
+    const [showMediaModal, setShowMediaModal] = useState(false);
+    const [uploadingType, setUploadingType] = useState<'before' | 'after' | null>(null);
+    const [isUploadingBefore, setIsUploadingBefore] = useState(false);
+    const [isUploadingAfter, setIsUploadingAfter] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+
     const supabase = createClient();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!requestId || !propertyId) return;
+    const fetchData = async () => {
+        if (!requestId || !propertyId) return;
+        setIsLoading(true);
 
-            setIsLoading(true);
+        const { data: ticketData, error: ticketError } = await supabase
+            .from('tickets')
+            .select(`
+                *,
+                creator:users!raised_by(full_name, email),
+                category:issue_categories(name, code, icon)
+            `)
+            .eq('id', requestId)
+            .single();
 
-            // Fetch Ticket
-            const { data: ticketData, error: ticketError } = await supabase
-                .from('tickets')
-                .select(`
-                    *,
-                    creator:users!raised_by(full_name, email),
-                    category:issue_categories(name, code, icon)
-                `)
-                .eq('id', requestId)
-                .single();
+        if (ticketError) console.error('Error fetching ticket:', ticketError);
+        else setTicket(ticketData);
 
-            if (ticketError) {
-                console.error('Error fetching ticket:', ticketError);
-            } else {
-                setTicket(ticketData);
+        const { data: propertyData, error: propertyError } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('id', propertyId)
+            .single();
+
+        if (propertyError) console.error('Error fetching property:', propertyError);
+        else setProperty(propertyData);
+
+        setIsLoading(false);
+    };
+
+    useEffect(() => { fetchData(); }, [requestId, propertyId]);
+
+    const openUpload = (type: 'before' | 'after') => {
+        setUploadingType(type);
+        setUploadError(null);
+        setShowMediaModal(true);
+    };
+
+    const handleMediaUpload = async (media: MediaFile) => {
+        if (!uploadingType || !ticket?.id) return;
+        setShowMediaModal(false);
+
+        const setUploading = uploadingType === 'before' ? setIsUploadingBefore : setIsUploadingAfter;
+        setUploading(true);
+        setUploadError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', media.file);
+            formData.append('type', uploadingType);
+
+            const endpoint = media.type === 'video'
+                ? `/api/tickets/${ticket.id}/videos`
+                : `/api/tickets/${ticket.id}/photos`;
+
+            const res = await fetch(endpoint, { method: 'POST', body: formData });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Upload failed');
             }
-
-            // Fetch Property
-            const { data: propertyData, error: propertyError } = await supabase
-                .from('properties')
-                .select('*')
-                .eq('id', propertyId)
-                .single();
-
-            if (propertyError) {
-                console.error('Error fetching property:', propertyError);
-            } else {
-                setProperty(propertyData);
-            }
-
-            setIsLoading(false);
-        };
-
-        fetchData();
-    }, [requestId, propertyId]);
+            await fetchData();
+        } catch (err) {
+            setUploadError(err instanceof Error ? err.message : 'Upload failed');
+        } finally {
+            setUploading(false);
+            setUploadingType(null);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -88,10 +183,7 @@ export default function RequestDetailsPage() {
         return (
             <div className="min-h-screen bg-[#0f1419] flex flex-col items-center justify-center text-slate-400 gap-4">
                 <p>Request not found.</p>
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-2 text-emerald-500 hover:text-emerald-400"
-                >
+                <button onClick={() => router.back()} className="flex items-center gap-2 text-emerald-500 hover:text-emerald-400">
                     <ArrowLeft className="w-4 h-4" /> Go Back
                 </button>
             </div>
@@ -127,9 +219,7 @@ export default function RequestDetailsPage() {
                     {/* Ticket Overview */}
                     <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-6">
                         <h2 className="text-xl font-bold mb-4">{ticket.title}</h2>
-                        <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                            {ticket.description}
-                        </p>
+                        <p className="text-slate-400 text-sm leading-relaxed mb-6">{ticket.description}</p>
 
                         <div className="flex items-center gap-6 text-xs text-slate-500 border-t border-[#21262d] pt-4">
                             <div className="flex items-center gap-2">
@@ -143,14 +233,50 @@ export default function RequestDetailsPage() {
                         </div>
                     </div>
 
-                    {/* Activity / Updates Placeholder */}
+                    {/* Media Section */}
+                    <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Photos & Videos</h3>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                <Camera className="w-3 h-3" /> Photo
+                                <span className="mx-1">·</span>
+                                <Video className="w-3 h-3" /> Video supported
+                            </div>
+                        </div>
+
+                        {uploadError && (
+                            <div className="mb-4 flex items-center gap-2 text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2">
+                                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                {uploadError}
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <MediaSlotCard
+                                label="Before"
+                                photoUrl={ticket.photo_before_url}
+                                videoUrl={ticket.video_before_url}
+                                onUpload={() => openUpload('before')}
+                                isUploading={isUploadingBefore}
+                            />
+                            <MediaSlotCard
+                                label="After"
+                                photoUrl={ticket.photo_after_url}
+                                videoUrl={ticket.video_after_url}
+                                onUpload={() => openUpload('after')}
+                                isUploading={isUploadingAfter}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Activity Log */}
                     <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-6 opacity-50">
                         <h3 className="text-sm font-bold mb-4">Activity Log</h3>
                         <p className="text-xs text-slate-500">No recent activity.</p>
                     </div>
                 </div>
 
-                {/* Sidebar Details */}
+                {/* Sidebar */}
                 <div className="space-y-6">
                     {/* Property Details */}
                     <div className="bg-[#161b22] border border-[#21262d] rounded-xl p-6">
@@ -197,6 +323,14 @@ export default function RequestDetailsPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Media Capture Modal */}
+            <MediaCaptureModal
+                isOpen={showMediaModal}
+                onClose={() => { setShowMediaModal(false); setUploadingType(null); }}
+                onCapture={handleMediaUpload}
+                title={`Upload ${uploadingType === 'before' ? 'Before' : 'After'} Media`}
+            />
         </div>
     );
 }

@@ -8,6 +8,8 @@ interface UpdateRoleRequest {
     propertyId?: string
     organizationId?: string
     skills?: string[]
+    oldRole?: string
+    promoteToOrg?: boolean // true when changing from property-level to org-level role
 }
 
 /**
@@ -41,28 +43,215 @@ export async function POST(request: NextRequest) {
         // Use admin client for updates
         const adminClient = createAdminClient()
 
-        // 1. Get old role to detect transitions
+        // Org-level roles that belong in organization_memberships
+        const ORG_LEVEL_ROLES = ['org_super_admin'];
+        // Property-level roles that belong in property_memberships
+        const PROPERTY_LEVEL_ROLES = ['property_admin', 'staff', 'mst', 'security', 'tenant'];
+
+        const isNewRoleOrgLevel = ORG_LEVEL_ROLES.includes(newRole);
+
+        // 1. Get old role to detect transitions - check both tables, only ACTIVE memberships
         let oldRole = '';
+        let oldRoleSource: 'property' | 'org' | '' = '';
+
+        // Check active property membership
         if (propertyId) {
             const { data } = await adminClient
                 .from('property_memberships')
-                .select('role')
+                .select('role, is_active')
                 .eq('user_id', userId)
                 .eq('property_id', propertyId)
+                .eq('is_active', true)
                 .maybeSingle();
-            oldRole = data?.role || '';
-        } else if (organizationId) {
+            if (data?.role) {
+                oldRole = data.role;
+                oldRoleSource = 'property';
+            }
+        }
+
+        // Check active org membership
+        if (organizationId) {
             const { data } = await adminClient
                 .from('organization_memberships')
-                .select('role')
+                .select('role, is_active')
+                .eq('user_id', userId)
+                .eq('organization_id', organizationId)
+                .eq('is_active', true)
+                .maybeSingle();
+            if (data?.role) {
+                // Active org membership takes priority
+                oldRole = data.role;
+                oldRoleSource = 'org';
+            }
+        }
+
+        // If no active membership found, check inactive ones as fallback
+        if (!oldRoleSource) {
+            if (organizationId) {
+                const { data } = await adminClient
+                    .from('organization_memberships')
+                    .select('role')
+                    .eq('user_id', userId)
+                    .eq('organization_id', organizationId)
+                    .maybeSingle();
+                if (data?.role) {
+                    oldRole = data.role;
+                    oldRoleSource = 'org';
+                }
+            }
+            if (!oldRoleSource && propertyId) {
+                const { data } = await adminClient
+                    .from('property_memberships')
+                    .select('role')
+                    .eq('user_id', userId)
+                    .eq('property_id', propertyId)
+                    .maybeSingle();
+                if (data?.role) {
+                    oldRole = data.role;
+                    oldRoleSource = 'property';
+                }
+            }
+        }
+
+        console.log(`Role change request: user=${userId}, oldRole=${oldRole}, oldRoleSource=${oldRoleSource}, newRole=${newRole}, propertyId=${propertyId}, orgId=${organizationId}`);
+
+        // 2. Detect cross-level promotion: property-level → org-level
+        const isPromotionToOrg = isNewRoleOrgLevel && oldRoleSource === 'property' && organizationId;
+        // Detect demotion: org-level → property-level (propertyId may or may not be provided)
+        const isDemotionToProperty = PROPERTY_LEVEL_ROLES.includes(newRole) && oldRoleSource === 'org' && organizationId;
+
+        // 3. Perform the role update
+        if (isPromotionToOrg) {
+            // CROSS-LEVEL PROMOTION: property_admin → org_super_admin
+
+            // Step A: Check if org membership already exists (could be inactive from previous demotion)
+            const { data: existingOrgMembership } = await adminClient
+                .from('organization_memberships')
+                .select('user_id')
                 .eq('user_id', userId)
                 .eq('organization_id', organizationId)
                 .maybeSingle();
-            oldRole = data?.role || '';
-        }
 
-        // 2. Perform the role update
-        if (propertyId) {
+            if (existingOrgMembership) {
+                // Update existing row
+                const { error: orgUpdateError } = await adminClient
+                    .from('organization_memberships')
+                    .update({ role: newRole, is_active: true })
+                    .eq('user_id', userId)
+                    .eq('organization_id', organizationId);
+                if (orgUpdateError) throw orgUpdateError;
+            } else {
+                // Insert new row
+                const { error: orgInsertError } = await adminClient
+                    .from('organization_memberships')
+                    .insert({
+                        user_id: userId,
+                        organization_id: organizationId,
+                        role: newRole,
+                        is_active: true,
+                    });
+                if (orgInsertError) throw orgInsertError;
+            }
+
+            // Step B: Deactivate all property_memberships for this user in this org
+            const { data: orgProperties } = await adminClient
+                .from('properties')
+                .select('id')
+                .eq('organization_id', organizationId);
+
+            if (orgProperties && orgProperties.length > 0) {
+                const propIds = orgProperties.map(p => p.id);
+                const { error: deactivateError } = await adminClient
+                    .from('property_memberships')
+                    .update({ is_active: false })
+                    .eq('user_id', userId)
+                    .in('property_id', propIds);
+
+                if (deactivateError) {
+                    console.error('Failed to deactivate property memberships:', deactivateError);
+                }
+            }
+
+            console.log(`User ${userId} promoted from property-level (${oldRole}) to org-level (${newRole})`);
+
+        } else if (isDemotionToProperty) {
+            // CROSS-LEVEL DEMOTION: org_super_admin → property-level role
+
+            // Determine target property: use provided propertyId, or find existing inactive membership, or use first org property
+            let targetPropertyId = propertyId;
+
+            if (!targetPropertyId) {
+                // Try to find an existing (deactivated) property membership for this user in this org
+                const { data: existingPropMemberships } = await adminClient
+                    .from('property_memberships')
+                    .select('property_id')
+                    .eq('user_id', userId)
+                    .eq('is_active', false);
+
+                if (existingPropMemberships && existingPropMemberships.length > 0) {
+                    targetPropertyId = existingPropMemberships[0].property_id;
+                } else {
+                    // Fallback: use first property in this org
+                    const { data: firstProp } = await adminClient
+                        .from('properties')
+                        .select('id')
+                        .eq('organization_id', organizationId)
+                        .limit(1)
+                        .maybeSingle();
+
+                    targetPropertyId = firstProp?.id;
+                }
+            }
+
+            if (!targetPropertyId) {
+                throw new Error('No property found in this organization to assign the user to.');
+            }
+
+            // Step A: Check if property membership exists (could be inactive from previous promotion)
+            const { data: existingPropMembership } = await adminClient
+                .from('property_memberships')
+                .select('user_id')
+                .eq('user_id', userId)
+                .eq('property_id', targetPropertyId)
+                .maybeSingle();
+
+            if (existingPropMembership) {
+                // Update existing row — set role and reactivate
+                const { error: propUpdateError } = await adminClient
+                    .from('property_memberships')
+                    .update({ role: newRole, is_active: true })
+                    .eq('user_id', userId)
+                    .eq('property_id', targetPropertyId);
+                if (propUpdateError) throw propUpdateError;
+            } else {
+                // Insert new row
+                const { error: propInsertError } = await adminClient
+                    .from('property_memberships')
+                    .insert({
+                        user_id: userId,
+                        property_id: targetPropertyId,
+                        role: newRole,
+                        is_active: true,
+                    });
+                if (propInsertError) throw propInsertError;
+            }
+
+            // Step B: Deactivate org membership (set is_active = false, don't delete)
+            const { error: orgDeactivateError } = await adminClient
+                .from('organization_memberships')
+                .update({ is_active: false })
+                .eq('user_id', userId)
+                .eq('organization_id', organizationId);
+
+            if (orgDeactivateError) {
+                console.error('Failed to deactivate org membership:', orgDeactivateError);
+                throw orgDeactivateError;
+            }
+
+            console.log(`User ${userId} demoted from org-level (${oldRole}) to property-level (${newRole}) at property ${targetPropertyId}`);
+
+        } else if (propertyId) {
+            // Same-level property role change (e.g., staff → mst)
             const { error: propUpdateError } = await adminClient
                 .from('property_memberships')
                 .update({ role: newRole })
@@ -71,6 +260,7 @@ export async function POST(request: NextRequest) {
 
             if (propUpdateError) throw propUpdateError;
         } else if (organizationId) {
+            // Same-level org role change
             const { error: orgUpdateError } = await adminClient
                 .from('organization_memberships')
                 .update({ role: newRole })
@@ -78,9 +268,6 @@ export async function POST(request: NextRequest) {
                 .eq('organization_id', organizationId);
 
             if (orgUpdateError) throw orgUpdateError;
-
-            // If updating org role, we might want to sync property roles too if they exist
-            // but for now we follow the existing dashboard behavior which is independent.
         }
 
         const RESOLVER_ROLES = ['mst', 'staff'];

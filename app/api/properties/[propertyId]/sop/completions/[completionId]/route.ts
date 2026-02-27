@@ -75,7 +75,10 @@ export async function PUT(
             if (is_checked !== undefined) itemUpdates.is_checked = is_checked;
             if (comment !== undefined) itemUpdates.comment = comment;
             if (photo_url !== undefined) itemUpdates.photo_url = photo_url;
-            if (is_checked) itemUpdates.checked_at = new Date().toISOString();
+            if (is_checked) {
+                itemUpdates.checked_at = new Date().toISOString();
+                itemUpdates.checked_by = user.id;
+            }
 
             const { error: itemError } = await supabase
                 .from('sop_completion_items')

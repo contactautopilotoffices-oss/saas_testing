@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import {
-    Sparkles, Package, ClipboardCheck, LogOut, Menu, X, LayoutDashboard, Settings, UserCircle, Bell
+    Sparkles, Package, ClipboardCheck, LogOut, Menu, X, LayoutDashboard, Settings, UserCircle, Bell, ScanLine
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
@@ -23,21 +23,41 @@ const SOPDashboard = dynamic(
     { ssr: false, loading: () => <div className="p-8"><Skeleton className="h-96" /></div> }
 );
 
-type Tab = 'stock' | 'sop' | 'settings' | 'profile';
+const StockMovementModal = dynamic(
+    () => import('@/frontend/components/stock/StockMovementModal'),
+    { ssr: false }
+);
+
+type Tab = 'stock' | 'scanner' | 'sop' | 'settings' | 'profile';
 
 interface SoftServiceManagerDashboardProps {
     propertyId: string;
+    userRole?: string;
 }
 
-const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = ({ propertyId }) => {
-    const router = useRouter();
+const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = ({ propertyId, userRole = '' }) => {
+    const searchParams = useSearchParams();
     const { user, signOut } = useAuth();
     const supabase = useMemo(() => createClient(), []);
 
-    const [activeTab, setActiveTab] = useState<Tab>('stock');
+    const isManager = userRole === 'soft_service_manager' || userRole === 'soft_service_supervisor';
+    const [activeTab, setActiveTab] = useState<Tab>(() => {
+        const tab = searchParams?.get('tab') as Tab;
+        if (tab && ['stock', 'scanner', 'sop', 'settings', 'profile'].includes(tab)) return tab;
+        return isManager ? 'stock' : 'sop';
+    });
     const [property, setProperty] = useState<any>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const [showScannerModal, setShowScannerModal] = useState(false);
+
+    // Sync tab with URL
+    useEffect(() => {
+        const tab = searchParams?.get('tab') as Tab;
+        if (tab && tab !== activeTab && ['stock', 'scanner', 'sop', 'settings', 'profile'].includes(tab)) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -54,10 +74,13 @@ const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = 
     const handleTabChange = (tab: Tab) => {
         setActiveTab(tab);
         setSidebarOpen(false);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
     };
 
     return (
-        <div className="min-h-screen bg-white flex font-inter text-text-primary">
+        <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-white flex font-inter text-text-primary">
             {/* Mobile Overlay */}
             <AnimatePresence>
                 {sidebarOpen && (
@@ -73,9 +96,9 @@ const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = 
 
             {/* Sidebar */}
             <aside className={`
-                w-72 bg-white border-r border-slate-300 flex flex-col h-screen z-50 transition-all duration-300
+                w-64 bg-white border-r border-slate-300 flex flex-col h-screen z-50 transition-all duration-300
                 fixed top-0
-                ${sidebarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 lg:translate-y-0 lg:translate-x-0 lg:opacity-100'}
+                ${sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 lg:translate-x-0 lg:opacity-100'}
             `}>
                 {/* Mobile Close Button */}
                 <button
@@ -87,51 +110,62 @@ const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = 
                 <div className="p-4 lg:p-5 pb-2">
                     <div className="flex flex-col items-center gap-1 mb-3">
                         <img src="/autopilot-logo-new.png" alt="Autopilot Logo" className="h-10 w-auto object-contain" />
-                        <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.2em]">Soft Service Manager</p>
+                        <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.2em]">{isManager ? 'Soft Service Manager' : 'Staff Soft Service'}</p>
                     </div>
                 </div>
 
                 <nav className="flex-1 px-4 overflow-y-auto">
                     {/* Operations */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
+                        <p className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                            <span className="w-1 h-3 bg-primary rounded-full"></span>
                             Operations
                         </p>
                         <div className="space-y-1">
-                            <button
-                                onClick={() => handleTabChange('stock')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'stock'
-                                    ? 'bg-primary text-text-inverse shadow-sm'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
-                                    }`}
-                            >
-                                <Package className="w-4 h-4" />
-                                Stock Management
-                            </button>
+                            {isManager && (
+                                <>
+                                    <button
+                                        onClick={() => handleTabChange('stock')}
+                                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'stock'
+                                            ? 'bg-primary text-text-inverse shadow-sm'
+                                            : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                            }`}
+                                    >
+                                        <Package className="w-4 h-4" />
+                                        Stock Management
+                                    </button>
+                                    <button
+                                        onClick={() => { setSidebarOpen(false); setShowScannerModal(true); }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 font-bold text-sm text-text-secondary hover:bg-muted hover:text-text-primary"
+                                    >
+                                        <ScanLine className="w-4 h-4" />
+                                        Scanner
+                                    </button>
+                                </>
+                            )}
                             <button
                                 onClick={() => handleTabChange('sop')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'sop'
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'sop'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
                             >
                                 <ClipboardCheck className="w-4 h-4" />
-                                SOP Checklists
+                                Checklists
                             </button>
                         </div>
                     </div>
 
                     {/* System & Personal */}
                     <div className="mb-6">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-3 flex items-center gap-2">
-                            <span className="w-0.5 h-3 bg-primary rounded-full"></span>
+                        <p className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                            <span className="w-1 h-3 bg-primary rounded-full"></span>
                             System & Personal
                         </p>
                         <div className="space-y-1">
                             <button
                                 onClick={() => handleTabChange('settings')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'settings'
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'settings'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -141,7 +175,7 @@ const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = 
                             </button>
                             <button
                                 onClick={() => handleTabChange('profile')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'profile'
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'profile'
                                     ? 'bg-primary text-text-inverse shadow-sm'
                                     : 'text-text-secondary hover:bg-muted hover:text-text-primary'
                                     }`}
@@ -170,52 +204,42 @@ const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = 
                 onConfirm={signOut}
             />
 
+            <StockMovementModal
+                isOpen={showScannerModal}
+                onClose={() => setShowScannerModal(false)}
+                propertyId={propertyId}
+                autoOpenScanner={true}
+            />
+
             {/* Main Content */}
-            <main className="flex-1 lg:ml-72 flex flex-col bg-white border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10 min-h-screen">
-                <header className="h-20 flex justify-between items-center px-4 md:px-8 lg:px-12 border-b border-border/10">
-                    <div className="flex items-center gap-4">
+            <main className="flex-1 min-w-0 lg:ml-64 flex flex-col bg-background border-l border-slate-300 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.05)] relative z-10 min-h-screen overflow-x-hidden">
+                <header className="h-14 bg-white sticky top-0 z-30 flex justify-between items-center px-3 sm:px-5 md:px-8 border-b border-border shadow-sm">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         {/* Mobile Menu Toggle */}
                         <button
                             onClick={() => setSidebarOpen(true)}
-                            className="p-2 -ml-2 lg:hidden text-text-tertiary hover:text-text-primary transition-colors"
+                            className="p-1.5 -ml-1 lg:hidden text-text-tertiary hover:text-text-primary transition-colors shrink-0"
                         >
-                            <Menu className="w-6 h-6" />
+                            <Menu className="w-7 h-7" />
                         </button>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-text-primary tracking-tight capitalize">{activeTab.replace(/_/g, ' ')}</h1>
-                            <p className="text-text-tertiary text-xs md:text-sm font-medium mt-0.5">{property?.address || 'Property Management Hub'}</p>
+                        <div className="min-w-0">
+                            <h1 className="text-[clamp(0.8rem,3.5vw,1.05rem)] font-black text-text-primary tracking-tight leading-tight truncate">Service Hub</h1>
+                            <p className="text-primary text-[clamp(0.5rem,2vw,0.6rem)] font-bold uppercase tracking-widest leading-tight truncate">{property?.name || 'Property Dashboard'}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                         <NotificationBell />
-
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => handleTabChange('profile')}
-                                className="flex items-center gap-4 group transition-all"
-                            >
-                                <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-base group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
-                                    {user?.email?.[0].toUpperCase() || 'M'}
-                                </div>
-                                <div className="text-left hidden md:block">
-                                    <h4 className="text-[15px] font-black text-text-primary leading-none mb-1 group-hover:text-primary transition-colors">
-                                        {user?.user_metadata?.full_name || 'Soft Service Manager'}
-                                    </h4>
-                                    <p className="text-[10px] text-text-tertiary font-black uppercase tracking-[0.15em]">
-                                        View Profile
-                                    </p>
-                                </div>
-                            </button>
-
-                            <div className="hidden lg:flex flex-col items-end border-l border-border pl-6 h-8 justify-center">
-                                <span className="text-[11px] font-black text-text-tertiary uppercase tracking-widest leading-none mb-1">Access Level</span>
-                                <span className="text-xs text-primary font-black uppercase tracking-widest leading-none">Manager</span>
-                            </div>
-                        </div>
+                        <button
+                            onClick={() => handleTabChange('profile')}
+                            className="w-9 h-9 bg-primary rounded-2xl flex items-center justify-center text-text-inverse font-bold text-sm hover:scale-105 transition-transform shadow-sm shadow-primary/20 shrink-0"
+                        >
+                            {user?.email?.[0].toUpperCase() || 'M'}
+                        </button>
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:px-12 pt-4 md:pt-8 pb-8">
+                <div className={`flex-1 overflow-y-auto ${activeTab === 'sop' ? 'p-0' : 'p-2 md:p-5 lg:p-8'}`} key={activeTab}>
+
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -226,7 +250,11 @@ const SoftServiceManagerDashboard: React.FC<SoftServiceManagerDashboardProps> = 
                             className="h-full"
                         >
                             {activeTab === 'stock' && (
-                                <StockDashboard propertyId={propertyId} />
+                                <StockDashboard propertyId={propertyId} hideReports={true} />
+                            )}
+
+                            {activeTab === 'scanner' && (
+                                <StockDashboard propertyId={propertyId} hideReports={true} hideInventory={true} />
                             )}
 
                             {activeTab === 'sop' && (

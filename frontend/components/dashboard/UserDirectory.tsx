@@ -85,97 +85,25 @@ const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpda
     const fetchUsers = async () => {
         setIsLoading(true);
 
-        if (propertyId) {
-            // Fetch property-level users
-            const { data, error } = await supabase
-                .from('property_memberships')
-                .select(`
-                    role,
-                    is_active,
-                    created_at,
-                    property:properties (id, name),
-                    user:users (id, full_name, email, user_photo_url, phone)
-                `)
-                .eq('property_id', propertyId);
+        try {
+            const params = new URLSearchParams();
+            if (propertyId) params.set('propertyId', propertyId);
+            if (orgId) params.set('orgId', orgId);
 
-            if (!error && data) {
-                const formattedUsers: UserWithMembership[] = data.map((item: any) => ({
-                    id: item.user.id,
-                    full_name: item.user.full_name,
-                    email: item.user.email,
-                    user_photo_url: item.user.user_photo_url,
-                    propertyRole: item.role,
-                    propertyName: item.property?.name,
-                    propertyId: item.property?.id,
-                    is_active: item.is_active,
-                    joined_at: item.created_at,
-                    phone: item.user.phone
-                })).sort((a, b) => a.full_name.localeCompare(b.full_name));
-                setUsers(formattedUsers);
+            const response = await fetch(`/api/users/list?${params.toString()}`);
+            if (!response.ok) {
+                const error = await response.json();
+                console.error('Failed to fetch users:', error);
+                setUsers([]);
+                setIsLoading(false);
+                return;
             }
-        } else if (orgId) {
-            // Fetch org-level users + property users
-            const { data: orgUsers, error: orgError } = await supabase
-                .from('organization_memberships')
-                .select(`
-                    role,
-                    is_active,
-                    created_at,
-                    user:users (id, full_name, email, user_photo_url, phone)
-                `)
-                .eq('organization_id', orgId);
 
-            const { data: propUsers, error: propError } = await supabase
-                .from('property_memberships')
-                .select(`
-                    role,
-                    is_active,
-                    created_at,
-                    property:properties!inner (id, name, organization_id),
-                    user:users (id, full_name, email, user_photo_url, phone)
-                `)
-                .eq('properties.organization_id', orgId);
-
-            const userMap = new Map<string, UserWithMembership>();
-
-            orgUsers?.forEach((item: any) => {
-                userMap.set(item.user.id, {
-                    id: item.user.id,
-                    full_name: item.user.full_name,
-                    email: item.user.email,
-                    user_photo_url: item.user.user_photo_url,
-                    orgRole: item.role,
-                    organizationId: orgId,
-                    is_active: item.is_active,
-                    joined_at: item.created_at,
-                    phone: item.user.phone
-                });
-            });
-
-            propUsers?.forEach((item: any) => {
-                const existing = userMap.get(item.user.id);
-                if (existing) {
-                    existing.propertyRole = item.role;
-                    existing.propertyName = item.property?.name;
-                    existing.propertyId = item.property?.id;
-                } else {
-                    userMap.set(item.user.id, {
-                        id: item.user.id,
-                        full_name: item.user.full_name,
-                        email: item.user.email,
-                        user_photo_url: item.user.user_photo_url,
-                        propertyRole: item.role,
-                        propertyName: item.property?.name,
-                        propertyId: item.property?.id,
-                        is_active: item.is_active,
-                        joined_at: item.created_at,
-                        phone: item.user.phone
-                    });
-                }
-            });
-
-
-            setUsers(Array.from(userMap.values()).sort((a, b) => a.full_name.localeCompare(b.full_name)));
+            const data = await response.json();
+            setUsers(data.users || []);
+        } catch (err) {
+            console.error('Error fetching users:', err);
+            setUsers([]);
         }
 
         setIsLoading(false);
@@ -249,13 +177,16 @@ const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpda
     const handleUpdateRole = async (userId: string, newRole: string) => {
         setIsUpdating(true);
         try {
+            const user = users.find(u => u.id === userId);
+            const currentUserPropertyId = user?.propertyId || propertyId;
+
             const response = await fetch('/api/users/update-role', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId,
                     newRole,
-                    propertyId,
+                    propertyId: currentUserPropertyId,
                     organizationId: orgId,
                     skills: editingSkills
                 })
@@ -266,17 +197,30 @@ const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpda
                 throw new Error(error.error || 'Failed to update role');
             }
 
-            // Sync local state
-            setUsers(users.map(u => {
-                if (u.id === userId) {
-                    return {
-                        ...u,
-                        propertyRole: propertyId ? newRole : u.propertyRole,
-                        orgRole: orgId && !propertyId ? newRole : u.orgRole,
-                    };
-                }
-                return u;
-            }));
+            // For cross-level changes (property ↔ org), refetch all users
+            const ORG_LEVEL_ROLES = ['org_super_admin'];
+            const wasPropertyLevel = !!user?.propertyRole && !user?.orgRole;
+            const wasOrgLevel = !!user?.orgRole;
+            const isNowOrgLevel = ORG_LEVEL_ROLES.includes(newRole);
+            const isNowPropertyLevel = !ORG_LEVEL_ROLES.includes(newRole);
+            const isCrossLevelChange = (wasPropertyLevel && isNowOrgLevel) || (wasOrgLevel && isNowPropertyLevel);
+
+            if (isCrossLevelChange) {
+                // Full refetch since user moved across tables
+                await fetchUsers();
+            } else {
+                // Sync local state for same-level changes
+                setUsers(users.map(u => {
+                    if (u.id === userId) {
+                        return {
+                            ...u,
+                            propertyRole: currentUserPropertyId ? newRole : u.propertyRole,
+                            orgRole: orgId && !currentUserPropertyId ? newRole : u.orgRole,
+                        };
+                    }
+                    return u;
+                }));
+            }
 
             showToast('Role updated successfully');
             setEditingUserId(null);
@@ -313,8 +257,8 @@ const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpda
     };
 
     const roleOptions = propertyId
-        ? ['property_admin', 'staff', 'mst', 'security', 'tenant']
-        : ['org_super_admin', 'property_admin', 'staff', 'mst', 'security', 'tenant'];
+        ? ['property_admin', 'staff', 'mst', 'security', 'soft_service_manager', 'tenant']
+        : ['org_super_admin', 'property_admin', 'staff', 'mst', 'security', 'soft_service_manager', 'tenant'];
 
     const formatRole = (role: string) => {
         return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -484,8 +428,15 @@ const UserDirectory = ({ orgId, orgName, propertyId, properties = [], onUserUpda
                                                         </select>
                                                         <div className="flex items-center gap-1">
                                                             <button
-                                                                onClick={() => handleUpdateRole(user.id, editingRole)}
-                                                                disabled={isUpdating}
+                                                                onClick={() => {
+                                                                    const currentRole = user.propertyRole || user.orgRole || '';
+                                                                    if (editingRole === currentRole) {
+                                                                        showToast('Please select a different role', 'error');
+                                                                        return;
+                                                                    }
+                                                                    handleUpdateRole(user.id, editingRole);
+                                                                }}
+                                                                disabled={isUpdating || editingRole === (user.propertyRole || user.orgRole || '')}
                                                                 className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
                                                             >
                                                                 <Check className="w-4 h-4" />

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from '
 import {
     LayoutDashboard, Building2, Users, UserPlus, Ticket, Settings, UserCircle,
     Search, Plus, Filter, LogOut, ChevronRight, MapPin, Edit, Trash2, X, Check, UsersRound,
-    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload, FileBarChart, Zap, Package
+    Coffee, IndianRupee, FileDown, ChevronDown, Fuel, Menu, Upload, FileBarChart, Zap, Package, ClipboardCheck, Scan
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
@@ -24,9 +24,11 @@ import Image from 'next/image';
 import { ImportReportsView } from '@/frontend/components/snags';
 import TicketCreateModal from '@/frontend/components/tickets/TicketCreateModal';
 import StockReportView from '@/frontend/components/stock/StockReportView';
+import StockMovementModal from '@/frontend/components/stock/StockMovementModal';
+import SOPDashboard from '@/frontend/components/sop/SOPDashboard';
 
 // Types
-type Tab = 'overview' | 'properties' | 'requests' | 'reports' | 'visitors' | 'settings' | 'profile' | 'revenue' | 'users' | 'diesel' | 'electricity' | 'stock_reports';
+type Tab = 'overview' | 'properties' | 'requests' | 'reports' | 'visitors' | 'settings' | 'profile' | 'revenue' | 'users' | 'diesel' | 'electricity' | 'stock_reports' | 'sop';
 
 interface Property {
     id: string;
@@ -81,6 +83,7 @@ const OrgAdminDashboard = () => {
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [showTicketCreateModal, setShowTicketCreateModal] = useState(false);
     const [selectedPropertyId, setSelectedPropertyId] = useState('all');
+    const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
     const [isPropSelectorOpen, setIsPropSelectorOpen] = useState(false);
     const [userRole, setUserRole] = useState<string>('User');
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -88,7 +91,7 @@ const OrgAdminDashboard = () => {
     const [showRequestsList, setShowRequestsList] = useState(false);
     const searchParams = useSearchParams();
 
-    // Restore showRequestsList and filter from URL on mount/back navigation
+    // Restore showRequestsList, filter, and selectedPropertyId from URL on mount/back navigation
     useEffect(() => {
         const view = searchParams.get('view');
         setShowRequestsList(view === 'list');
@@ -98,6 +101,8 @@ const OrgAdminDashboard = () => {
         } else {
             setPendingStatusFilter('all');
         }
+        const property = searchParams.get('property');
+        setSelectedPropertyId(property || 'all');
     }, [searchParams]);
 
     // Derived state
@@ -188,7 +193,7 @@ const OrgAdminDashboard = () => {
     // Restore tab from URL
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['overview', 'properties', 'requests', 'reports', 'visitors', 'settings', 'profile', 'revenue', 'users', 'diesel', 'electricity', 'stock_reports'].includes(tab)) {
+        if (tab && ['overview', 'properties', 'requests', 'reports', 'visitors', 'settings', 'profile', 'revenue', 'users', 'diesel', 'electricity', 'stock_reports', 'sop'].includes(tab)) {
             setActiveTab(tab as Tab);
         }
     }, [searchParams]);
@@ -384,6 +389,18 @@ const OrgAdminDashboard = () => {
     };
 
 
+    // Helper to change selected property with URL persistence
+    const handlePropertyChange = (id: string) => {
+        setSelectedPropertyId(id);
+        const url = new URL(window.location.href);
+        if (id !== 'all') {
+            url.searchParams.set('property', id);
+        } else {
+            url.searchParams.delete('property');
+        }
+        window.history.pushState({}, '', url.toString());
+    };
+
     // Helper to change tab with URL persistence
     const handleTabChange = (tab: Tab, filter: string = 'all') => {
         setActiveTab(tab);
@@ -473,16 +490,16 @@ const OrgAdminDashboard = () => {
                                 <span className="text-[9px] font-black uppercase tracking-tight text-center mt-1">Member</span>
                             </button>
                             <button
-                                onClick={() => selectedPropertyId !== 'all' && router.push(`/property/${selectedPropertyId}/snags/intake`)}
+                                onClick={() => selectedPropertyId !== 'all' && setIsScannerModalOpen(true)}
                                 disabled={selectedPropertyId === 'all'}
-                                className={`w-full flex flex-col items-center justify-center gap-1.5 p-2 bg-white text-text-primary rounded-xl transition-all border-2 border-amber-500/20 group shadow-sm ${selectedPropertyId === 'all' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
+                                className={`w-full flex flex-col items-center justify-center gap-1.5 p-2 bg-white text-text-primary rounded-xl transition-all border-2 border-primary/20 group shadow-sm ${selectedPropertyId === 'all' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
                                     }`}
-                                title={selectedPropertyId === 'all' ? 'Select a property first' : 'Bulk Snag Import'}
+                                title={selectedPropertyId === 'all' ? 'Select a property first' : 'Stock Scanner'}
                             >
-                                <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
-                                    <Upload className="w-4 h-4 font-black" />
+                                <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <Scan className="w-4 h-4 font-black" />
                                 </div>
-                                <span className="text-[9px] font-black uppercase tracking-tight text-center mt-1">Snags</span>
+                                <span className="text-[9px] font-black uppercase tracking-tight text-center mt-1">Scanner</span>
                             </button>
                         </div>
                     </div>
@@ -604,6 +621,16 @@ const OrgAdminDashboard = () => {
                                 <Package className="w-4 h-4" />
                                 Stock Reports
                             </button>
+                            <button
+                                onClick={() => handleTabChange('sop')}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold text-sm ${activeTab === 'sop'
+                                    ? 'bg-primary text-text-inverse shadow-sm'
+                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    }`}
+                            >
+                                <ClipboardCheck className="w-4 h-4" />
+                                Checklists
+                            </button>
                         </div>
                     </div>
 
@@ -671,7 +698,8 @@ const OrgAdminDashboard = () => {
             />
 
             {/* Main Content */}
-            <main className={`flex-1 lg:ml-72 bg-white transition-all duration-300 ${activeTab === 'overview' ? '' : 'pt-16 lg:pt-0 p-4 md:p-8 lg:p-12'}`}>
+            <main className={`flex-1 lg:ml-72 bg-white transition-all duration-300 ${activeTab === 'overview' || activeTab === 'sop' ? '' : 'pt-16 lg:pt-0 p-4 md:p-8 lg:p-12'}`}>
+
                 {/* Only show header for non-overview tabs */}
                 {activeTab !== 'overview' && (
                     <header className="fixed top-0 left-0 right-0 lg:static h-16 bg-white border-b border-border/10 flex justify-between items-center px-4 md:px-8 lg:px-0 mb-10 z-30">
@@ -725,7 +753,7 @@ const OrgAdminDashboard = () => {
                                                 >
                                                     <div className="p-2 border-b border-border">
                                                         <button
-                                                            onClick={() => { setSelectedPropertyId('all'); setIsPropSelectorOpen(false); }}
+                                                            onClick={() => { handlePropertyChange('all'); setIsPropSelectorOpen(false); }}
                                                             className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === 'all' ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:bg-background'}`}
                                                         >
                                                             <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center">
@@ -741,7 +769,7 @@ const OrgAdminDashboard = () => {
                                                         {properties.map(prop => (
                                                             <button
                                                                 key={prop.id}
-                                                                onClick={() => { setSelectedPropertyId(prop.id); setIsPropSelectorOpen(false); }}
+                                                                onClick={() => { handlePropertyChange(prop.id); setIsPropSelectorOpen(false); }}
                                                                 className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedPropertyId === prop.id ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:bg-background'}`}
                                                             >
                                                                 <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center overflow-hidden">
@@ -809,7 +837,7 @@ const OrgAdminDashboard = () => {
                                 properties={properties}
                                 orgId={org?.id || ''}
                                 selectedPropertyId={selectedPropertyId}
-                                setSelectedPropertyId={setSelectedPropertyId}
+                                setSelectedPropertyId={handlePropertyChange}
                                 onMenuToggle={() => setSidebarOpen(true)}
                                 onTabChange={handleTabChange}
                             />
@@ -879,7 +907,31 @@ const OrgAdminDashboard = () => {
                         )}
 
                         {activeTab === 'stock_reports' && org && (
-                            <StockReportView orgId={org.id} />
+                            selectedPropertyId !== 'all' ? (
+                                <StockReportView propertyId={selectedPropertyId} orgId={org.id} propertyName={activeProperty?.name} />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 text-center">
+                                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+                                        <Package className="w-8 h-8 text-primary" />
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-900 mb-2">Select a Property</h3>
+                                    <p className="text-sm text-slate-500 max-w-md">Please select a specific property from the property selector above to view stock reports.</p>
+                                </div>
+                            )
+                        )}
+
+                        {activeTab === 'sop' && (
+                            selectedPropertyId !== 'all' ? (
+                                <SOPDashboard propertyId={selectedPropertyId} />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 text-center">
+                                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+                                        <ClipboardCheck className="w-8 h-8 text-primary" />
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-900 mb-2">Select a Property</h3>
+                                    <p className="text-sm text-slate-500 max-w-md">Please select a specific property from the property selector above to view and manage checklists.</p>
+                                </div>
+                            )
                         )}
 
                         {activeTab === 'settings' && <SettingsView />}
@@ -1018,6 +1070,17 @@ const OrgAdminDashboard = () => {
                     properties={properties}
                 />
             )}
+
+            {/* Stock Scanner Modal */}
+            {selectedPropertyId !== 'all' && (
+                <StockMovementModal
+                    isOpen={isScannerModalOpen}
+                    onClose={() => setIsScannerModalOpen(false)}
+                    propertyId={selectedPropertyId}
+                    autoOpenScanner={true}
+                    onSuccess={() => {/* Stats will refresh on tab change or memoized components */ }}
+                />
+            )}
         </div>
     );
 };
@@ -1152,9 +1215,12 @@ const OverviewTab = memo(function OverviewTab({
 
     const [electricitySummary, setElectricitySummary] = useState({
         total_units: 0,
+        total_units_today: 0,
         total_cost: 0,
         properties: [] as any[],
+        properties_today: [] as any[],
     });
+    const [electricityPeriod, setElectricityPeriod] = useState<'today' | 'month'>('month');
 
     const [vmsSummary, setVmsSummary] = useState({
         total_visitors_today: 0,
@@ -1203,16 +1269,26 @@ const OverviewTab = memo(function OverviewTab({
                 if (electricityData && Array.isArray(electricityData)) {
                     const totalUnits = electricityData.reduce((acc: number, r: any) => acc + (r.computed_units || 0), 0);
                     const totalCost = electricityData.reduce((acc: number, r: any) => acc + (r.computed_cost || 0), 0);
-                    // Group by property for per-property breakdown
+                    // Group by property for per-property breakdown (month)
                     const propMap: Record<string, { property_id: string; units: number }> = {};
                     electricityData.forEach((r: any) => {
                         if (!propMap[r.property_id]) propMap[r.property_id] = { property_id: r.property_id, units: 0 };
                         propMap[r.property_id].units += r.computed_units || 0;
                     });
+                    // Filter today's readings and group by property
+                    const todayReadings = electricityData.filter((r: any) => r.reading_date === todayDate);
+                    const todayUnits = todayReadings.reduce((acc: number, r: any) => acc + (r.computed_units || 0), 0);
+                    const propMapToday: Record<string, { property_id: string; units: number }> = {};
+                    todayReadings.forEach((r: any) => {
+                        if (!propMapToday[r.property_id]) propMapToday[r.property_id] = { property_id: r.property_id, units: 0 };
+                        propMapToday[r.property_id].units += r.computed_units || 0;
+                    });
                     setElectricitySummary({
                         total_units: Math.round(totalUnits),
+                        total_units_today: Math.round(todayUnits),
                         total_cost: Math.round(totalCost),
                         properties: Object.values(propMap),
+                        properties_today: Object.values(propMapToday),
                     });
                 }
 
@@ -1276,14 +1352,22 @@ const OverviewTab = memo(function OverviewTab({
     }, [selectedPropertyId, ticketSummary]);
 
     const displayElectricityStats = useMemo(() => {
-        if (selectedPropertyId === 'all') return electricitySummary;
-        const propStats = electricitySummary.properties?.find((p: any) => p.property_id === selectedPropertyId);
+        const isToday = electricityPeriod === 'today';
+        if (selectedPropertyId === 'all') {
+            return {
+                total_units: isToday ? electricitySummary.total_units_today : electricitySummary.total_units,
+                total_cost: electricitySummary.total_cost,
+                properties: electricitySummary.properties,
+            };
+        }
+        const propsSource = isToday ? electricitySummary.properties_today : electricitySummary.properties;
+        const propStats = propsSource?.find((p: any) => p.property_id === selectedPropertyId);
         return {
             total_units: propStats?.units || 0,
             total_cost: 0,
             properties: electricitySummary.properties,
         };
-    }, [selectedPropertyId, electricitySummary]);
+    }, [selectedPropertyId, electricitySummary, electricityPeriod]);
 
     const displayVmsStats = useMemo(() => {
         if (selectedPropertyId === 'all') return vmsSummary;
@@ -1480,13 +1564,41 @@ const OverviewTab = memo(function OverviewTab({
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-black text-slate-900">Electricity</h3>
-                                <div className="w-8 h-8 bg-yellow-50 rounded-xl flex items-center justify-center">
-                                    <Zap className="w-4 h-4 text-yellow-500" />
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center bg-slate-100 rounded-lg p-0.5" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setElectricityPeriod('today');
+                                            }}
+                                            className={`px-2 py-1 text-[8px] font-black uppercase tracking-tight rounded-md transition-all ${electricityPeriod === 'today'
+                                                ? 'bg-white text-yellow-600 shadow-sm'
+                                                : 'text-slate-400 hover:text-slate-600'
+                                                }`}
+                                        >
+                                            Today
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setElectricityPeriod('month');
+                                            }}
+                                            className={`px-2 py-1 text-[8px] font-black uppercase tracking-tight rounded-md transition-all ${electricityPeriod === 'month'
+                                                ? 'bg-white text-yellow-600 shadow-sm'
+                                                : 'text-slate-400 hover:text-slate-600'
+                                                }`}
+                                        >
+                                            Month
+                                        </button>
+                                    </div>
+                                    <div className="w-8 h-8 bg-yellow-50 rounded-xl flex items-center justify-center">
+                                        <Zap className="w-4 h-4 text-yellow-500" />
+                                    </div>
                                 </div>
                             </div>
                             <div className="text-yellow-600 text-xs font-bold mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                                This Month
+                                <span className={`w-2 h-2 rounded-full animate-pulse ${electricityPeriod === 'today' ? 'bg-blue-400' : 'bg-yellow-500'}`} />
+                                {electricityPeriod === 'today' ? 'Today' : 'This Month'}
                             </div>
 
                             {/* Electricity Visualization */}
@@ -1633,8 +1745,8 @@ const OverviewTab = memo(function OverviewTab({
                                     <div className="text-2xl font-black text-emerald-900">{displayVmsStats.total_visitors_today}</div>
                                 </div>
                                 <div className="p-4 bg-yellow-50 rounded-xl">
-                                    <div className="text-xs font-bold text-yellow-600 mb-1">Electricity (kVAh)</div>
-                                    <div className="text-2xl font-black text-slate-900">{displayElectricityStats.total_units.toLocaleString()}</div>
+                                    <div className="text-xs font-bold text-yellow-600 mb-1">Electricity ({electricityPeriod === 'today' ? 'Today' : 'Month'})</div>
+                                    <div className="text-2xl font-black text-slate-900">{displayElectricityStats.total_units.toLocaleString()} <span className="text-sm text-slate-400 font-bold">kVAh</span></div>
                                 </div>
                                 <div className="p-4 bg-purple-50 rounded-xl">
                                     <div className="text-xs font-bold text-purple-600 mb-1">Vendor Revenue</div>
@@ -2474,6 +2586,7 @@ const VisitorsTab = ({ properties, selectedPropertyId }: { properties: any[], se
                     </motion.div>
                 )}
             </AnimatePresence>
+
         </div>
     );
 };

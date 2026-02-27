@@ -86,13 +86,13 @@ export async function POST(
         const readingDate = reading.reading_date || new Date().toISOString().split('T')[0];
         const rawUnits = reading.closing_reading - reading.opening_reading;
 
-        let multiplierValue = 1;
+        let multiplierValue = reading.multiplier_value_used || 1;
         let multiplierId = reading.multiplier_id;
         let tariffRate = 0;
         let tariffId = null;
 
-        // Get active multiplier if not explicitly provided
-        if (!multiplierId && reading.meter_id) {
+        // Get active multiplier if not explicitly provided AND no value override was sent
+        if (!multiplierId && !reading.multiplier_value_used && reading.meter_id) {
             const { data: multiplierData } = await supabase
                 .rpc('get_active_multiplier', {
                     p_meter_id: reading.meter_id,
