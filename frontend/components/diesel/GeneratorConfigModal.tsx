@@ -189,7 +189,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Capacity (KVA) *</span>
                                     <input
                                         type="number"
-                                        value={formData.capacity_kva}
+                                        value={formData.capacity_kva || ''}
                                         onChange={(e) => updateField('capacity_kva', parseInt(e.target.value) || 0)}
                                         className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-slate-50 border-slate-200'} rounded-xl px-4 py-3 text-sm font-bold border focus:outline-none`}
                                     />
@@ -198,7 +198,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                     <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Tank Capacity (L) *</span>
                                     <input
                                         type="number"
-                                        value={formData.tank_capacity_litres}
+                                        value={formData.tank_capacity_litres || ''}
                                         onChange={(e) => updateField('tank_capacity_litres', parseInt(e.target.value) || 0)}
                                         className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-slate-50 border-slate-200'} rounded-xl px-4 py-3 text-sm font-bold border focus:outline-none`}
                                     />
@@ -246,7 +246,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                         <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initial kWh Reading *</span>
                                         <input
                                             type="number"
-                                            value={formData.initial_kwh_reading}
+                                            value={formData.initial_kwh_reading || ''}
                                             onChange={(e) => updateField('initial_kwh_reading', parseFloat(e.target.value) || 0)}
                                             className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-white border-slate-200'} rounded-xl px-4 py-3 text-sm font-bold border focus:outline-none`}
                                         />
@@ -255,7 +255,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                         <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initial Run Hours *</span>
                                         <input
                                             type="number"
-                                            value={formData.initial_run_hours}
+                                            value={formData.initial_run_hours || ''}
                                             onChange={(e) => updateField('initial_run_hours', parseFloat(e.target.value) || 0)}
                                             className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-white border-slate-200'} rounded-xl px-4 py-3 text-sm font-bold border focus:outline-none`}
                                         />
@@ -267,7 +267,7 @@ const GeneratorConfigModal: React.FC<GeneratorConfigModalProps> = ({
                                         <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initial Diesel Level (L) *</span>
                                         <input
                                             type="number"
-                                            value={formData.initial_diesel_level}
+                                            value={formData.initial_diesel_level || ''}
                                             onChange={(e) => updateField('initial_diesel_level', parseFloat(e.target.value) || 0)}
                                             className={`w-full ${isDark ? 'bg-[#0d1117] border-[#21262d] text-white' : 'bg-white border-slate-200'} rounded-xl px-4 py-3 text-sm font-bold border focus:outline-none`}
                                         />

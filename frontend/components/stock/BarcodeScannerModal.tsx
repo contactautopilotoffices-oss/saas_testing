@@ -579,7 +579,7 @@ export default function BarcodeScannerModal({
                                     </button>
                                     <input
                                         type="number"
-                                        value={quantity}
+                                        value={quantity || ''}
                                         onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                                         className="flex-1 bg-transparent border-none text-center font-black text-2xl focus:ring-0 outline-none text-gray-900"
                                     />

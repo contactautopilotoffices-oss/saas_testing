@@ -264,8 +264,8 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                         {isEditing ? (
                                             <input
                                                 type="number"
-                                                value={editValues.closing_kwh}
-                                                onChange={e => setEditValues({ ...editValues, closing_kwh: parseFloat(e.target.value) })}
+                                                value={editValues.closing_kwh || ''}
+                                                onChange={e => setEditValues({ ...editValues, closing_kwh: parseFloat(e.target.value) || 0 })}
                                                 className={`w-24 px-2 py-1 rounded border text-sm font-mono ${isDark ? 'bg-[#0d1117] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                             />
                                         ) : (
@@ -351,8 +351,8 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                             <input
                                                 type="number"
                                                 step="0.1"
-                                                value={editValues.closing_hours}
-                                                onChange={e => setEditValues({ ...editValues, closing_hours: parseFloat(e.target.value) })}
+                                                value={editValues.closing_hours || ''}
+                                                onChange={e => setEditValues({ ...editValues, closing_hours: parseFloat(e.target.value) || 0 })}
                                                 className={`w-24 px-2 py-1 rounded border text-sm font-mono ${isDark ? 'bg-[#0d1117] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                             />
                                         ) : (
@@ -434,8 +434,8 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                     {isEditing ? (
                                         <input
                                             type="number"
-                                            value={editValues.diesel_added_litres}
-                                            onChange={e => setEditValues({ ...editValues, diesel_added_litres: parseInt(e.target.value, 10) })}
+                                            value={editValues.diesel_added_litres || ''}
+                                            onChange={e => setEditValues({ ...editValues, diesel_added_litres: parseInt(e.target.value, 10) || 0 })}
                                             className={`w-20 px-2 py-1 rounded border text-sm font-mono ${isDark ? 'bg-[#0d1117] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                         />
                                     ) : r.diesel_added_litres > 0 ? (
@@ -448,8 +448,8 @@ const DieselRegisterView: React.FC<DieselRegisterViewProps> = ({
                                     {isEditing ? (
                                         <input
                                             type="number"
-                                            value={editValues.closing_diesel_level}
-                                            onChange={e => setEditValues({ ...editValues, closing_diesel_level: parseFloat(e.target.value) })}
+                                            value={editValues.closing_diesel_level || ''}
+                                            onChange={e => setEditValues({ ...editValues, closing_diesel_level: parseFloat(e.target.value) || 0 })}
                                             className={`w-20 px-2 py-1 rounded border text-sm font-mono ${isDark ? 'bg-[#0d1117] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                         />
                                     ) : (

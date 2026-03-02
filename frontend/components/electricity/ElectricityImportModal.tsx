@@ -232,7 +232,7 @@ const ElectricityImportModal: React.FC<ElectricityImportModalProps> = ({
                             type="number"
                             step="any"
                             min="0"
-                            value={multiplier}
+                            value={multiplier || ''}
                             onChange={e => setMultiplier(parseFloat(e.target.value) || 0)}
                             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 bg-white"
                             placeholder="Enter multiplier (e.g. 1.0)"

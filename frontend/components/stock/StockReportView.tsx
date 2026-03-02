@@ -183,14 +183,102 @@ const StockReportView: React.FC<StockReportViewProps> = ({ propertyId, propertyN
                 start = startOfDay(new Date(customStart));
                 end = endOfDay(new Date(customEnd));
             } else { // 'all'
-                // For 'all', we'll use the earliest movement date if available, otherwise default to 30 days
                 const earliestMovementDate = movements.length > 0
                     ? new Date(Math.min(...movements.map(m => new Date(m.created_at).getTime())))
                     : subDays(new Date(), 29);
                 start = startOfDay(earliestMovementDate);
             }
 
-            // Loop through each day in the range
+            const categories = [
+                'HK Material Equipment',
+                'HK Chemical',
+                'Mineral Water Expenses Sources',
+                'Tea and Coffee Expenses',
+                'Tissue Paper Expenses'
+            ];
+
+            // Helper: build a sheet from a given set of movements
+            const buildSheet = (worksheet: InstanceType<typeof ExcelJS.Workbook>['worksheets'][0], sheetMovements: Movement[], isSummary = false) => {
+                worksheet.columns = [
+                    { width: 35 },
+                    { width: 25 },
+                    { width: 15 },
+                    { width: 15 },
+                    { width: 25 }
+                ];
+
+                categories.forEach(category => {
+                    const groupItems = items.filter(item => (itemCategoryMap[item.name] || item.category) === category);
+                    if (groupItems.length === 0) return;
+
+                    let unitHeader = 'Unit Utilized';
+                    let costHeader = 'Per Unit Cost';
+                    let totalHeader = isSummary ? 'Total Cost for the Period' : 'Total Cost for the Day';
+
+                    if (category === 'Mineral Water Expenses Sources') {
+                        unitHeader = 'Bottle Utilized';
+                        costHeader = 'Per bottle Cost';
+                        totalHeader = isSummary ? 'Total Mineral Water Cost for the Period' : 'Total Mineral Water Cost for the Day';
+                    } else if (category === 'HK Chemical') {
+                        costHeader = 'Per Litre Cost';
+                    }
+
+                    const headerRow = worksheet.addRow([category, 'Average Monthly Consumption', unitHeader, costHeader, totalHeader]);
+                    headerRow.eachCell((cell) => {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DDEBF7' } };
+                        cell.font = { bold: true };
+                        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                    });
+
+                    let groupTotal = 0;
+
+                    groupItems.forEach(item => {
+                        const itemMovements = sheetMovements.filter(m => m.item_id === item.id && m.action === 'remove');
+                        const utilized = itemMovements.reduce((sum, m) => sum + Math.abs(m.quantity_change), 0);
+                        const costPerUnit = item.per_unit_cost || 0;
+                        const totalCost = utilized * costPerUnit;
+                        groupTotal += totalCost;
+
+                        const row = worksheet.addRow([item.name, '-', utilized || 0, costPerUnit, totalCost || 0]);
+                        row.eachCell(cell => {
+                            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                        });
+                    });
+
+                    const totalRowLabel = `Total ${category.replace(' Expenses Sources', '').replace(' Expenses', '')} Expenses`;
+                    const totalRow = worksheet.addRow([totalRowLabel, '', '', '', groupTotal]);
+                    worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
+                    totalRow.eachCell((cell) => {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF00' } };
+                        cell.font = { bold: true };
+                        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    });
+                    const totalValueCell = totalRow.getCell(5);
+                    totalValueCell.value = groupTotal;
+                    totalValueCell.alignment = { horizontal: 'right' };
+
+                    worksheet.addRow([]);
+                });
+            };
+
+            // Add summary sheet as first sheet for multi-day ranges
+            if (dateRange !== 'today') {
+                let summarySheetName: string;
+                if (dateRange === 'this_month') {
+                    summarySheetName = format(start, 'MMM yyyy') + ' Summary';
+                } else if (dateRange === '7d') {
+                    summarySheetName = 'Weekly Summary';
+                } else if (dateRange === '30d') {
+                    summarySheetName = 'Monthly Summary';
+                } else {
+                    summarySheetName = 'Summary';
+                }
+                const summarySheet = workbook.addWorksheet(summarySheetName);
+                buildSheet(summarySheet, movements, true);
+            }
+
+            // Loop through each day in the range and add per-day sheets
             let current = startOfDay(new Date(start));
             const last = endOfDay(new Date(end));
 
@@ -199,122 +287,12 @@ const StockReportView: React.FC<StockReportViewProps> = ({ propertyId, propertyN
                 const sheetName = format(day, 'dd.MM.yyyy');
                 const worksheet = workbook.addWorksheet(sheetName);
 
-                const categories = [
-                    'HK Material Equipment',
-                    'HK Chemical',
-                    'Mineral Water Expenses Sources',
-                    'Tea and Coffee Expenses',
-                    'Tissue Paper Expenses'
-                ];
-
-                // Define column headers
-                worksheet.columns = [
-                    { width: 35 }, // Item Name
-                    { width: 25 }, // Average Monthly Consumption
-                    { width: 15 }, // Unit Utilized
-                    { width: 15 }, // Per Unit Cost
-                    { width: 25 }  // Total Cost
-                ];
-
-                // Filter movements for this specific day
                 const dayMovements = movements.filter(m => {
                     const mDate = new Date(m.created_at);
                     return format(mDate, 'dd.MM.yyyy') === format(day, 'dd.MM.yyyy');
                 });
 
-                categories.forEach(category => {
-                    const groupItems = items.filter(item => (itemCategoryMap[item.name] || item.category) === category);
-                    if (groupItems.length === 0) return;
-
-                    // Set category specific headers
-                    let unitHeader = 'Unit Utilized';
-                    let costHeader = 'Per Unit Cost';
-                    let totalHeader = 'Total Cost for the Day';
-
-                    if (category === 'Mineral Water Expenses Sources') {
-                        unitHeader = 'Bottle Utilized';
-                        costHeader = 'Per bottle Cost';
-                        totalHeader = 'Total Mineral Water Cost for the Day';
-                    } else if (category === 'HK Chemical') {
-                        costHeader = 'Per Litre Cost';
-                    }
-
-                    // Add Category Header Row
-                    const headerRow = worksheet.addRow([category, 'Average Monthly Consumption', unitHeader, costHeader, totalHeader]);
-                    headerRow.eachCell((cell) => {
-                        cell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'DDEBF7' } // Light Blue
-                        };
-                        cell.font = { bold: true };
-                        cell.border = {
-                            top: { style: 'thin' },
-                            left: { style: 'thin' },
-                            bottom: { style: 'thin' },
-                            right: { style: 'thin' }
-                        };
-                    });
-
-                    let groupTotal = 0;
-
-                    groupItems.forEach(item => {
-                        const itemDayMovements = dayMovements.filter(m => m.item_id === item.id && m.action === 'remove');
-                        const utilized = itemDayMovements.reduce((sum, m) => sum + Math.abs(m.quantity_change), 0);
-                        const costPerUnit = item.per_unit_cost || 0;
-                        const totalCost = utilized * costPerUnit;
-                        groupTotal += totalCost;
-
-                        const row = worksheet.addRow([
-                            item.name,
-                            '-',
-                            utilized || 0,
-                            costPerUnit,
-                            totalCost || 0
-                        ]);
-
-                        row.eachCell(cell => {
-                            cell.border = {
-                                top: { style: 'thin' },
-                                left: { style: 'thin' },
-                                bottom: { style: 'thin' },
-                                right: { style: 'thin' }
-                            };
-                        });
-                    });
-
-                    // Add Total row for category
-                    const totalRowLabel = `Total ${category.replace(' Expenses Sources', '').replace(' Expenses', '')} Expenses`;
-                    const totalRow = worksheet.addRow([totalRowLabel, '', '', '', groupTotal]);
-
-                    // Merge cells A-D for the label
-                    worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
-
-                    totalRow.eachCell((cell) => {
-                        cell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FFFF00' } // Yellow
-                        };
-                        cell.font = { bold: true };
-                        cell.border = {
-                            top: { style: 'thin' },
-                            left: { style: 'thin' },
-                            bottom: { style: 'thin' },
-                            right: { style: 'thin' }
-                        };
-                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                    });
-
-                    // Correct the total value cell
-                    const totalValueCell = totalRow.getCell(5);
-                    totalValueCell.value = groupTotal;
-                    totalValueCell.alignment = { horizontal: 'right' };
-
-                    // Add an empty row for spacing
-                    worksheet.addRow([]);
-                });
-
+                buildSheet(worksheet, dayMovements, false);
                 current = startOfDay(addDays(current, 1));
             }
 

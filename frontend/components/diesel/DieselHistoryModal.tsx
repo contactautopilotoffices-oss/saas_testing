@@ -417,8 +417,8 @@ const DieselHistoryModal: React.FC<DieselHistoryModalProps> = ({
                                                                 <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Closing Run Hours</label>
                                                                 <input
                                                                     type="number" step="0.1"
-                                                                    value={editValues.closing_hours}
-                                                                    onChange={e => setEditValues({ ...editValues, closing_hours: parseFloat(e.target.value) })}
+                                                                    value={editValues.closing_hours || ''}
+                                                                    onChange={e => setEditValues({ ...editValues, closing_hours: parseFloat(e.target.value) || 0 })}
                                                                     className={`w-full p-2 rounded-lg border text-sm font-bold ${isDark ? 'bg-[#161b22] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                                                 />
                                                             </div>
@@ -427,8 +427,8 @@ const DieselHistoryModal: React.FC<DieselHistoryModalProps> = ({
                                                                 <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Closing kWh</label>
                                                                 <input
                                                                     type="number"
-                                                                    value={editValues.closing_kwh}
-                                                                    onChange={e => setEditValues({ ...editValues, closing_kwh: parseFloat(e.target.value) })}
+                                                                    value={editValues.closing_kwh || ''}
+                                                                    onChange={e => setEditValues({ ...editValues, closing_kwh: parseFloat(e.target.value) || 0 })}
                                                                     className={`w-full p-2 rounded-lg border text-sm font-bold ${isDark ? 'bg-[#161b22] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                                                 />
                                                             </div>
@@ -437,8 +437,8 @@ const DieselHistoryModal: React.FC<DieselHistoryModalProps> = ({
                                                                 <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Closing Diesel (L)</label>
                                                                 <input
                                                                     type="number"
-                                                                    value={editValues.closing_diesel_level}
-                                                                    onChange={e => setEditValues({ ...editValues, closing_diesel_level: parseFloat(e.target.value) })}
+                                                                    value={editValues.closing_diesel_level || ''}
+                                                                    onChange={e => setEditValues({ ...editValues, closing_diesel_level: parseFloat(e.target.value) || 0 })}
                                                                     className={`w-full p-2 rounded-lg border text-sm font-bold ${isDark ? 'bg-[#161b22] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                                                 />
                                                             </div>
@@ -447,8 +447,8 @@ const DieselHistoryModal: React.FC<DieselHistoryModalProps> = ({
                                                                 <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Added (L)</label>
                                                                 <input
                                                                     type="number"
-                                                                    value={editValues.diesel_added_litres}
-                                                                    onChange={e => setEditValues({ ...editValues, diesel_added_litres: parseFloat(e.target.value) })}
+                                                                    value={editValues.diesel_added_litres || ''}
+                                                                    onChange={e => setEditValues({ ...editValues, diesel_added_litres: parseFloat(e.target.value) || 0 })}
                                                                     className={`w-full p-2 rounded-lg border text-sm font-bold ${isDark ? 'bg-[#161b22] border-slate-700 text-white' : 'bg-white border-slate-300'}`}
                                                                 />
                                                             </div>

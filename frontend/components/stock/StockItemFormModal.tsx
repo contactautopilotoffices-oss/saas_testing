@@ -109,6 +109,7 @@ const StockItemFormModal: React.FC<StockItemFormModalProps> = ({ isOpen, onClose
                         name: formData.name,
                         category: formData.category,
                         unit: formData.unit,
+                        quantity: parseInt(formData.quantity as any) || 0,
                         min_threshold: formData.min_threshold,
                         per_unit_cost: parseFloat(formData.per_unit_cost as any) || 0,
                         location: formData.location,
@@ -264,12 +265,12 @@ const StockItemFormModal: React.FC<StockItemFormModalProps> = ({ isOpen, onClose
                             <div>
                                 <label className={labelClass}>Per Unit Cost</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm">₹</span>
                                     <input
                                         type="number"
                                         step="any"
                                         min="0"
-                                        value={formData.per_unit_cost}
+                                        value={formData.per_unit_cost || ''}
                                         onChange={(e) => setFormData({ ...formData, per_unit_cost: parseFloat(e.target.value) || 0 })}
                                         placeholder="0.00"
                                         className={`${inputClass} pl-8`}
@@ -277,29 +278,27 @@ const StockItemFormModal: React.FC<StockItemFormModalProps> = ({ isOpen, onClose
                                 </div>
                             </div>
 
-                            {/* Min Threshold & Initial Qty */}
+                            {/* Min Threshold & Qty */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className={labelClass}>Min Threshold</label>
                                     <input
                                         type="number"
-                                        value={formData.min_threshold}
+                                        value={formData.min_threshold || ''}
                                         onChange={(e) => setFormData({ ...formData, min_threshold: parseInt(e.target.value) || 0 })}
                                         className={inputClass}
                                     />
                                 </div>
-                                {!item && (
-                                    <div>
-                                        <label className={labelClass}>Initial Qty</label>
-                                        <input
-                                            type="number"
-                                            value={formData.quantity}
-                                            onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
-                                            min="0"
-                                            className={inputClass}
-                                        />
-                                    </div>
-                                )}
+                                <div>
+                                    <label className={labelClass}>{item ? 'Current Stock' : 'Initial Qty'}</label>
+                                    <input
+                                        type="number"
+                                        value={formData.quantity || ''}
+                                        onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                                        min="0"
+                                        className={inputClass}
+                                    />
+                                </div>
                             </div>
                         </div>
 

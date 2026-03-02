@@ -418,14 +418,16 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
                                         >−</button>
                                         <input
                                             type="number"
-                                            value={quantity}
+                                            value={quantity === 0 ? '' : quantity}
                                             onChange={(e) => {
-                                                const val = parseFloat(e.target.value);
+                                                const raw = e.target.value;
+                                                if (raw === '') { setQuantity(0); return; }
+                                                const val = parseFloat(raw);
                                                 if (!isNaN(val) && val >= 0) setQuantity(val);
-                                                else if (e.target.value === '') setQuantity(0);
                                             }}
                                             min="0"
                                             step="any"
+                                            placeholder="0"
                                             className="flex-1 min-w-0 px-2 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:border-primary text-text-primary text-center text-xl font-black"
                                         />
                                         <button

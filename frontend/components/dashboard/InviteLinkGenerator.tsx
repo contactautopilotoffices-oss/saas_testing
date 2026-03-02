@@ -210,8 +210,8 @@ const InviteLinkGenerator: React.FC<Props> = ({ organizations }) => {
                         </label>
                         <input
                             type="number"
-                            value={expiryDays}
-                            onChange={(e) => setExpiryDays(Number(e.target.value))}
+                            value={expiryDays || ''}
+                            onChange={(e) => setExpiryDays(Number(e.target.value) || 1)}
                             min="1"
                             max="365"
                             className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-100 text-sm font-medium"
@@ -225,8 +225,8 @@ const InviteLinkGenerator: React.FC<Props> = ({ organizations }) => {
                         </label>
                         <input
                             type="number"
-                            value={maxUses}
-                            onChange={(e) => setMaxUses(Number(e.target.value))}
+                            value={maxUses || ''}
+                            onChange={(e) => setMaxUses(Number(e.target.value) || 1)}
                             min="1"
                             max="1000"
                             className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-100 text-sm font-medium"
