@@ -49,17 +49,10 @@ const serwist = new Serwist({
     navigationPreload: true,
 
     runtimeCaching: [
-        // ── LAYER 1: Auth & API routes — ALWAYS go to network ────────────────
-        // Never cache these. Stale auth responses = users stuck at login.
-        {
-            matcher: ({ url }) =>
-                url.pathname.startsWith("/api/") ||
-                url.pathname.startsWith("/login") ||
-                url.pathname.startsWith("/signup") ||
-                url.pathname.startsWith("/forgot-password") ||
-                url.pathname.startsWith("/reset-password"),
-            handler: new NetworkOnly(),
-        },
+        // ── LAYER 1: Auth & API routes (REMOVED) ────────────────────────
+        // We purposefully DO NOT intercept auth and API routes at all.
+        // Allowing the browser to handle these natively allows OAuth 302 
+        // redirects to external domains (like Google/Zoho) to execute normally.
 
         // ── LAYER 2: Next.js page navigation — short cache, network first ────
         // Cache pages for only 60 seconds so users always get fresh HTML
