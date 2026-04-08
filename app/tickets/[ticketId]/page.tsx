@@ -168,7 +168,7 @@ export default function TicketDetailPage() {
   const [submittingMaterial, setSubmittingMaterial] = useState(false);
 
   // Creator Role State
-  const [creatorRole, setCreatorRole] = useState<string>("Tenant");
+  const [creatorRole, setCreatorRole] = useState<string>("Client");
   const [assigneeRole, setAssigneeRole] = useState<string>("MST");
 
   // Notification State
@@ -289,7 +289,7 @@ export default function TicketDetailPage() {
                     *,
                     category:issue_categories(name, code),
                     skill_group:skill_groups(name, code),
-                    property:properties(name),
+                    property:properties(name, organization_id),
                     creator:users!raised_by(id, full_name, email),
                     assignee:users!assigned_to(id, full_name, email)
                 `,
@@ -333,16 +333,38 @@ export default function TicketDetailPage() {
           const formattedRole =
             creatorMembership.role === "mst"
               ? "MST"
-              : creatorMembership.role
-                  .split("_")
-                  .map(
-                    (word: string) =>
-                      word.charAt(0).toUpperCase() + word.slice(1),
-                  )
-                  .join(" ");
+              : creatorMembership.role === "tenant"
+                ? "Client"
+                : creatorMembership.role
+                    .split("_")
+                    .map(
+                      (word: string) =>
+                        word.charAt(0).toUpperCase() + word.slice(1),
+                    )
+                    .join(" ");
           setCreatorRole(formattedRole);
+        } else if ((t.property as any)?.organization_id) {
+          const { data: orgMembership } = await supabase
+            .from("organization_memberships")
+            .select("role")
+            .eq("user_id", t.raised_by)
+            .eq("organization_id", (t.property as any).organization_id)
+            .maybeSingle();
+
+          if (orgMembership?.role) {
+            const formattedRole = orgMembership.role
+              .split("_")
+              .map(
+                (word: string) =>
+                  word.charAt(0).toUpperCase() + word.slice(1),
+              )
+              .join(" ");
+            setCreatorRole(formattedRole);
+          } else {
+            setCreatorRole("Client");
+          }
         } else {
-          setCreatorRole("Tenant");
+          setCreatorRole("Client");
         }
       }
 
@@ -367,6 +389,26 @@ export default function TicketDetailPage() {
                   )
                   .join(" ");
           setAssigneeRole(formattedRole);
+        } else if ((t.property as any)?.organization_id) {
+          const { data: orgMembership } = await supabase
+            .from("organization_memberships")
+            .select("role")
+            .eq("user_id", t.assigned_to)
+            .eq("organization_id", (t.property as any).organization_id)
+            .maybeSingle();
+
+          if (orgMembership?.role) {
+            const formattedRole = orgMembership.role
+              .split("_")
+              .map(
+                (word: string) =>
+                  word.charAt(0).toUpperCase() + word.slice(1),
+              )
+              .join(" ");
+            setAssigneeRole(formattedRole);
+          } else {
+            setAssigneeRole("MST");
+          }
         } else {
           setAssigneeRole("MST");
         }

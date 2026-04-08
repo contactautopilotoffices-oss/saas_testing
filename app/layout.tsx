@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/frontend/context/ThemeContext";
 import { DataCacheProvider } from "@/frontend/context/DataCacheContext";
 import { SessionProvider, CookieConsentToast } from "@/frontend/components/analytics";
 import NotificationSystem from "@/frontend/components/ops/NotificationSystem";
+import SWUpdateBanner from "@/frontend/components/ui/SWUpdateBanner";
 
 const poppins = Poppins({
     subsets: ["latin"],
@@ -53,31 +54,53 @@ export default function RootLayout({
                     dangerouslySetInnerHTML={{
                         __html: `
                             (function() {
-                                // One-time cache purge for Authentication cleanup
-                                const PURGE_KEY = 'auth_cache_purge_v3';
-                                if (!localStorage.getItem(PURGE_KEY)) {
-                                    console.log('Antigravity: Performing one-time auth cache purge...');
-                                    
-                                    // 1. Clear specific stale auth keys
-                                    localStorage.removeItem('rememberedEmail');
-                                    localStorage.removeItem('rememberedPassword');
-                                    localStorage.removeItem('rememberMe');
-                                    
-                                    // 2. Unregister ALL service workers to kill stale UI caches
-                                    if ('serviceWorker' in navigator) {
-                                        navigator.serviceWorker.getRegistrations().then(registrations => {
-                                            for (let registration of registrations) {
-                                                registration.unregister();
-                                                console.log('Antigravity: Unregistered Service Worker:', registration);
-                                            }
+                                if (!('serviceWorker' in navigator)) return;
+
+                                // ── DEV MODE GUARD ───────────────────────────────────────────────────
+                                // In development (localhost), the production sw.js contains baked-in
+                                // chunk hashes that don't match dev server chunks → 404 errors.
+                                // Always unregister the SW on localhost so dev works cleanly.
+                                var isLocalhost = (
+                                    window.location.hostname === 'localhost' ||
+                                    window.location.hostname === '127.0.0.1' ||
+                                    window.location.hostname.endsWith('.local') ||
+                                    window.location.hostname.endsWith('.loca.lt')
+                                );
+                                if (isLocalhost) {
+                                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                        regs.forEach(function(r) { r.unregister(); });
+                                    });
+                                    return;
+                                }
+
+                                // ── PRODUCTION ONLY BELOW ────────────────────────────────────────────
+                                // One-time migration: clear stale SW that aggressively cached pages.
+                                // Runs once per user on their first visit after this deployment.
+                                const MIGRATION_KEY = 'sw_cache_migration_v4';
+                                if (!localStorage.getItem(MIGRATION_KEY)) {
+                                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                                        registrations.forEach(function(reg) { reg.unregister(); });
+                                    });
+                                    if ('caches' in window) {
+                                        caches.keys().then(function(keys) {
+                                            keys.forEach(function(key) { caches.delete(key); });
                                         });
                                     }
-                                    
-                                    localStorage.setItem(PURGE_KEY, 'true');
-                                    console.log('Antigravity: Purge complete. Refreshing...');
-                                    // Optional: window.location.reload(); 
+                                    localStorage.setItem(MIGRATION_KEY, 'true');
+                                    window.location.reload();
+                                    return;
                                 }
+
+                                // ── Register + force-check for updates on every page load ───────────
+                                // reg.update() checks for a new sw.js immediately, reducing the
+                                // stale-cache window from hours to seconds after each deployment.
+                                window.addEventListener('load', function() {
+                                    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                                        reg.update();
+                                    }).catch(function() {});
+                                });
                             })();
+
                         `,
                     }}
                 />
@@ -87,6 +110,7 @@ export default function RootLayout({
                             <DataCacheProvider>
                                 <SessionProvider>
                                     {children}
+                                    <SWUpdateBanner />
                                     <NotificationSystem />
                                     <CookieConsentToast />
                                 </SessionProvider>
