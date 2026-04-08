@@ -67,16 +67,23 @@ export default function RootLayout({
                                     window.location.hostname.endsWith('.loca.lt')
                                 );
                                 if (isLocalhost) {
-                                    navigator.serviceWorker.getRegistrations().then(function(regs) {
-                                        regs.forEach(function(r) { r.unregister(); });
-                                    });
+                                    if ('serviceWorker' in navigator) {
+                                        navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                            regs.forEach(function(r) { r.unregister(); });
+                                        });
+                                    }
+                                    if ('caches' in window) {
+                                        caches.keys().then(function(keys) {
+                                            keys.forEach(function(key) { caches.delete(key); });
+                                        });
+                                    }
                                     return;
                                 }
 
                                 // ── PRODUCTION ONLY BELOW ────────────────────────────────────────────
                                 // One-time migration: clear stale SW that aggressively cached pages.
                                 // Runs once per user on their first visit after this deployment.
-                                const MIGRATION_KEY = 'sw_cache_migration_v4';
+                                const MIGRATION_KEY = 'sw_cache_migration_v5';
                                 if (!localStorage.getItem(MIGRATION_KEY)) {
                                     navigator.serviceWorker.getRegistrations().then(function(registrations) {
                                         registrations.forEach(function(reg) { reg.unregister(); });

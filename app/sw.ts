@@ -38,12 +38,9 @@ const safeRuntimeCache = defaultCache.filter((entry) => {
 const serwist = new Serwist({
     precacheEntries: self.__SW_MANIFEST,
 
-    // ── skipWaiting: false ───────────────────────────────────────────────────
-    // Do NOT take over mid-session. Wait for all tabs to close before
-    // activating the new SW. This prevents JS chunk hash mismatches.
-    // The app will send a SKIP_WAITING message when the user clicks
-    // "Update Now" in the update banner.
-    skipWaiting: false,
+    // Do NOT wait. We need immediate activation to prevent the old SW from
+    // trapping the user in a broken chunk state when they open a new tab.
+    skipWaiting: true,
 
     // clientsClaim: true so when the new SW finally activates it takes
     // over all tabs immediately.
@@ -70,7 +67,7 @@ const serwist = new Serwist({
         // back to cache only when truly offline.
         {
             matcher: ({ request, url, sameOrigin }) =>
-                request.headers.get("Content-Type")?.includes("text/html") &&
+                request.headers.get("Accept")?.includes("text/html") &&
                 sameOrigin &&
                 !url.pathname.startsWith("/api/"),
             handler: new NetworkFirst({
