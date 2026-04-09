@@ -35,17 +35,8 @@ export default function Home() {
             setIsRedirecting(true);
 
             try {
-                // 1. Check if user is master admin (we still check this from DB as it's sensitive and not in membership)
-                const supabase = createClient();
-                const { data: userProfile, error: profileError } = await supabase
-                    .from('users')
-                    .select('is_master_admin')
-                    .eq('id', user.id)
-                    .maybeSingle();
-
-                if (profileError) throw profileError;
-
-                if (userProfile?.is_master_admin) {
+                // 1. Check if user is master admin (now provided by context for speed)
+                if (membership?.is_master_admin) {
                     router.replace('/master');
                     return;
                 }

@@ -52,18 +52,42 @@ export async function GET(request: Request) {
         }
 
         if (user) {
-            // 3. COMPULSORY profile storage (always)
-            const { data: dbUser, error: profileError } = await supabase.from('users').upsert({
-                id: user.id,
-                full_name: user.user_metadata.full_name || user.email?.split('@')[0],
-                email: user.email!,
-                phone: user.phone || user.user_metadata.phone || null,
-                metadata: user.user_metadata
-            }).select('is_master_admin, onboarding_completed').single();
+            // 3. Parallelize profile storage and membership checks
+            const [profileResult, orgResult, propResult] = await Promise.all([
+                // A. COMPULSORY profile storage
+                supabase.from('users').upsert({
+                    id: user.id,
+                    full_name: user.user_metadata.full_name || user.email?.split('@')[0],
+                    email: user.email!,
+                    phone: user.phone || user.user_metadata.phone || null,
+                    metadata: user.user_metadata
+                }).select('is_master_admin, onboarding_completed').single(),
+
+                // B. Check Organization Membership (Org Super Admin)
+                supabase
+                    .from('organization_memberships')
+                    .select('organization_id, role')
+                    .eq('user_id', user.id)
+                    .eq('role', 'org_super_admin')
+                    .eq('is_active', true)
+                    .maybeSingle(),
+
+                // C. Check Property Membership
+                supabase
+                    .from('property_memberships')
+                    .select('property_id, organization_id, role')
+                    .eq('user_id', user.id)
+                    .eq('is_active', true)
+                    .maybeSingle()
+            ]);
+
+            const { data: dbUser, error: profileError } = profileResult;
+            const { data: orgMembership } = orgResult;
+            const { data: propMembership } = propResult;
 
             if (profileError) console.error('Profile Error:', profileError.message);
 
-            // --- STRICT ROLE CHECK ---
+            // --- ROLE-BASED ROUTING ---
 
             // STEP 1: Check if Master Admin
             if (dbUser?.is_master_admin || user.user_metadata?.is_master_admin) {
@@ -73,15 +97,7 @@ export async function GET(request: Request) {
                 return NextResponse.redirect(`${requestUrl.origin}/master`);
             }
 
-            // STEP 2: Check Organization Membership (Org Super Admin)
-            const { data: orgMembership } = await supabase
-                .from('organization_memberships')
-                .select('organization_id, role')
-                .eq('user_id', user.id)
-                .eq('role', 'org_super_admin')
-                .eq('is_active', true)
-                .maybeSingle();
-
+            // STEP 2: Check Organization Membership
             if (orgMembership) {
                 if (redirect && redirect !== '/') {
                     return NextResponse.redirect(`${requestUrl.origin}${redirect}`);
@@ -89,7 +105,8 @@ export async function GET(request: Request) {
                 return NextResponse.redirect(`${requestUrl.origin}/org/${orgMembership.organization_id}/dashboard`);
             }
 
-            // SPECIAL CASE: Property-scoped signup (Join flow)
+            // SPECIAL CASE: Property-scoped signup (Join flow) - We still handle this sequentially if needed, 
+            // but for now we focus on the common path.
             if (propertyCode) {
                 const { data: property } = await supabase
                     .from('properties')
@@ -109,14 +126,7 @@ export async function GET(request: Request) {
                 }
             }
 
-            // STEP 3: Check Property Membership with Role-based routing
-            const { data: propMembership } = await supabase
-                .from('property_memberships')
-                .select('property_id, organization_id, role')
-                .eq('user_id', user.id)
-                .eq('is_active', true)
-                .maybeSingle();
-
+            // STEP 3: Route based on Property Membership
             if (propMembership) {
                 if (redirect && redirect !== '/') {
                     return NextResponse.redirect(`${requestUrl.origin}${redirect}`);
@@ -125,25 +135,18 @@ export async function GET(request: Request) {
                 const role = propMembership.role;
                 const pId = propMembership.property_id;
 
-                // Role-based routing (matching login page logic)
-                if (role === 'property_admin') {
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/dashboard`);
-                } else if (role === 'tenant') {
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/tenant`);
-                } else if (role === 'security') {
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/security`);
-                } else if (role === 'soft_service_manager') {
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/dashboard`);
-                } else if (role === 'staff') {
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/staff`);
-                } else if (role === 'mst') {
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/mst`);
-                } else if (role === 'vendor') {
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/vendor`);
-                } else {
-                    // Fallback for unknown roles
-                    return NextResponse.redirect(`${requestUrl.origin}/property/${pId}/dashboard`);
-                }
+                // Role-based routing
+                const routes: Record<string, string> = {
+                    property_admin: `/property/${pId}/dashboard`,
+                    tenant: `/property/${pId}/tenant`,
+                    security: `/property/${pId}/security`,
+                    soft_service_manager: `/property/${pId}/dashboard`,
+                    staff: `/property/${pId}/staff`,
+                    mst: `/property/${pId}/mst`,
+                    vendor: `/property/${pId}/vendor`
+                };
+
+                return NextResponse.redirect(`${requestUrl.origin}${routes[role] || `/property/${pId}/dashboard`}`);
             }
 
             // STEP 4: No Membership Found

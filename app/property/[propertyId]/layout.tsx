@@ -3,6 +3,7 @@
 import { useAuth } from "@/frontend/context/AuthContext";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createClient } from "@/frontend/utils/supabase/client";
 import Loader from "@/frontend/components/ui/Loader";
 
 
@@ -11,7 +12,7 @@ export default function PropertyLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { user, isLoading: authLoading } = useAuth();
+    const { user, isLoading: authLoading, membership, isMembershipLoading } = useAuth();
     const router = useRouter();
     const params = useParams();
     const pathname = usePathname();
@@ -23,7 +24,9 @@ export default function PropertyLayout({
 
     useEffect(() => {
         const checkPropertyAccess = async () => {
-            if (authLoading) return;
+            // Wait for both session and membership metadata to load
+            if (authLoading || isMembershipLoading) return;
+
             if (!user) {
                 router.replace('/login');
                 return;
@@ -39,44 +42,80 @@ export default function PropertyLayout({
             }
 
             try {
-                // Delegate access check to a server-side API that uses the admin client.
-                // This avoids RLS blocking org-level admins who have no property_memberships row.
-                const res = await fetch(`/api/auth/property-access?propertyId=${propertyId}`);
-                const data = await res.json() as { authorized: boolean; role?: string };
-
-                if (!data.authorized) {
-                    setIsAuthorized(false);
+                // 1. MASTER ADMIN BYPASS
+                if (membership?.is_master_admin) {
+                    setIsAuthorized(true);
+                    setUserRole('master_admin');
                     setIsCheckingAccess(false);
                     return;
                 }
 
-                const role = data.role || '';
-                setIsAuthorized(true);
-                setUserRole(role);
-
-                // For property-level restricted roles, validate the current path
-                const allowedPaths = getRoleAllowedPaths(role, propertyId);
-                const currentPath = pathname || '';
-                const isPathAllowed = allowedPaths.some(allowed =>
-                    currentPath.startsWith(allowed) || currentPath === allowed
-                );
-
-                if (!isPathAllowed) {
-                    router.replace(getRoleDefaultPath(role, propertyId));
+                // 2. DIRECT PROPERTY MEMBERSHIP (Pre-fetched)
+                const directMatch = membership?.properties.find(p => p.id === propertyId);
+                if (directMatch) {
+                    setIsAuthorized(true);
+                    setUserRole(directMatch.role);
+                    validatePath(directMatch.role);
+                    setIsCheckingAccess(false);
+                    return;
                 }
+
+                // 3. ORG-LEVEL ACCESS OR FALLBACK
+                // If not a direct member, we need to know which org this property belongs to.
+                // We use a simple client-side fetch (which should be fast and cached by Supabase client).
+                const supabase = createClient();
+                const { data: property, error } = await supabase
+                    .from('properties')
+                    .select('organization_id')
+                    .eq('id', propertyId)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (property?.organization_id) {
+                    // Check if user is an admin of this organization (Pre-fetched)
+                    const orgMatch = membership?.all_org_memberships.find(m => 
+                        m.org_id === property.organization_id && 
+                        ['org_admin', 'org_super_admin', 'owner'].includes(m.role)
+                    );
+
+                    if (orgMatch) {
+                        setIsAuthorized(true);
+                        setUserRole(orgMatch.role);
+                        validatePath(orgMatch.role);
+                        setIsCheckingAccess(false);
+                        return;
+                    }
+                }
+
+                // If we reach here, no access was found
+                setIsAuthorized(false);
             } catch (err) {
-                console.error('Access check failed:', err);
+                console.error('Access verification failed:', err);
+                // On error, we fallback to restricted access rather than staying stuck
                 setIsAuthorized(false);
             } finally {
                 setIsCheckingAccess(false);
             }
         };
 
+        const validatePath = (role: string) => {
+            const allowedPaths = getRoleAllowedPaths(role, propertyId);
+            const currentPath = pathname || '';
+            const isPathAllowed = allowedPaths.some(allowed =>
+                currentPath.startsWith(allowed) || currentPath === allowed
+            );
+
+            if (!isPathAllowed) {
+                router.replace(getRoleDefaultPath(role, propertyId));
+            }
+        };
+
         checkPropertyAccess();
-    }, [user, authLoading, propertyId, pathname, router]);
+    }, [user, authLoading, isMembershipLoading, membership, propertyId, pathname, router]);
 
     // Loading state
-    if (authLoading || isCheckingAccess) {
+    if (authLoading || isMembershipLoading || isCheckingAccess) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <Loader size="lg" text="Verifying access..." />

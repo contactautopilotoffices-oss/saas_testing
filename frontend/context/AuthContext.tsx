@@ -9,11 +9,17 @@ interface UserMembership {
     org_id: string | null;
     org_name: string | null;
     org_role: string | null;
+    is_master_admin: boolean;
+    all_org_memberships: {
+        org_id: string;
+        role: string;
+    }[];
     properties: {
         id: string;
         name: string;
         code: string;
         role: string;
+        organization_id: string | null;
     }[];
 }
 
@@ -68,8 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsMembershipLoading(true);
 
         try {
-            // Parallelize membership fetches for performance
-            const [orgResult, propResult] = await Promise.all([
+            // Parallelize membership and profile fetches for performance
+            const [orgResult, propResult, profileResult] = await Promise.all([
                 supabase
                     .from('organization_memberships')
                     .select(`
@@ -80,9 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         )
                     `)
                     .eq('user_id', userId)
-                    .eq('is_active', true)
-                    .limit(1)
-                    .maybeSingle(),
+                    .eq('is_active', true),
                 supabase
                     .from('property_memberships')
                     .select(`
@@ -90,25 +94,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         property:properties (
                             id,
                             name,
-                            code
+                            code,
+                            organization_id
                         )
                     `)
                     .eq('user_id', userId)
-                    .eq('is_active', true)
+                    .eq('is_active', true),
+                supabase
+                    .from('users')
+                    .select('is_master_admin')
+                    .eq('id', userId)
+                    .maybeSingle()
             ]);
 
             const orgData = orgResult.data;
             const propData = propResult.data;
+            const profileData = profileResult.data;
+
+            // Sort orgs to pick the "best" one for the primary context (admin roles first)
+            const sortedOrgs = [...(orgData || [])].sort((a, b) => {
+                const priority = { 'owner': 0, 'org_super_admin': 1, 'org_admin': 2 };
+                const aP = priority[a.role as keyof typeof priority] ?? 10;
+                const bP = priority[b.role as keyof typeof priority] ?? 10;
+                return aP - bP;
+            });
+
+            const primaryOrg = sortedOrgs[0];
 
             const membershipData: UserMembership = {
-                org_id: (orgData?.organization as any)?.id || null,
-                org_name: (orgData?.organization as any)?.name || null,
-                org_role: orgData?.role || null,
+                org_id: (primaryOrg?.organization as any)?.id || null,
+                org_name: (primaryOrg?.organization as any)?.name || null,
+                org_role: primaryOrg?.role || null,
+                is_master_admin: !!profileData?.is_master_admin,
+                // Include all org memberships for access checks in layouts
+                all_org_memberships: orgData?.map(m => ({
+                    org_id: (m.organization as any)?.id,
+                    role: m.role
+                })) || [],
                 properties: propData?.map((p: any) => ({
                     id: p.property?.id,
                     name: p.property?.name,
                     code: p.property?.code,
-                    role: p.role
+                    role: p.role,
+                    organization_id: p.property?.organization_id
                 })).filter((p: any) => p.id) || []
             };
 

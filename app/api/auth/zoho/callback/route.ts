@@ -141,14 +141,38 @@ export async function GET(request: Request) {
             return NextResponse.redirect(`${appOrigin}/login?error=auth_failed`);
         }
 
-        // 7. Upsert user profile
-        const { data: dbUser, error: profileError } = await supabase.from('users').upsert({
-            id: user.id,
-            full_name: user.user_metadata.full_name || fullName,
-            email: user.email!,
-            phone: user.phone || null,
-            metadata: user.user_metadata,
-        }).select('is_master_admin, onboarding_completed').single();
+        // 7. Parallelize profile storage and membership checks
+        const [profileResult, orgResult, propResult] = await Promise.all([
+            // A. Upsert user profile
+            supabase.from('users').upsert({
+                id: user.id,
+                full_name: user.user_metadata.full_name || fullName,
+                email: user.email!,
+                phone: user.phone || null,
+                metadata: user.user_metadata,
+            }).select('is_master_admin, onboarding_completed').single(),
+
+            // B. Check Organization Membership
+            supabase
+                .from('organization_memberships')
+                .select('organization_id, role')
+                .eq('user_id', user.id)
+                .eq('role', 'org_super_admin')
+                .eq('is_active', true)
+                .maybeSingle(),
+
+            // C. Check Property Membership
+            supabase
+                .from('property_memberships')
+                .select('property_id, organization_id, role')
+                .eq('user_id', user.id)
+                .eq('is_active', true)
+                .maybeSingle()
+        ]);
+
+        const { data: dbUser, error: profileError } = profileResult;
+        const { data: orgMembership } = orgResult;
+        const { data: propMembership } = propResult;
 
         if (profileError) console.error('[ZOHO] profile upsert error:', profileError.message);
 
@@ -156,14 +180,6 @@ export async function GET(request: Request) {
         if (dbUser?.is_master_admin || user.user_metadata?.is_master_admin) {
             return NextResponse.redirect(`${appOrigin}${redirect || '/master'}`);
         }
-
-        const { data: orgMembership } = await supabase
-            .from('organization_memberships')
-            .select('organization_id, role')
-            .eq('user_id', user.id)
-            .eq('role', 'org_super_admin')
-            .eq('is_active', true)
-            .maybeSingle();
 
         if (orgMembership) {
             return NextResponse.redirect(
@@ -188,13 +204,6 @@ export async function GET(request: Request) {
                 return NextResponse.redirect(`${appOrigin}/onboarding`);
             }
         }
-
-        const { data: propMembership } = await supabase
-            .from('property_memberships')
-            .select('property_id, organization_id, role')
-            .eq('user_id', user.id)
-            .eq('is_active', true)
-            .maybeSingle();
 
         if (propMembership) {
             const role = propMembership.role;
