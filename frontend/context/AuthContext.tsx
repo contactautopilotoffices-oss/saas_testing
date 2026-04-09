@@ -133,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 org_role: primaryOrg?.role || null,
                 is_master_admin: !!profileData?.is_master_admin,
                 // Include all org memberships for access checks in layouts
-                all_org_memberships: orgData?.map(m => ({
+                all_org_memberships: (orgData as any[])?.map((m: any) => ({
                     org_id: (m.organization as any)?.id,
                     role: m.role
                 })) || [],
