@@ -55,17 +55,20 @@ const serwist = new Serwist({
         // redirects to external domains (like Google/Zoho) to execute normally.
 
         // ── LAYER 2: Next.js page navigation — short cache, network first ────
-        // Cache pages for only 60 seconds so users always get fresh HTML
-        // after a deployment. NetworkFirst means it tries network first, falls
-        // back to cache only when truly offline.
+        // IMPORTANT: We intentionally exclude "/" and "/login" from the cache.
+        // These are the entry-point pages whose HTML references specific JS chunk
+        // hashes. If stale HTML is served (from cache) after a new deployment,
+        // the chunks won't exist → React fails to hydrate → infinite loading.
         {
             matcher: ({ request, url, sameOrigin }) =>
                 request.headers.get("Accept")?.includes("text/html") &&
                 sameOrigin &&
-                !url.pathname.startsWith("/api/"),
+                !url.pathname.startsWith("/api/") &&
+                url.pathname !== "/" &&        // Never cache root — always get fresh HTML
+                url.pathname !== "/login",     // Never cache login — auth state must be fresh
             handler: new NetworkFirst({
                 cacheName: "pages",
-                networkTimeoutSeconds: 5,
+                networkTimeoutSeconds: 3,      // Faster fallback (was 5s — too slow)
             }),
         },
 
@@ -74,10 +77,12 @@ const serwist = new Serwist({
             matcher: ({ request, url, sameOrigin }) =>
                 request.headers.get("RSC") === "1" &&
                 sameOrigin &&
-                !url.pathname.startsWith("/api/"),
+                !url.pathname.startsWith("/api/") &&
+                url.pathname !== "/" &&
+                url.pathname !== "/login",
             handler: new NetworkFirst({
                 cacheName: "pages-rsc",
-                networkTimeoutSeconds: 5,
+                networkTimeoutSeconds: 3,
             }),
         },
 

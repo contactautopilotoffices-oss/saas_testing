@@ -85,7 +85,7 @@ function MediaSlot({
                 {/* Timestamp overlay */}
                 {timestamp && (
                     <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-black/90 rounded text-[10px] text-white font-bold font-mono backdrop-blur-sm pointer-events-none border border-white/30 shadow-2xl z-20">
-                        {new Date(timestamp).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(',', '')}
+                        {parseDate(timestamp)?.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(',', '')}
                     </div>
                 )}
 
@@ -181,9 +181,18 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
         }
     };
 
+    // Helper to parse timestamps robustly
+    const parseDate = (d: string | null | undefined): Date | null => {
+        if (!d) return null;
+        if (d.includes('T')) {
+            return new Date(d.endsWith('Z') || d.includes('+') ? d : `${d}Z`);
+        }
+        return new Date(`${d.replace(' ', 'T')}Z`);
+    };
+
     // SLA helpers
-    const slaDeadline = ticket?.sla_deadline ? new Date(ticket.sla_deadline as string) : null;
-    const resolvedAt = ticket?.resolved_at ? new Date(ticket.resolved_at as string) : null;
+    const slaDeadline = parseDate(ticket?.sla_deadline as string);
+    const resolvedAt = parseDate(ticket?.resolved_at as string);
     const isResolved = ['resolved', 'closed'].includes(ticket?.status as string);
     const referenceTime = isResolved && resolvedAt ? resolvedAt : new Date();
     const isSLABreached = Boolean(ticket?.sla_breached) || (slaDeadline !== null && slaDeadline < referenceTime);
@@ -300,7 +309,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                     <div className="flex flex-wrap gap-6 text-sm text-gray-400">
                         <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4" />
-                            Created: {new Date(ticket.created_at as string).toLocaleString()}
+                            Created: {parseDate(ticket.created_at as string)?.toLocaleString()}
                         </div>
                         {creator?.full_name && (
                             <div className="flex items-center gap-2">
@@ -373,7 +382,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                                     <div className="w-3.5 h-3.5 rounded-full bg-gray-500 border-2 border-[#0d1117] flex-shrink-0 z-10" />
                                     <div className="flex-1 flex items-center justify-between min-w-0">
                                         <span className="text-sm text-gray-400">Ticket Created</span>
-                                        <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{new Date(ticket?.created_at as string).toLocaleString()}</span>
+                                        <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{parseDate(ticket?.created_at as string)?.toLocaleString()}</span>
                                     </div>
                                 </div>
 
@@ -383,7 +392,9 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                                         <div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-[#0d1117] flex-shrink-0 z-10" />
                                         <div className="flex-1 flex items-center justify-between min-w-0">
                                             <span className="text-sm text-gray-400">SLA Timer Started <span className="text-gray-600 text-xs">(ticket assigned)</span></span>
-                                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{new Date(ticket.assigned_at as string).toLocaleString()}</span>
+                                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                                                {ticket.assigned_at ? parseDate(ticket.assigned_at as string)?.toLocaleString() : 'Pending'}
+                                            </span>
                                         </div>
                                     </div>
                                 )}
@@ -410,7 +421,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                                             SLA Deadline {isSLABreached ? '— Missed' : '— Met'}
                                         </span>
                                         <span className={`text-xs font-bold ml-2 flex-shrink-0 ${isSLABreached ? 'text-red-400' : 'text-green-400'}`}>
-                                            {slaDeadline.toLocaleString()}
+                                            {slaDeadline?.toLocaleString()}
                                         </span>
                                     </div>
                                 </div>
@@ -424,7 +435,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                                                 Resolved
                                                 {isSLABreached && <span className="text-red-400/70 text-xs ml-1">(+{formatDuration(breachMs)} after deadline)</span>}
                                             </span>
-                                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{resolvedAt.toLocaleString()}</span>
+                                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{resolvedAt?.toLocaleString()}</span>
                                         </div>
                                     </div>
                                 )}
@@ -522,7 +533,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                                                         </span>
                                                     </div>
                                                     <span className="text-xs text-gray-500">
-                                                        {new Date(log.escalated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        {parseDate(log.escalated_at)?.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
                                                 {/* From → To employees */}
@@ -641,7 +652,7 @@ export default function TicketDetail({ ticketId, onBack, isAdmin = false }: Tick
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="font-medium text-sm">{comment.user?.full_name || 'Unknown'}</span>
                                             <span className="text-xs text-gray-500">
-                                                {new Date(comment.created_at).toLocaleString()}
+                                                {parseDate(comment.created_at)?.toLocaleString()}
                                             </span>
                                         </div>
                                         <p className="text-gray-300 text-sm">{comment.comment}</p>

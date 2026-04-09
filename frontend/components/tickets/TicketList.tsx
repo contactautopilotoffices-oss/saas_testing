@@ -51,8 +51,9 @@ function getSLAStatus(deadline: string | null, breached: boolean) {
     if (breached) return { text: 'SLA Breached', color: 'text-red-400' };
     if (!deadline) return null;
 
+    // Ensure deadline is parsed correctly even if it lacks 'Z'
+    const sla = deadline.includes('T') ? new Date(deadline.endsWith('Z') || deadline.includes('+') ? deadline : `${deadline}Z`) : new Date(`${deadline.replace(' ', 'T')}Z`);
     const now = new Date();
-    const sla = new Date(deadline);
     const diffMs = sla.getTime() - now.getTime();
     const diffMins = Math.floor(diffMs / 60000);
 

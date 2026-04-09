@@ -136,6 +136,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(session);
             setUser(session?.user ?? null);
             setIsLoading(false); // ✅ Non-blocking: Show UI while data fetches in background
+            // Signal to the hydration watchdog that React mounted successfully.
+            // This prevents the watchdog in layout.tsx from force-reloading on slow connections.
+            if (typeof window !== 'undefined') {
+                (window as any).HYDRATED = true;
+            }
             if (session?.user) {
                 fetchMembership(session.user.id);
             }

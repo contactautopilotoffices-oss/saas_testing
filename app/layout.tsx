@@ -83,28 +83,48 @@ export default function RootLayout({
                                 // ── PRODUCTION ONLY BELOW ────────────────────────────────────────────
                                 // One-time migration: clear stale SW that aggressively cached pages.
                                 // Runs once per user on their first visit after this deployment.
-                                const MIGRATION_KEY = 'sw_cache_migration_v5';
+                                const MIGRATION_KEY = 'sw_cache_migration_v6';
                                 if (!localStorage.getItem(MIGRATION_KEY)) {
-                                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                                        registrations.forEach(function(reg) { reg.unregister(); });
-                                    });
-                                    if ('caches' in window) {
-                                        caches.keys().then(function(keys) {
-                                            keys.forEach(function(key) { caches.delete(key); });
-                                        });
-                                    }
+                                    // Fix: await all unregister + cache deletion before reload,
+                                    // otherwise the old SW handles the reload (race condition).
                                     localStorage.setItem(MIGRATION_KEY, 'true');
-                                    window.location.reload();
+                                    Promise.all([
+                                        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                                            return Promise.all(registrations.map(function(reg) { return reg.unregister(); }));
+                                        }),
+                                        'caches' in window ? caches.keys().then(function(keys) {
+                                            return Promise.all(keys.map(function(key) { return caches.delete(key); }));
+                                        }) : Promise.resolve()
+                                    ]).then(function() {
+                                        window.location.reload();
+                                    });
                                     return;
                                 }
 
                                 // ── Register + force-check for updates on every page load ───────────
-                                // reg.update() checks for a new sw.js immediately, reducing the
-                                // stale-cache window from hours to seconds after each deployment.
                                 window.addEventListener('load', function() {
                                     navigator.serviceWorker.register('/sw.js').then(function(reg) {
                                         reg.update();
                                     }).catch(function() {});
+
+                                    // ── Hydration Watchdog ───────────────────────────────────────────
+                                    // If the app does not signal window.HYDRATED within 10 seconds,
+                                    // it means React failed to hydrate (likely due to stale JS chunks).
+                                    // We force-clear all SW caches and reload to recover the user.
+                                    setTimeout(function() {
+                                        if (window.HYDRATED) return;
+                                        console.error('[SW Watchdog] Hydration timeout — clearing SW and reloading.');
+                                        Promise.all([
+                                            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+                                            }),
+                                            'caches' in window ? caches.keys().then(function(keys) {
+                                                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                                            }) : Promise.resolve()
+                                        ]).then(function() {
+                                            window.location.reload();
+                                        });
+                                    }, 10000);
                                 });
                             })();
 

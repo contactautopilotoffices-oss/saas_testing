@@ -25,11 +25,14 @@ export interface TicketCardProps {
     // Metadata
     ticketNumber: string;
     createdAt: string; // ISO date string
+    raisedBy?: string; // Full name of the creator
+    raisedByPhotoUrl?: string | null; // Profile photo for the person who raised it
 
     // Optional
     assignedTo?: string; // Full name
     assigneePhotoUrl?: string | null; // Profile photo for the person serving the request
     photoUrl?: string;
+    resolvedAt?: string | null; // ISO date string for when the ticket was completed
     propertyName?: string; // Property name for Super Admin view
     escalationChain?: { name: string; avatar?: string | null }[]; // Ordered: [original → ... → current]
 
@@ -69,9 +72,12 @@ export default function TicketCard({
     status,
     ticketNumber,
     createdAt,
+    raisedBy,
+    raisedByPhotoUrl,
     assignedTo,
     assigneePhotoUrl,
     photoUrl,
+    resolvedAt,
     propertyName,
     escalationChain,
     raisedByTenant,
@@ -82,7 +88,16 @@ export default function TicketCard({
     onReject,
     hasMaterialRequest,
 }: TicketCardProps) {
-    const dateObj = new Date(createdAt);
+    // Helper to parse timestamps robustly
+    const parseDate = (d: string | null | undefined): Date | null => {
+        if (!d) return null;
+        if (d.includes('T')) {
+            return new Date(d.endsWith('Z') || d.includes('+') ? d : `${d}Z`);
+        }
+        return new Date(`${d.replace(' ', 'T')}Z`);
+    };
+
+    const dateObj = parseDate(createdAt) || new Date();
     const dateStr = dateObj.toLocaleDateString('en-US', {
         day: '2-digit',
         month: 'short',
@@ -102,7 +117,14 @@ export default function TicketCard({
     const isCritical = priority?.toUpperCase() === 'CRITICAL' && !isClosed;
 
     // Live elapsed timer — counts up every second for active tickets
-    const getElapsed = () => Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000);
+    const getElapsed = () => {
+        const start = parseDate(createdAt);
+        if (!start) return 0;
+        
+        // If closed, use resolvedAt. If active, use current time.
+        const end = isClosed ? (parseDate(resolvedAt) || new Date()) : new Date();
+        return Math.floor((end.getTime() - start.getTime()) / 1000);
+    };
     const [elapsedSec, setElapsedSec] = useState(getElapsed);
 
     useEffect(() => {
@@ -258,6 +280,25 @@ export default function TicketCard({
                     </span>
                 )}
             </div>
+
+            {/* Raised By Information */}
+            {raisedBy && (
+                <div className="flex items-center gap-[clamp(0.4rem,1.5cqw,0.5rem)]">
+                    <span className="text-[clamp(0.75rem,3cqw,0.875rem)] text-gray-600">Raised By:</span>
+                    <div className="flex items-center gap-1.5 text-indigo-700">
+                        <div className="w-5 h-5 rounded-full flex-shrink-0 border border-indigo-200 overflow-hidden bg-indigo-50">
+                            {raisedByPhotoUrl ? (
+                                <img src={raisedByPhotoUrl} alt={raisedBy} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[8px] font-bold">
+                                    {raisedBy.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+                        <span className="text-[clamp(0.75rem,3cqw,0.875rem)] font-semibold">{raisedBy}</span>
+                    </div>
+                </div>
+            )}
 
             {/* Assignee Information */}
             {assignedTo && status !== 'OPEN' && (

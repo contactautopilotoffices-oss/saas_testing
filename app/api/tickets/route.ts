@@ -91,6 +91,7 @@ export async function GET(request: NextRequest) {
         const dateTo = searchParams.get('dateTo');
         const search = searchParams.get('search');
         const skillGroup = searchParams.get('skillGroup');
+        const period = searchParams.get('period');
 
         // Use admin client for org-wide queries to bypass RLS row restrictions
         const queryClient = (organizationId && !propertyId) ? createAdminClient() : supabase;
@@ -99,9 +100,10 @@ export async function GET(request: NextRequest) {
             .from('tickets')
             .select(`
                 id, ticket_number, title, status, priority, created_at, internal, raised_by, assigned_to,
+                resolved_at,
                 category:issue_categories(id, code, name),
                 skill_group:skill_groups(id, code, name),
-                creator:users!raised_by(id, full_name, email, property_memberships(role, property_id)),
+                creator:users!raised_by(id, full_name, email, user_photo_url, property_memberships(role, property_id)),
                 assignee:users!assigned_to(id, full_name, email, user_photo_url),
                 organization:organizations(id, name, code),
                 property:properties(id, name, code),
@@ -128,10 +130,42 @@ export async function GET(request: NextRequest) {
         if (assignedTo) query = query.eq('assigned_to', assignedTo);
         if (raisedBy) query = query.eq('raised_by', raisedBy);
         if (slaBreached !== null && slaBreached !== undefined) query = query.eq('sla_breached', slaBreached === 'true');
-        if (dateFrom) query = query.gte('created_at', dateFrom);
-        if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59');
+        // Manual date range handling (ensuring IST boundaries)
+        if (dateFrom) {
+            // If it's a plain date (YYYY-MM-DD), treat as 00:00:00 IST
+            const fromStr = dateFrom.includes('T') ? dateFrom : `${dateFrom}T00:00:00+05:30`;
+            query = query.gte('created_at', fromStr);
+        }
+        if (dateTo) {
+            // If it's a plain date (YYYY-MM-DD), treat as 23:59:59 IST
+            const toStr = dateTo.includes('T') ? dateTo : `${dateTo}T23:59:59+05:30`;
+            query = query.lte('created_at', toStr);
+        }
         if (search) query = query.or(`ticket_number.ilike.%${search}%,title.ilike.%${search}%`);
         if (skillGroup && skillGroup !== 'all') query = query.eq('skill_group_code', skillGroup);
+
+        // Handle predefined periods (e.g., today)
+        if (period === 'today') {
+            const now = new Date();
+            // Offset for IST (UTC+5:30)
+            const offset = 5.5 * 60 * 60 * 1000;
+            const istNow = new Date(now.getTime() + offset);
+            
+            const startOfDay = new Date(now.getTime());
+            startOfDay.setUTCHours(0 - 5, 0 - 30, 0, 0); // 00:00 IST = 18:30 UTC yesterday
+            
+            const endOfDay = new Date(now.getTime());
+            endOfDay.setUTCHours(23 - 5, 59 - 30, 59, 999); // 23:59 IST = 18:29 UTC today
+            
+            // Re-calculate more cleanly to avoid negative hour issues
+            const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+            todayIST.setHours(0, 0, 0, 0);
+            const istStart = new Date(todayIST.getTime());
+            const istEnd = new Date(todayIST.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+            query = query.gte('created_at', istStart.toISOString());
+            query = query.lte('created_at', istEnd.toISOString());
+        }
 
         // Filter by the role of the user who raised the ticket
         if (raisedByRole) {

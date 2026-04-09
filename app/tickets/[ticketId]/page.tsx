@@ -203,6 +203,15 @@ export default function TicketDetailPage() {
     "before" | "after" | null
   >(null);
 
+  // Helper to parse timestamps robustly (ensures UTC when no timezone specified)
+  const parseDate = (d: string | null | undefined): Date | null => {
+    if (!d) return null;
+    if (d.includes("T")) {
+      return new Date(d.endsWith("Z") || d.includes("+") ? d : `${d}Z`);
+    }
+    return new Date(`${d.replace(" ", "T")}Z`);
+  };
+
   function startPeek(url: string) {
     peekTimerRef.current = setTimeout(() => setPeekUrl(url), 350);
   }
@@ -1386,9 +1395,9 @@ export default function TicketDetailPage() {
                         className={`text-[10px] font-bold ${isDark ? "text-rose-400" : "text-rose-500"}`}
                       >
                         {(() => {
-                          const breachTime = new Date(
+                          const breachTime = parseDate(
                             ticket.sla_deadline,
-                          ).getTime();
+                          )?.getTime() || 0;
                           const diff = Date.now() - breachTime;
                           const hrs = Math.floor(diff / 3600000);
                           const mins = Math.floor((diff % 3600000) / 60000);
@@ -1403,7 +1412,7 @@ export default function TicketDetailPage() {
                       className={`flex items-center gap-1 text-xs font-bold ${isDark ? "text-slate-500" : "text-slate-400"}`}
                     >
                       <Clock className="w-3 h-3" />
-                      {`Due ${new Date(ticket.sla_deadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                      {`Due ${parseDate(ticket.sla_deadline)?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
                     </div>
                   )}
                 </div>
@@ -1566,7 +1575,7 @@ export default function TicketDetailPage() {
                         className={`text-[10px] ${isDark ? "text-slate-500" : "text-slate-400"} font-medium whitespace-nowrap`}
                       >
                         Raised{" "}
-                        {new Date(ticket.created_at).toLocaleDateString()}
+                        {parseDate(ticket.created_at)?.toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -1643,7 +1652,7 @@ export default function TicketDetailPage() {
                           className={`text-[10px] ${isDark ? "text-slate-500" : "text-slate-400"} font-medium uppercase tracking-tighter`}
                         >
                           Assigned{" "}
-                          {new Date(ticket.assigned_at!).toLocaleDateString()}
+                          {ticket.assigned_at ? parseDate(ticket.assigned_at)?.toLocaleDateString() : "Pending"}
                         </span>
                       </div>
                     </div>
@@ -1788,7 +1797,7 @@ export default function TicketDetailPage() {
                               <span
                                 className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}
                               >
-                                {new Date(log.escalated_at).toLocaleString([], {
+                                {parseDate(log.escalated_at)?.toLocaleString([], {
                                   month: "short",
                                   day: "numeric",
                                   hour: "2-digit",
@@ -2349,7 +2358,7 @@ export default function TicketDetailPage() {
                   <p
                     className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"} mb-1`}
                   >
-                    {new Date(ticket.created_at).toLocaleString()}
+                    {parseDate(ticket.created_at)?.toLocaleString()}
                   </p>
                   <p
                     className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}
@@ -2370,8 +2379,8 @@ export default function TicketDetailPage() {
                   )
                   .sort(
                     (a, b) =>
-                      new Date(a.created_at).getTime() -
-                      new Date(b.created_at).getTime(),
+                      (parseDate(a.created_at)?.getTime() || 0) -
+                      (parseDate(b.created_at)?.getTime() || 0),
                   )
                   .map((act) => (
                     <div key={act.id} className="relative pl-12">
@@ -2383,7 +2392,7 @@ export default function TicketDetailPage() {
                       <p
                         className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"} mb-1`}
                       >
-                        {new Date(act.created_at).toLocaleString()}
+                        {parseDate(act.created_at)?.toLocaleString()}
                       </p>
                       <p
                         className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}
@@ -2420,7 +2429,7 @@ export default function TicketDetailPage() {
                     className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"} mb-1`}
                   >
                     {ticket.work_started_at
-                      ? new Date(ticket.work_started_at).toLocaleString()
+                      ? parseDate(ticket.work_started_at)?.toLocaleString()
                       : "AWAITING START"}
                   </p>
                   <p
@@ -2460,7 +2469,7 @@ export default function TicketDetailPage() {
                           className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"} mb-1`}
                         >
                           {isEffectivelyResolved
-                            ? new Date(ticket.resolved_at ?? "").toLocaleString()
+                            ? parseDate(ticket.resolved_at)?.toLocaleString()
                             : "PENDING"}
                         </p>
                         <p
@@ -2495,8 +2504,8 @@ export default function TicketDetailPage() {
                       )
                       .sort(
                         (a, b) =>
-                          new Date(a.created_at).getTime() -
-                          new Date(b.created_at).getTime(),
+                          (parseDate(a.created_at)?.getTime() || 0) -
+                          (parseDate(b.created_at)?.getTime() || 0),
                       );
 
                     const isCurrentlyPending =
@@ -2561,7 +2570,7 @@ export default function TicketDetailPage() {
                             >
                               {isThisCurrentlyPending
                                 ? "AWAITING CLIENT"
-                                : new Date(act.created_at).toLocaleString()}
+                                : parseDate(act.created_at)?.toLocaleString()}
                             </p>
                             <p
                               className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}
@@ -2604,7 +2613,7 @@ export default function TicketDetailPage() {
                           <p
                             className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"} mb-1`}
                           >
-                            {new Date(act.created_at).toLocaleString()}
+                            {parseDate(act.created_at)?.toLocaleString()}
                           </p>
                           <p
                             className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}
@@ -2707,7 +2716,7 @@ export default function TicketDetailPage() {
                       <span
                         className={`text-[9px] ${isDark ? "text-slate-600" : "text-slate-400"} font-bold uppercase whitespace-nowrap`}
                       >
-                        {new Date(act.created_at).toLocaleTimeString([], {
+                        {parseDate(act.created_at)?.toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -2822,7 +2831,7 @@ export default function TicketDetailPage() {
                             {comment.comment}
                           </p>
                           <div className={`text-[9px] font-medium ml-auto flex items-center gap-1 shrink-0 ${isMe ? "text-slate-700 dark:text-slate-300" : "text-slate-500"}`}>
-                            {new Date(comment.created_at).toLocaleTimeString([], {
+                            {parseDate(comment.created_at)?.toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}

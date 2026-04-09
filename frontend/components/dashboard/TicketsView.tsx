@@ -749,6 +749,9 @@ const TicketsView: React.FC<TicketsViewProps> = ({ propertyId, organizationId, c
                                     }
                                     ticketNumber={ticket.ticket_number}
                                     createdAt={ticket.created_at}
+                                    raisedBy={ticket.creator?.full_name}
+                                    raisedByPhotoUrl={ticket.creator?.user_photo_url}
+                                    resolvedAt={ticket.resolved_at}
                                     assignedTo={ticket.assignee?.full_name}
                                     assigneePhotoUrl={ticket.assignee?.user_photo_url}
                                     photoUrl={ticket.photo_before_url}

@@ -202,7 +202,9 @@ export default function AdminSPOCDashboard({
         if (breached) return { text: 'SLA BREACHED', color: 'text-red-400 bg-red-500/20', urgent: true };
         if (!deadline) return null;
 
-        const diffMs = new Date(deadline).getTime() - Date.now();
+        // Ensure deadline is parsed correctly even if it lacks 'Z'
+        const deadlineDate = deadline.includes('T') ? new Date(deadline.endsWith('Z') || deadline.includes('+') ? deadline : `${deadline}Z`) : new Date(`${deadline.replace(' ', 'T')}Z`);
+        const diffMs = deadlineDate.getTime() - Date.now();
         const diffMins = Math.floor(diffMs / 60000);
 
         if (diffMins < 0) return { text: 'SLA BREACHED', color: 'text-red-400 bg-red-500/20', urgent: true };
@@ -289,7 +291,10 @@ export default function AdminSPOCDashboard({
     const slaRiskTickets = tickets.filter(t => {
         if (!t.sla_deadline) return false;
         if (['resolved', 'closed', 'completed', 'pending_validation'].includes(t.status)) return false;
-        const diffMs = new Date(t.sla_deadline).getTime() - Date.now();
+        
+        // Use robust parsing
+        const deadlineDate = t.sla_deadline.includes('T') ? new Date(t.sla_deadline.endsWith('Z') || t.sla_deadline.includes('+') ? t.sla_deadline : `${t.sla_deadline}Z`) : new Date(`${t.sla_deadline.replace(' ', 'T')}Z`);
+        const diffMs = deadlineDate.getTime() - Date.now();
         return diffMs > 0 && diffMs < 60 * 60 * 1000;
     });
 

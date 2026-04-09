@@ -386,10 +386,12 @@ export async function PATCH(
                 updates.validated_at = null;
             }
 
+            const isForceClose = status === 'closed' && !['resolved', 'closed'].includes(currentTicket.status);
+
             await supabase.from('ticket_activity_log').insert({
                 ticket_id: ticketId,
                 user_id: user.id,
-                action: 'status_change',
+                action: isForceClose ? 'force_closed' : 'status_change',
                 old_value: currentTicket.status,
                 new_value: status,
             });
@@ -397,12 +399,13 @@ export async function PATCH(
                 eventBy: user.id,
                 objectType: 'ticket',
                 objectId: ticketId,
-                action: 'ticket_status_changed',
+                action: isForceClose ? 'ticket_force_closed' : 'ticket_status_changed',
                 payload: {
                     ticket_title: currentTicket.title,
                     property_id: currentTicket.property_id,
                     old_status: currentTicket.status,
                     new_status: status,
+                    forced: isForceClose
                 },
             });
         }
