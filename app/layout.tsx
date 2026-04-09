@@ -55,22 +55,32 @@ export default function RootLayout({
                             (function() {
                                 if (!('serviceWorker' in navigator)) return;
 
-                                // ── ONE-TIME CACHE PURGE ───────────────────────────────────────────
-                                // We clear all previous Serwist caches to recover the user from any
-                                // stale-chunk bugs caused by the previous caching strategy.
-                                const PURGE_KEY = 'sw_cache_purge_v3';
+                                // ── DEEP PURGE & RESET ───────────────────────────────────────────
+                                // We aggressively unregister ALL workers and clear ALL caches 
+                                // to recover from the aggressive caching bugs in previous versions.
+                                const PURGE_KEY = 'sw_deep_purge_v5';
                                 if (!localStorage.getItem(PURGE_KEY)) {
                                     localStorage.setItem(PURGE_KEY, 'true');
+                                    
+                                    // 1. Unregister EVERY found worker
+                                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                        for (let reg of regs) reg.unregister();
+                                    });
+
+                                    // 2. Delete EVERY found cache bucket
                                     if ('caches' in window) {
                                         caches.keys().then(function(keys) {
                                             keys.forEach(function(key) { caches.delete(key); });
                                         });
                                     }
+                                    
+                                    // 3. Force a one-time clean reload
+                                    console.log('[Deep Purge] Cleaning up old workers/caches and reloading...');
+                                    setTimeout(function() { window.location.reload(); }, 500);
+                                    return;
                                 }
 
                                 // ── Minimal Registration for Push Notifications ───────────────────
-                                // We keep the Service Worker registered ONLY for notifications.
-                                // The new sw.js has no fetch listener, so all requests are native.
                                 window.addEventListener('load', function() {
                                     navigator.serviceWorker.register('/sw.js').catch(function() {});
                                 });

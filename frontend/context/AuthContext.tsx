@@ -74,8 +74,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsMembershipLoading(true);
 
         try {
-            // Parallelize membership and profile fetches for performance
-            const [orgResult, propResult, profileResult] = await Promise.all([
+            // Parallelize membership and profile fetches with a hard 7-second timeout
+            // to prevent the "Verifying access..." hang if Supabase is slow or unresponsive.
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Membership fetch timeout')), 7000)
+            );
+
+            const fetchPromise = Promise.all([
                 supabase
                     .from('organization_memberships')
                     .select(`
@@ -86,7 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         )
                     `)
                     .eq('user_id', userId)
-                    .eq('is_active', true),
+                    .eq('is_active', true)
+                    .then(res => { if (res.error) throw res.error; return res.data; }),
                 supabase
                     .from('property_memberships')
                     .select(`
@@ -99,17 +105,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         )
                     `)
                     .eq('user_id', userId)
-                    .eq('is_active', true),
+                    .eq('is_active', true)
+                    .then(res => { if (res.error) throw res.error; return res.data; }),
                 supabase
                     .from('users')
                     .select('is_master_admin')
                     .eq('id', userId)
                     .maybeSingle()
+                    .then(res => { if (res.error) throw res.error; return res.data; })
             ]);
 
-            const orgData = orgResult.data;
-            const propData = propResult.data;
-            const profileData = profileResult.data;
+            const [orgData, propData, profileData] = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
             // Sort orgs to pick the "best" one for the primary context (admin roles first)
             const sortedOrgs = [...(orgData || [])].sort((a, b) => {

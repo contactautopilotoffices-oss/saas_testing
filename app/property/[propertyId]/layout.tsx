@@ -114,6 +114,19 @@ export default function PropertyLayout({
         checkPropertyAccess();
     }, [user, authLoading, isMembershipLoading, membership, propertyId, pathname, router]);
 
+    // ── FAIL-SAFE: Loader Timeout ──────────────────────────────────────────
+    // If access verification takes more than 5 seconds, we clear the loading 
+    // state to prevent the user from being stuck indefinitely.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (isCheckingAccess) {
+                console.warn('[Access Fail-Safe] Verification timed out — clearing loader');
+                setIsCheckingAccess(false);
+            }
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [isCheckingAccess]);
+
     // Loading state
     if (authLoading || isMembershipLoading || isCheckingAccess) {
         return (
