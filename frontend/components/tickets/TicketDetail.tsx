@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, User, MapPin, Send, CheckCircle, Circle, Camera, Aler
 import { motion } from 'framer-motion';
 import EnhancedClassificationBadge from './EnhancedClassificationBadge';
 import MediaCaptureModal, { MediaFile } from '@/frontend/components/shared/MediaCaptureModal';
+import { parseDate } from '@/frontend/utils/date';
 
 interface TicketDetailProps {
     ticketId: string;

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Pencil, Trash2, CheckCircle2, XCircle, Share2, Timer, Box } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ShareModal from './ShareModal';
+import { parseDate } from '@/frontend/utils/date';
 
 /**
  * THE Standard Ticket Card Component
@@ -88,15 +89,6 @@ export default function TicketCard({
     onReject,
     hasMaterialRequest,
 }: TicketCardProps) {
-    // Helper to parse timestamps robustly
-    const parseDate = (d: string | null | undefined): Date | null => {
-        if (!d) return null;
-        if (d.includes('T')) {
-            return new Date(d.endsWith('Z') || d.includes('+') ? d : `${d}Z`);
-        }
-        return new Date(`${d.replace(' ', 'T')}Z`);
-    };
-
     const dateObj = parseDate(createdAt) || new Date();
     const dateStr = dateObj.toLocaleDateString('en-US', {
         day: '2-digit',

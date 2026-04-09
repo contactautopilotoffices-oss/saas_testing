@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { parseDate } from "@/frontend/utils/date";
 import { createClient } from "@/frontend/utils/supabase/client";
 import {
   ArrowLeft,
@@ -202,15 +203,6 @@ export default function TicketDetailPage() {
   const [activeCameraType, setActiveCameraType] = useState<
     "before" | "after" | null
   >(null);
-
-  // Helper to parse timestamps robustly (ensures UTC when no timezone specified)
-  const parseDate = (d: string | null | undefined): Date | null => {
-    if (!d) return null;
-    if (d.includes("T")) {
-      return new Date(d.endsWith("Z") || d.includes("+") ? d : `${d}Z`);
-    }
-    return new Date(`${d.replace(" ", "T")}Z`);
-  };
 
   function startPeek(url: string) {
     peekTimerRef.current = setTimeout(() => setPeekUrl(url), 350);
