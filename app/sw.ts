@@ -49,26 +49,32 @@ const serwist = new Serwist({
     navigationPreload: true,
 
     runtimeCaching: [
-        // ── LAYER 1: Auth & API routes (REMOVED) ────────────────────────
-        // We purposefully DO NOT intercept auth and API routes at all.
-        // Allowing the browser to handle these natively allows OAuth 302 
-        // redirects to external domains (like Google/Zoho) to execute normally.
+        // ── LAYER 0: Critical Entry Points (HARD EXCLUSION) ─────────────
+        // We force these to be NetworkOnly to ensure that:
+        // 1. Auth states are always fresh.
+        // 2. OAuth redirects (Google/Zoho) are never intercepted by SW logic.
+        // 3. The HTML (which contains JS chunk hashes) is never stale.
+        {
+            matcher: ({ url }) =>
+                url.pathname === "/" ||
+                url.pathname === "/login" ||
+                url.pathname.startsWith("/login/") ||
+                url.pathname.startsWith("/api/auth/"),
+            handler: new NetworkOnly(),
+        },
 
-        // ── LAYER 2: Next.js page navigation — short cache, network first ────
-        // IMPORTANT: We intentionally exclude "/" and "/login" from the cache.
-        // These are the entry-point pages whose HTML references specific JS chunk
-        // hashes. If stale HTML is served (from cache) after a new deployment,
-        // the chunks won't exist → React fails to hydrate → infinite loading.
+        // ── LAYER 1: Next.js page navigation — short cache, network first ────
+        // We keep this for other pages to allow offline view of previously seen content.
         {
             matcher: ({ request, url, sameOrigin }) =>
                 request.headers.get("Accept")?.includes("text/html") &&
                 sameOrigin &&
                 !url.pathname.startsWith("/api/") &&
-                url.pathname !== "/" &&        // Never cache root — always get fresh HTML
-                url.pathname !== "/login",     // Never cache login — auth state must be fresh
+                url.pathname !== "/" &&
+                !url.pathname.startsWith("/login"),
             handler: new NetworkFirst({
                 cacheName: "pages",
-                networkTimeoutSeconds: 3,      // Faster fallback (was 5s — too slow)
+                networkTimeoutSeconds: 3,
             }),
         },
 
