@@ -2670,6 +2670,37 @@ export default function TicketDetailPage() {
 
                     return <>{nodes}</>;
                   })()}
+
+                {/* 7. Force Closed — only shown if the action exists in activities */}
+                {activities.some((a) => a.action === "force_closed") && (
+                  <div className="relative pl-12">
+                    <div
+                      className={`absolute left-0 top-0 mt-0.5 z-10 w-8 h-8 rounded-full flex items-center justify-center bg-rose-500 text-white ring-4 ${isDark ? "ring-[#161b22]" : "ring-white"} shadow-rose-500/20 shadow-lg`}
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </div>
+                    <p
+                      className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"} mb-1`}
+                    >
+                      {parseDate(
+                        activities.find((a) => a.action === "force_closed")
+                          ?.created_at || "",
+                      )?.toLocaleString()}
+                    </p>
+                    <p
+                      className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}
+                    >
+                      Ticket Force Closed
+                    </p>
+                    <p
+                      className={`text-xs ${isDark ? "text-rose-400" : "text-rose-600"} font-medium`}
+                    >
+                      Administratively closed by{" "}
+                      {activities.find((a) => a.action === "force_closed")?.user
+                        ?.full_name || "System"}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div
@@ -2697,7 +2728,11 @@ export default function TicketDetailPage() {
                           >
                             {act.user?.full_name || "System"}:
                           </span>{" "}
-                          {act.action.replace(/_/g, " ")}
+                          <span
+                            className={`${act.action === "force_closed" ? "text-rose-500 font-black uppercase tracking-tighter" : ""}`}
+                          >
+                            {act.action.replace(/_/g, " ")}
+                          </span>
                           {act.new_value && (
                             <span className="text-success font-bold ml-1">
                               → {userNameMap[act.new_value] || act.new_value}

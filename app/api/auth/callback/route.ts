@@ -73,17 +73,18 @@ export async function GET(request: Request) {
                     .maybeSingle(),
 
                 // C. Check Property Membership
+                // Fetch all and take first to avoid errors when a user belongs to multiple properties
                 supabase
                     .from('property_memberships')
                     .select('property_id, organization_id, role')
                     .eq('user_id', user.id)
                     .eq('is_active', true)
-                    .maybeSingle()
+                    .order('created_at', { ascending: false })
             ]);
 
             const { data: dbUser, error: profileError } = profileResult;
             const { data: orgMembership } = orgResult;
-            const { data: propMembership } = propResult;
+            const propMembership = propResult.data?.[0]; // Get the first active property membership
 
             if (profileError) console.error('Profile Error:', profileError.message);
 

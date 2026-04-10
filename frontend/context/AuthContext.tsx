@@ -10,6 +10,8 @@ interface UserMembership {
     org_name: string | null;
     org_role: string | null;
     is_master_admin: boolean;
+    onboarding_completed: boolean;
+    error?: boolean;
     all_org_memberships: {
         org_id: string;
         role: string;
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     .then(res => { if (res.error) throw res.error; return res.data; }),
                 supabase
                     .from('users')
-                    .select('is_master_admin')
+                    .select('is_master_admin, onboarding_completed')
                     .eq('id', userId)
                     .maybeSingle()
                     .then(res => { if (res.error) throw res.error; return res.data; })
@@ -132,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 org_name: (primaryOrg?.organization as any)?.name || null,
                 org_role: primaryOrg?.role || null,
                 is_master_admin: !!profileData?.is_master_admin,
+                onboarding_completed: !!profileData?.onboarding_completed,
                 // Include all org memberships for access checks in layouts
                 all_org_memberships: (orgData as any[])?.map((m: any) => ({
                     org_id: (m.organization as any)?.id,
@@ -151,6 +154,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setMembership(membershipData);
         } catch (err) {
             console.error('Membership fetch error:', err);
+            // On error, set membership with error flag so consumers know it failed
+            setMembership({
+                org_id: null,
+                org_name: null,
+                org_role: null,
+                is_master_admin: false,
+                onboarding_completed: false,
+                all_org_memberships: [],
+                properties: [],
+                error: true
+            });
         } finally {
             fetchingRef.current = false;
             setIsMembershipLoading(false);
@@ -185,8 +199,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(session);
             setUser(session?.user ?? null);
 
-            if (event === 'SIGNED_IN' && session?.user) {
-                await fetchMembership(session.user.id);
+            if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+                // Do not await here if we just want to kick it off, async is fine
+                fetchMembership(session.user.id);
             } else if (event === 'SIGNED_OUT') {
                 setMembership(null);
                 if (user?.id) membershipCache.delete(user.id);

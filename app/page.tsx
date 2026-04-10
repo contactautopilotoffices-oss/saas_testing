@@ -35,6 +35,12 @@ export default function Home() {
             setIsRedirecting(true);
 
             try {
+                if (membership?.error) {
+                    console.error('Membership data had an error, redirecting to login with error.');
+                    router.replace('/login?error=auth_failed');
+                    return;
+                }
+
                 // 1. Check if user is master admin (now provided by context for speed)
                 if (membership?.is_master_admin) {
                     router.replace('/master');
@@ -77,10 +83,16 @@ export default function Home() {
                     return;
                 }
 
-                // 4. NO MEMBERSHIP FOUND - Redirect to onboarding rather than purging
-                // This allows new users (like Zoho sign-ups) to finish setup.
-                console.log('User logged in but no memberships found. Redirecting to onboarding.');
-                router.replace('/onboarding');
+                // 4. NO MEMBERSHIP FOUND
+                // If the user already completed onboarding but has no active memberships, 
+                // send them to no access rather than forcing them to onboard again.
+                if (membership?.onboarding_completed) {
+                    console.log('User has no memberships but already onboarded. Redirecting to no access.');
+                    router.replace('/login?error=no_access');
+                } else {
+                    console.log('User logged in but no memberships found and not onboarded. Redirecting to onboarding.');
+                    router.replace('/onboarding');
+                }
             } catch (err) {
                 console.error('Redirect error:', err);
                 setIsRedirecting(false); // Fallback to landing if DB call fails
