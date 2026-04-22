@@ -123,85 +123,57 @@ export async function POST(
         const isHistorical = finalCompletionDate !== new Date().toISOString().split('T')[0];
 
         // ── Time Window Enforcement (Global) ──────────────────────────────────
-        // If start_time/end_time are set, strictly enforce the window for ALL frequencies.
-        // BYPASS window enforcement if it's a historical completion (Resume Late)
         const startTime = (template as any).start_time;
         const endTime = (template as any).end_time;
         const now = new Date();
         const nowMins = now.getHours() * 60 + now.getMinutes();
 
-        if ((startTime || endTime) && !isAdmin && !isHistorical) {
-            const [sH, sM] = (startTime ?? '00:00').slice(0, 5).split(':').map(Number);
-            const [eH, eM] = (endTime ?? '23:59').slice(0, 5).split(':').map(Number);
-            const startMins = sH * 60 + sM;
-            const endMins = eH * 60 + eM;
-            
-            const isOvernight = endMins <= startMins;
-            const withinWindow = isOvernight
-                ? (nowMins >= startMins || nowMins < endMins)
-                : (nowMins >= startMins && nowMins <= endMins);
-            
-            if (!withinWindow) {
-                // If it's before the start of a non-overnight window
-                if (!isOvernight && nowMins < startMins) {
-                    return NextResponse.json({ error: 'Checklist window has not started yet' }, { status: 400 });
-                }
-                return NextResponse.json({ error: 'Checklist window is currently closed' }, { status: 400 });
-            }
-        }
-
-        // ── Compute slot_time for hourly templates ────────────────────────────
-        // Slot = start of the current interval window (e.g. "13:00" for the 1 PM slot).
-        // Daily/weekly templates use slot_time = null (one per day).
+        // ── Compute slot_time and due_at ──────────────────────────────────────
         let slotTime: string | null = null;
+        let dueAt: string | null = null;
+        
         const hourlyMatch = (template as any).frequency?.match(/^every_(\d+)_hours?$/);
         if (hourlyMatch && startTime) {
             const intervalH = parseInt(hourlyMatch[1]);
             const [sH, sM] = startTime.slice(0, 5).split(':').map(Number);
             const startMins = sH * 60 + sM;
-            const elapsed = nowMins - startMins;
+            const [eH, eM] = (endTime || '23:59').slice(0, 5).split(':').map(Number);
+            const endMins = eH * 60 + eM;
 
-            const slotIndex = Math.floor(elapsed / (intervalH * 60));
-            const slotStartMins = startMins + slotIndex * intervalH * 60;
-
-            // Strict hourly-end check: the slot must fully FIT within the window
-            if (endTime) {
-                const [eH, eM] = endTime.slice(0, 5).split(':').map(Number);
-                const endMins = eH * 60 + eM;
-                const lastValidSlotStart = startMins + Math.floor((endMins - startMins - intervalH * 60) / (intervalH * 60)) * intervalH * 60;
-
-                if (slotStartMins > lastValidSlotStart && !isAdmin) {
-                    return NextResponse.json({ error: 'Checklist window has closed for today' }, { status: 400 });
-                }
+            const isOvernight = endMins < startMins;
+            let adjustedNowMins = nowMins;
+            if (isOvernight && nowMins < startMins) {
+                adjustedNowMins += 1440; // Past midnight in overnight window
             }
 
-            const h = Math.floor(slotStartMins / 60) % 24;
-            const mn = slotStartMins % 60;
-            slotTime = `${String(h).padStart(2, '0')}:${String(mn).padStart(2, '0')}`;
+            const elapsed = adjustedNowMins - startMins;
+            const slotIndex = Math.floor(elapsed / (intervalH * 60));
+            const slotStartOffsetMins = slotIndex * intervalH * 60;
+
+            // Calculate the actual timestamp for this slot
+            const baseDate = new Date(finalCompletionDate + 'T' + startTime + 'Z');
+            const slotDate = new Date(baseDate.getTime() + slotStartOffsetMins * 60_000);
+            
+            dueAt = slotDate.toISOString();
+            slotTime = slotDate.toISOString().slice(11, 19);
+        } else if (template.frequency === 'daily') {
+            slotTime = startTime || '00:00:00';
+            dueAt = `${finalCompletionDate}T${slotTime}Z`;
         }
 
-        // ── Deduplicate: one record per slot ─────────────────────────────────
-        // Three cases:
-        //   1. Hourly WITH start_time  → match exact slot_time column (any status)
-        //   2. Hourly WITHOUT start_time → any record created within the last intervalH hours
-        //   3. Daily/weekly/monthly → resume in_progress from today only
+        // ── Dedup / Resume existing completion ──────────────────────────────
         let existingCompletion: any = null;
 
-        if (slotTime) {
-            // Case 1: slot_time-based dedup — one record per labelled slot window
+        if (dueAt) {
             const { data } = await supabaseAdmin
                 .from('sop_completions')
                 .select('*, items:sop_completion_items(*)')
                 .eq('template_id', templateId)
-                .eq('property_id', propertyId)
-                .eq('completion_date', finalCompletionDate)
-                .eq('slot_time', slotTime)
-                .order('created_at', { ascending: false })
-                .limit(1);
-            existingCompletion = data?.[0] ?? null;
+                .eq('due_at', dueAt)
+                .maybeSingle();
+            
+            existingCompletion = data;
         } else if (hourlyMatch) {
-            // Case 2: floating hourly — block if any record (any status) was created
-            // within the last intervalH hours (i.e. within the same effective window)
             const intervalH = parseInt(hourlyMatch[1]);
             const cutoff = new Date(Date.now() - intervalH * 3_600_000).toISOString();
             const { data } = await supabaseAdmin
@@ -214,24 +186,64 @@ export async function POST(
                 .limit(1);
             existingCompletion = data?.[0] ?? null;
         } else {
-            // Case 3: daily/weekly/monthly — resume in_progress only
             const { data } = await supabaseAdmin
                 .from('sop_completions')
                 .select('*, items:sop_completion_items(*)')
                 .eq('template_id', templateId)
                 .eq('property_id', propertyId)
                 .eq('completion_date', finalCompletionDate)
-                .eq('status', 'in_progress')
+                .in('status', ['in_progress', 'pending', 'missed'])
                 .order('created_at', { ascending: false })
                 .limit(1);
             existingCompletion = data?.[0] ?? null;
         }
 
-        if (existingCompletion) {
+        // ── Bypass window check if record already exists (Pending/Missed) ───
+        // If the checklist was already scheduled/missed, we allow filling it even if window is closed.
+        if ((startTime || endTime) && !isAdmin && !isHistorical) {
+            // Only enforce window for FRESH creations (not pre-existing slots)
+            if (!existingCompletion) {
+                const [sH, sM] = (startTime ?? '00:00').slice(0, 5).split(':').map(Number);
+                const [eH, eM] = (endTime ?? '23:59').slice(0, 5).split(':').map(Number);
+                const startMins = sH * 60 + sM;
+                const endMins = eH * 60 + eM;
+                
+                const isOvernight = endMins <= startMins;
+                const withinWindow = isOvernight
+                    ? (nowMins >= startMins || nowMins < endMins)
+                    : (nowMins >= startMins && nowMins <= endMins);
+                
+                if (!withinWindow) {
+                    if (!isOvernight && nowMins < startMins) {
+                        return NextResponse.json({ error: 'Checklist window has not started yet' }, { status: 400 });
+                    }
+                    return NextResponse.json({ error: 'Checklist window is currently closed' }, { status: 400 });
+                }
+            }
+        }
+
+        // If PENDING or MISSED, transition to IN_PROGRESS
+        if (existingCompletion && (existingCompletion.status === 'pending' || existingCompletion.status === 'missed')) {
+            const { data: updated, error: updateError } = await supabaseAdmin
+                .from('sop_completions')
+                .update({ 
+                    status: 'in_progress', 
+                    completed_by: user.id,
+                    is_late: existingCompletion.status === 'missed' // Set is_late if it was already missed
+                })
+                .eq('id', existingCompletion.id)
+                .select('*, items:sop_completion_items(*)')
+                .single();
+            
+            if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+            return NextResponse.json({ success: true, completion: updated });
+        }
+
+        if (existingCompletion && existingCompletion.status === 'in_progress') {
             return NextResponse.json({ success: true, completion: existingCompletion });
         }
 
-        // Create completion (use admin so open-template staff can always insert)
+        // ── Create New Completion (Fallback) ───────────────────────────────
         const { data: completion, error: completionError } = await supabaseAdmin
             .from('sop_completions')
             .insert({
@@ -242,7 +254,8 @@ export async function POST(
                 completion_date: finalCompletionDate,
                 status: 'in_progress',
                 notes,
-                ...(slotTime ? { slot_time: slotTime } : {}),
+                due_at: dueAt,
+                slot_time: slotTime,
             })
             .select()
             .single();
@@ -251,25 +264,7 @@ export async function POST(
             return NextResponse.json({ error: completionError.message }, { status: 500 });
         }
 
-        // Create completion items from template items (admin bypasses RLS)
-        const items: any[] = (template as any).items || [];
-        if (items.length > 0) {
-            const completionItemsToInsert = items.map((item: any) => ({
-                completion_id: completion.id,
-                checklist_item_id: item.id,
-                is_checked: false,
-            }));
-
-            const { error: insertError } = await supabaseAdmin
-                .from('sop_completion_items')
-                .insert(completionItemsToInsert);
-
-            if (insertError) {
-                return NextResponse.json({ error: insertError.message }, { status: 500 });
-            }
-        }
-
-        // Fetch full completion with items (admin bypasses RLS)
+        // Fetch full completion with items (cloned by trigger)
         const { data: completeCompletion } = await supabaseAdmin
             .from('sop_completions')
             .select('*, items:sop_completion_items(*)')
