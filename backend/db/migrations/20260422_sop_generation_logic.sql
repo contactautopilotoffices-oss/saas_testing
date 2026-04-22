@@ -19,8 +19,8 @@ BEGIN
     LOOP
         -- Handle Daily
         IF template_rec.frequency = 'daily' THEN
-            -- Use start_time if provided, else midnight
-            slot_due_at := (p_target_date + COALESCE(template_rec.start_time, '00:00:00'::TIME))::TIMESTAMPTZ;
+            -- Use start_time if provided, else midnight. Interpret as Asia/Kolkata.
+            slot_due_at := (p_target_date + COALESCE(template_rec.start_time, '00:00:00'::TIME)) AT TIME ZONE 'Asia/Kolkata';
             
             INSERT INTO sop_completions (
                 template_id, 
@@ -28,7 +28,8 @@ BEGIN
                 organization_id, 
                 due_at, 
                 status, 
-                completion_date
+                completion_date,
+                slot_time
             )
             VALUES (
                 template_rec.id, 
@@ -36,7 +37,8 @@ BEGIN
                 template_rec.organization_id, 
                 slot_due_at, 
                 'pending', 
-                p_target_date
+                (slot_due_at AT TIME ZONE 'Asia/Kolkata')::DATE,
+                (slot_due_at AT TIME ZONE 'Asia/Kolkata')::TIME
             )
             ON CONFLICT (template_id, due_at) DO NOTHING;
             
@@ -61,7 +63,8 @@ BEGIN
             
             -- Generate slots starting from start_time up to start_time + duration
             WHILE offset_mins <= window_duration_mins LOOP
-                slot_due_at := (p_target_date + template_rec.start_time)::TIMESTAMPTZ + (offset_mins || ' minutes')::INTERVAL;
+                -- Treat (p_target_date + start_time) as Asia/Kolkata wall-clock time
+                slot_due_at := ((p_target_date + template_rec.start_time) AT TIME ZONE 'Asia/Kolkata') + (offset_mins || ' minutes')::INTERVAL;
                 
                 INSERT INTO sop_completions (
                     template_id, 
@@ -69,7 +72,8 @@ BEGIN
                     organization_id, 
                     due_at, 
                     status, 
-                    completion_date
+                    completion_date,
+                    slot_time
                 )
                 VALUES (
                     template_rec.id, 
@@ -77,7 +81,8 @@ BEGIN
                     template_rec.organization_id, 
                     slot_due_at, 
                     'pending', 
-                    (slot_due_at AT TIME ZONE 'UTC')::DATE -- Store the actual date this slot falls on
+                    (slot_due_at AT TIME ZONE 'Asia/Kolkata')::DATE, -- Date in India
+                    (slot_due_at AT TIME ZONE 'Asia/Kolkata')::TIME  -- Time in India
                 )
                 ON CONFLICT (template_id, due_at) DO NOTHING;
                 

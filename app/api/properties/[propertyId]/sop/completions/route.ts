@@ -119,14 +119,35 @@ export async function POST(
             return NextResponse.json({ error: 'Template not found' }, { status: 404 });
         }
 
-        const finalCompletionDate = completionDate || new Date().toISOString().split('T')[0];
-        const isHistorical = finalCompletionDate !== new Date().toISOString().split('T')[0];
+        const now = new Date();
+
+        // Robustly get India Standard Time (IST) hours and minutes
+        const indiaFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Kolkata',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: false
+        });
+        const parts = indiaFormatter.formatToParts(now);
+        const indiaH = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+        const indiaM = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+        const nowMins = indiaH * 60 + indiaM;
+
+        // India-local date string (YYYY-MM-DD)
+        const indiaDateFormatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+        const indiaDate = indiaDateFormatter.format(now);
+
+        const finalCompletionDate = completionDate || indiaDate;
+        const isHistorical = finalCompletionDate !== indiaDate;
 
         // ── Time Window Enforcement (Global) ──────────────────────────────────
         const startTime = (template as any).start_time;
         const endTime = (template as any).end_time;
-        const now = new Date();
-        const nowMins = now.getHours() * 60 + now.getMinutes();
 
         // ── Compute slot_time and due_at ──────────────────────────────────────
         let slotTime: string | null = null;
@@ -150,15 +171,23 @@ export async function POST(
             const slotIndex = Math.floor(elapsed / (intervalH * 60));
             const slotStartOffsetMins = slotIndex * intervalH * 60;
 
-            // Calculate the actual timestamp for this slot
-            const baseDate = new Date(finalCompletionDate + 'T' + startTime + 'Z');
-            const slotDate = new Date(baseDate.getTime() + slotStartOffsetMins * 60_000);
-            
-            dueAt = slotDate.toISOString();
-            slotTime = slotDate.toISOString().slice(11, 19);
+            const slotStartTotalMins = startMins + slotStartOffsetMins;
+            const slotH = Math.floor(slotStartTotalMins / 60) % 24;
+            const slotM = slotStartTotalMins % 60;
+            const isNextDay = slotStartTotalMins >= 1440;
+
+            let slotDateStr = finalCompletionDate;
+            if (isNextDay) {
+                const d = new Date(finalCompletionDate);
+                d.setDate(d.getDate() + 1);
+                slotDateStr = d.toISOString().split('T')[0];
+            }
+
+            slotTime = `${String(slotH).padStart(2, '0')}:${String(slotM).padStart(2, '0')}:00`;
+            dueAt = `${slotDateStr}T${slotTime}+05:30`;
         } else if (template.frequency === 'daily') {
             slotTime = startTime || '00:00:00';
-            dueAt = `${finalCompletionDate}T${slotTime}Z`;
+            dueAt = `${finalCompletionDate}T${slotTime}+05:30`;
         }
 
         // ── Dedup / Resume existing completion ──────────────────────────────
