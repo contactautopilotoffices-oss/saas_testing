@@ -56,17 +56,42 @@ function getCompletionSlot(
     timestampStr: string | null,
     frequency: string,
     startTime?: string | null,
+    explicitSlotTime?: string | null
 ): string | null {
     const intervalHours = parseHourlyInterval(frequency);
-    if (!intervalHours || !startTime || !timestampStr) return null;
+    if (!intervalHours || !startTime) return null;
 
+    if (explicitSlotTime) {
+        const [h, m] = explicitSlotTime.slice(0, 5).split(':').map(Number);
+        const start = h * 60 + m;
+        const end = start + intervalHours * 60;
+        const fmt = (mins: number) => {
+            const hh = Math.floor(mins / 60) % 24;
+            const mm = mins % 60;
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        };
+        return `${fmt(start)} – ${fmt(end)}`;
+    }
+
+    if (!timestampStr) return null;
+
+    // Use India local time for slot calculation
     const dt = new Date(timestampStr);
+    const indiaTime = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false
+    }).format(dt);
+    
+    const [dtH, dtM] = indiaTime.split(':').map(Number);
     const [sH, sM] = startTime.slice(0, 5).split(':').map(Number);
+    
     const startMins = sH * 60 + sM;
-    const dtMins = dt.getHours() * 60 + dt.getMinutes();
+    const dtMins = dtH * 60 + dtM;
     
     let elapsed = dtMins - startMins;
-    if (elapsed < 0) elapsed += 1440; // Handle overnight wrap-around
+    if (elapsed < 0) elapsed += 1440; 
 
     const slotIndex = Math.floor(elapsed / (intervalHours * 60));
     const slotStartMins = startMins + slotIndex * intervalHours * 60;
@@ -862,7 +887,9 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                 <AnimatePresence>
                     {/* Merge completions + missed alerts, sorted newest first */}
                     {[
-                        ...completions.map((c: any) => ({ type: 'completion' as const, data: c, sortTs: c.completed_at || c.created_at || c.completion_date })),
+                        ...completions
+                            .filter((c: any) => c.status !== 'pending') // Only show active/completed/missed in history
+                            .map((c: any) => ({ type: 'completion' as const, data: c, sortTs: c.due_at || c.created_at })),
                     ]
                         .sort((a, b) => new Date(b.sortTs).getTime() - new Date(a.sortTs).getTime())
                         .map((entry, index) => {
@@ -878,9 +905,8 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                         // Compute time slot label (e.g. "9:00 AM – 12:00 PM")
                         const slot = (() => {
                             const tmpl = completion.template;
-                            // Use created_at (when session was opened = within the correct slot)
-                            // NOT completed_at — a late submission can fall into the next slot's time range
-                            const ts = completion.created_at || completion.completed_at;
+                            // Use explicit slot_time if available, else due_at/created_at
+                            const ts = completion.due_at || completion.created_at;
                             const to12 = (hhmm: string) => {
                                 const [h, m] = hhmm.slice(0, 5).split(':').map(Number);
                                 const ampm = h >= 12 ? 'PM' : 'AM';
@@ -888,7 +914,7 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                                 return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
                             };
                             // 1. Hourly + start_time → compute exact slot window
-                            const computed = getCompletionSlot(ts, tmpl?.frequency, tmpl?.start_time);
+                            const computed = getCompletionSlot(ts, tmpl?.frequency, tmpl?.start_time, completion.slot_time);
                             if (computed) {
                                 const [s, e] = computed.split(' – ');
                                 return `${to12(s)} – ${to12(e)}`;
