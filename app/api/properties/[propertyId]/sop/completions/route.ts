@@ -81,12 +81,13 @@ export async function POST(
         const body = await request.json();
         const { templateId, completionDate, notes } = body;
 
-        // Fetch user role for this property to allow admin bypass
+        // Fetch user role for this property to allow admin bypass (e.g. for historical edits or other special logic)
         const { data: membership } = await supabaseAdmin
-            .from('memberships')
+            .from('property_memberships')
             .select('role')
             .eq('property_id', propertyId)
             .eq('user_id', user.id)
+            .eq('is_active', true)
             .maybeSingle();
         
         const userRole = (membership?.role || '').toLowerCase();
@@ -142,8 +143,29 @@ export async function POST(
         });
         const indiaDate = indiaDateFormatter.format(now);
 
-        const finalCompletionDate = completionDate || indiaDate;
-        const isHistorical = finalCompletionDate !== indiaDate;
+        // ── Effective Date Logic for Overnight Shifts ────────────────────────
+        // If a shift starts at 10 PM and ends at 7 AM, a user opening it at 2 AM
+        // on the 24th is likely completing the "23rd" checklist.
+        let effectiveDate = indiaDate;
+        const startTime_raw = (template as any).start_time;
+        const endTime_raw = (template as any).end_time;
+        if (startTime_raw && endTime_raw) {
+            const [sH, sM] = startTime_raw.slice(0, 5).split(':').map(Number);
+            const [eH, eM] = endTime_raw.slice(0, 5).split(':').map(Number);
+            const startM = sH * 60 + sM;
+            const endM = eH * 60 + eM;
+            const isOvernight = endM < startM;
+
+            if (isOvernight && nowMins < endM) {
+                // Currently in the early morning part of an overnight shift.
+                // Shift the effective date back by 1 day.
+                const yesterday = new Date(now.getTime() - 86400000);
+                effectiveDate = indiaDateFormatter.format(yesterday);
+            }
+        }
+
+        const finalCompletionDate = completionDate || effectiveDate;
+        const isHistorical = !!completionDate && completionDate !== effectiveDate;
 
         // ── Time Window Enforcement (Global) ──────────────────────────────────
         const startTime = (template as any).start_time;
@@ -184,10 +206,12 @@ export async function POST(
             }
 
             slotTime = `${String(slotH).padStart(2, '0')}:${String(slotM).padStart(2, '0')}:00`;
-            dueAt = `${slotDateStr}T${slotTime}+05:30`;
-        } else if (template.frequency === 'daily') {
-            slotTime = startTime || '00:00:00';
-            dueAt = `${finalCompletionDate}T${slotTime}+05:30`;
+            dueAt = new Date(`${slotDateStr}T${slotTime}+05:30`).toISOString();
+        } else {
+            // For all other frequencies (daily, weekly, monthly, etc.)
+            // we anchor to the start of the day if no specific slot is defined.
+            slotTime = startTime ? (startTime.length === 5 ? `${startTime}:00` : startTime) : '00:00:00';
+            dueAt = new Date(`${finalCompletionDate}T${slotTime}+05:30`).toISOString();
         }
 
         // ── Dedup / Resume existing completion ──────────────────────────────
@@ -202,108 +226,91 @@ export async function POST(
                 .maybeSingle();
             
             existingCompletion = data;
-        } else if (hourlyMatch) {
-            const intervalH = parseInt(hourlyMatch[1]);
-            const cutoff = new Date(Date.now() - intervalH * 3_600_000).toISOString();
-            const { data } = await supabaseAdmin
-                .from('sop_completions')
-                .select('*, items:sop_completion_items(*)')
-                .eq('template_id', templateId)
-                .eq('property_id', propertyId)
-                .gte('created_at', cutoff)
-                .order('created_at', { ascending: false })
-                .limit(1);
-            existingCompletion = data?.[0] ?? null;
-        } else {
+        } 
+        
+        // If we still don't have an existing completion, do a final fallback search 
+        // based on the template and date (prevents duplicates for non-hourly templates)
+        if (!existingCompletion) {
             const { data } = await supabaseAdmin
                 .from('sop_completions')
                 .select('*, items:sop_completion_items(*)')
                 .eq('template_id', templateId)
                 .eq('property_id', propertyId)
                 .eq('completion_date', finalCompletionDate)
-                .in('status', ['in_progress', 'pending', 'missed'])
                 .order('created_at', { ascending: false })
                 .limit(1);
             existingCompletion = data?.[0] ?? null;
         }
 
-        // ── Bypass window check if record already exists (Pending/Missed) ───
-        // If the checklist was already scheduled/missed, we allow filling it even if window is closed.
-        if ((startTime || endTime) && !isAdmin && !isHistorical) {
-            // Only enforce window for FRESH creations (not pre-existing slots)
-            if (!existingCompletion) {
-                const [sH, sM] = (startTime ?? '00:00').slice(0, 5).split(':').map(Number);
-                const [eH, eM] = (endTime ?? '23:59').slice(0, 5).split(':').map(Number);
-                const startMins = sH * 60 + sM;
-                const endMins = eH * 60 + eM;
+        // ── Check if we should allow on-demand generation ───────────────────
+        // [REMOVED] User requested absolute restriction. No on-demand generation allowed.
+
+        if (!existingCompletion) {
+            // Generate on-the-fly if missing. This is a fallback for missed pre-generation.
+            // Admin bypass is implied since we are creating a valid slot.
+            const { data: newCompletion, error: insertError } = await supabaseAdmin
+                .from('sop_completions')
+                .insert({
+                    template_id: templateId,
+                    property_id: propertyId,
+                    organization_id: property.organization_id,
+                    due_at: dueAt,
+                    completion_date: finalCompletionDate,
+                    slot_time: slotTime,
+                    status: 'pending'
+                })
+                .select('*, items:sop_completion_items(*)')
+                .maybeSingle();
+
+            if (insertError) {
+                // If it's a unique constraint error, someone else might have just created it.
+                // Try to fetch it one last time.
+                const { data: retry } = await supabaseAdmin
+                    .from('sop_completions')
+                    .select('*, items:sop_completion_items(*)')
+                    .eq('template_id', templateId)
+                    .eq('due_at', dueAt)
+                    .maybeSingle();
                 
-                const isOvernight = endMins <= startMins;
-                const withinWindow = isOvernight
-                    ? (nowMins >= startMins || nowMins < endMins)
-                    : (nowMins >= startMins && nowMins <= endMins);
-                
-                if (!withinWindow) {
-                    if (!isOvernight && nowMins < startMins) {
-                        return NextResponse.json({ error: 'Checklist window has not started yet' }, { status: 400 });
-                    }
-                    return NextResponse.json({ error: 'Checklist window is currently closed' }, { status: 400 });
+                if (!retry) {
+                    return NextResponse.json({ error: 'Failed to create checklist session: ' + insertError.message }, { status: 500 });
                 }
+                existingCompletion = retry;
+            } else {
+                existingCompletion = newCompletion;
             }
         }
 
-        // If PENDING or MISSED, transition to IN_PROGRESS
-        if (existingCompletion && (existingCompletion.status === 'pending' || existingCompletion.status === 'missed')) {
-            const { data: updated, error: updateError } = await supabaseAdmin
+        // Update to in_progress if it was just pending/missed
+        if (existingCompletion.status === 'pending' || existingCompletion.status === 'missed') {
+            const [sH, sM] = (startTime ?? '00:00').slice(0, 5).split(':').map(Number);
+            const [eH, eM] = (endTime ?? '23:59').slice(0, 5).split(':').map(Number);
+            const startM = sH * 60 + sM;
+            const endM = eH * 60 + eM;
+            const isOvernight = endM <= startM;
+            const isAfterWindow = isOvernight
+                ? (nowMins >= endM && nowMins < startM)
+                : (nowMins >= endM);
+
+            const isLate = existingCompletion.status === 'missed' || isAfterWindow;
+
+            await supabaseAdmin
                 .from('sop_completions')
                 .update({ 
                     status: 'in_progress', 
+                    started_at: new Date().toISOString(), 
                     completed_by: user.id,
-                    is_late: existingCompletion.status === 'missed' // Set is_late if it was already missed
+                    is_late: isLate
                 })
-                .eq('id', existingCompletion.id)
-                .select('*, items:sop_completion_items(*)')
-                .single();
+                .eq('id', existingCompletion.id);
             
-            if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
-            return NextResponse.json({ success: true, completion: updated });
+            existingCompletion.status = 'in_progress';
+            existingCompletion.started_at = new Date().toISOString();
+            existingCompletion.completed_by = user.id;
+            existingCompletion.is_late = isLate;
         }
 
-        if (existingCompletion && existingCompletion.status === 'in_progress') {
-            return NextResponse.json({ success: true, completion: existingCompletion });
-        }
-
-        // ── Create New Completion (Fallback) ───────────────────────────────
-        const { data: completion, error: completionError } = await supabaseAdmin
-            .from('sop_completions')
-            .insert({
-                template_id: templateId,
-                property_id: propertyId,
-                organization_id: property.organization_id,
-                completed_by: user.id,
-                completion_date: finalCompletionDate,
-                status: 'in_progress',
-                notes,
-                due_at: dueAt,
-                slot_time: slotTime,
-            })
-            .select()
-            .single();
-
-        if (completionError) {
-            return NextResponse.json({ error: completionError.message }, { status: 500 });
-        }
-
-        // Fetch full completion with items (cloned by trigger)
-        const { data: completeCompletion } = await supabaseAdmin
-            .from('sop_completions')
-            .select('*, items:sop_completion_items(*)')
-            .eq('id', completion.id)
-            .single();
-
-        return NextResponse.json(
-            { success: true, completion: completeCompletion },
-            { status: 201 }
-        );
+        return NextResponse.json({ success: true, completion: existingCompletion });
     } catch (err) {
         return NextResponse.json(
             { error: err instanceof Error ? err.message : 'Unknown error' },

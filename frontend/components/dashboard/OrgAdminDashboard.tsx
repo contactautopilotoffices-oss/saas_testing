@@ -1301,6 +1301,19 @@ const OrgAdminDashboard = () => {
                                     propertyId={checklistPropertyId === 'all' ? undefined : checklistPropertyId}
                                     propertyIds={checklistPropertyId === 'all' ? properties.map(p => p.id) : undefined}
                                     headerRight={<NotificationBell />}
+                                    propertySelector={
+                                        <PropertySelectorPill
+                                            properties={properties}
+                                            selectedId={checklistPropertyId}
+                                            isOpen={openDropdown === 'checklist'}
+                                            onToggle={() => setOpenDropdown(openDropdown === 'checklist' ? null : 'checklist')}
+                                            onSelect={(id) => {
+                                                setChecklistPropertyId(id);
+                                                setOpenDropdown(null);
+                                            }}
+                                            onClose={() => setOpenDropdown(null)}
+                                        />
+                                    }
                                 />
                             </div>
                         )}

@@ -14,7 +14,13 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const today = new Date().toISOString().split('T')[0];
+        // Use Asia/Kolkata (IST) date string
+        const today = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date());
 
         // 1. Generate slots for today
         const { error: genError } = await supabaseAdmin.rpc('generate_sop_completions', {

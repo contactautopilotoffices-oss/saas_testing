@@ -87,14 +87,7 @@ const SOPTemplateManager: React.FC<SOPTemplateManagerProps> = ({ propertyId, pro
                 .select(`
                     *,
                     property:properties(name, code),
-                    items:sop_checklist_items(*),
-                    completions:sop_completions(
-                        id,
-                        status,
-                        completion_date,
-                        completed_at,
-                        items:sop_completion_items(is_checked, value)
-                    )
+                    items:sop_checklist_items(*)
                 `)
                 .eq('is_active', true);
 
@@ -118,13 +111,11 @@ const SOPTemplateManager: React.FC<SOPTemplateManagerProps> = ({ propertyId, pro
 
             if (error) throw error;
 
-            // Process data to get latest completion only
-            const processedTemplates = (data || []).map(t => {
-                const sortedCompletions = (t.completions || []).sort((a: any, b: any) =>
-                    new Date(b.completion_date).getTime() - new Date(a.completion_date).getTime()
-                );
-                return { ...t, latest_completion: sortedCompletions[0] };
-            });
+            // Process data - completions are now fetched separately or via individual queries
+            const processedTemplates = (data || []).map(t => ({
+                ...t,
+                latest_completion: null // We'll fetch these if needed, or leave null for now
+            }));
 
             setTemplates(processedTemplates);
             setCachedData(cacheKey, processedTemplates);
@@ -241,31 +232,6 @@ const SOPTemplateManager: React.FC<SOPTemplateManagerProps> = ({ propertyId, pro
                         <h3 className="text-xs md:text-sm font-black text-slate-900 tracking-tight">{isAdmin ? 'Active Templates' : 'My Checklists'}</h3>
                         <p className="text-[7px] md:text-[8px] text-slate-500 font-bold uppercase tracking-widest">{templates.length} {isAdmin ? 'Checklists' : 'Templates'}</p>
                     </div>
-                    {onViewChange && (
-                        <div className="ml-2 bg-white p-0.5 rounded-lg shadow-sm border border-slate-200 flex items-center gap-0.5">
-                            <button
-                                onClick={() => onViewChange('list')}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-md font-black text-[8px] uppercase tracking-wider transition-all duration-200 ${activeView === 'list' ? 'bg-primary text-white shadow-sm shadow-primary/20' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                            >
-                                <LayoutGrid size={9} />
-                                Templates
-                            </button>
-                            <button
-                                onClick={() => onViewChange('history')}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-md font-black text-[8px] uppercase tracking-wider transition-all duration-200 ${activeView === 'history' ? 'bg-primary text-white shadow-sm shadow-primary/20' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                            >
-                                <History size={9} />
-                                History
-                            </button>
-                            <button
-                                onClick={() => onViewChange('reports')}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-md font-black text-[8px] uppercase tracking-wider transition-all duration-200 ${activeView === 'reports' ? 'bg-primary text-white shadow-sm shadow-primary/20' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                            >
-                                <FileText size={9} />
-                                Reports
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 {canCreate && (

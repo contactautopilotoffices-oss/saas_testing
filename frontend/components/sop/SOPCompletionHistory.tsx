@@ -5,7 +5,7 @@ import { createClient } from '@/frontend/utils/supabase/client';
 import Skeleton from '@/frontend/components/ui/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDataCache } from '@/frontend/context/DataCacheContext';
-import { History, User, Calendar, CheckCircle2, Clock, Trash2, Play, Eye, AlertTriangle, Square, LayoutGrid, Timer, XCircle, ChevronDown, ChevronUp, Download, FileText } from 'lucide-react';
+import { History, User, Calendar, CheckCircle2, Clock, Trash2, Play, Eye, AlertTriangle, Square, LayoutGrid, Timer, XCircle, ChevronDown, ChevronUp, Download, FileText, ChevronRight } from 'lucide-react';
 
 interface SOPCompletionHistoryProps {
     propertyId?: string;
@@ -64,8 +64,9 @@ function getCompletionSlot(
     const [sH, sM] = startTime.slice(0, 5).split(':').map(Number);
     const startMins = sH * 60 + sM;
     const dtMins = dt.getHours() * 60 + dt.getMinutes();
-    const elapsed = dtMins - startMins;
-    if (elapsed < 0) return null;
+    
+    let elapsed = dtMins - startMins;
+    if (elapsed < 0) elapsed += 1440; // Handle overnight wrap-around
 
     const slotIndex = Math.floor(elapsed / (intervalHours * 60));
     const slotStartMins = startMins + slotIndex * intervalHours * 60;
@@ -97,15 +98,19 @@ function computeCurrentSlotStart(frequency: string, startTime: string | null, no
     if (endTime) {
         const [eH, eM] = endTime.slice(0, 5).split(':').map(Number);
         const endMins = eH * 60 + eM;
-        // Overnight ranges (endMins <= startMins) are not supported for hourly templates
-        if (endMins <= startMins) return null;
-        // Find the last valid slot start (whose end <= endMins)
-        const lastValidSlotStart = startMins + Math.floor((endMins - startMins - intervalH * 60) / (intervalH * 60)) * intervalH * 60;
-        if (lastValidSlotStart < startMins) return null; // no valid slots at all
-        if (slotStartMins > lastValidSlotStart) {
-            // We're past the last valid slot — window is effectively closed
-            return null;
-        }
+        const isOvernight = endMins <= startMins;
+        
+        const windowDuration = isOvernight ? (1440 - startMins + endMins) : (endMins - startMins);
+        const elapsedSinceStart = isOvernight && nowMins < endMins ? (nowMins + 1440 - startMins) : (nowMins - startMins);
+
+        if (elapsedSinceStart < 0 || elapsedSinceStart >= windowDuration) return null;
+        
+        const lastValidSlotStartOffset = Math.floor((windowDuration - intervalH * 60) / (intervalH * 60)) * intervalH * 60;
+        const currentSlotOffset = Math.floor(elapsedSinceStart / (intervalH * 60)) * intervalH * 60;
+        
+        if (currentSlotOffset > lastValidSlotStartOffset) return null;
+
+        slotStartMins = startMins + currentSlotOffset;
     }
 
     const h = Math.floor(slotStartMins / 60) % 24;
@@ -265,8 +270,10 @@ export function isDue(
             }
 
             const logicalDate = currentWindowStart.toLocaleDateString('en-CA');
-            const isDoneInCurrentWindow = lastCompletionDate === logicalDate && last.getTime() >= currentWindowStart.getTime();
-            if (isDoneInCurrentWindow) return { due: false, label: 'Done today', status: 'completed' };
+            const isDoneInCurrentWindow = lastCompletionDate === logicalDate && (last.getTime() >= currentWindowStart.getTime() || lastCompletedAt);
+            
+            // If it was started but not COMPLETED, it's still due!
+            if (isDoneInCurrentWindow && lastCompletedAt) return { due: false, label: 'Done today', status: 'completed' };
             
             if (isWithinTimeWindow(nowMins, startTime, endTime)) return { due: true, label: 'Due now', status: 'due' };
             
@@ -365,9 +372,8 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                 // Fetch all active + running templates to determine due SOPs
                 let templateQuery = supabase
                     .from('sop_templates')
-                    .select('id, title, frequency, category, assigned_to, start_time, end_time, started_at, property_id')
+                    .select('id, title, frequency, category, assigned_to, start_time, end_time, started_at, property_id, is_running')
                     .eq('is_active', true)
-                    .eq('is_running', true)
                     .neq('frequency', 'on_demand');
 
                 if (isMultiProperty) {
@@ -530,12 +536,16 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                     dueStatus: (slotCompleted.completion_date !== actualLogicalDate) ? 'late' : 'on-time',
                     completedAt: slotCompleted.completed_at 
                 });
-            } else if (isToday && (inProgress || dueStatus.status === 'due')) {
+            } else if (isToday && (inProgress || (template.is_running && dueStatus.status === 'due'))) {
+                // We show as DUE if there is an active session OR if the template is running and it's time
                 due.push(templateWithMeta);
-            } else if (isToday && dueStatus.status === 'upcoming') {
+            } else if (isToday && template.is_running && dueStatus.status === 'upcoming') {
                 upcoming.push({ ...templateWithMeta, upcomingLabel: dueStatus.label, progressPct: 0 });
             } else if (actualLogicalDate === selectedDate) {
-                missed.push({ ...templateWithMeta, historicalDate: actualLogicalDate });
+                // Only show as missed if it was actually supposed to run
+                if (template.is_running || inProgress) {
+                    missed.push({ ...templateWithMeta, historicalDate: actualLogicalDate });
+                }
             }
 
             if (isToday && template.frequency === 'daily' && template.start_time && template.end_time) {
@@ -574,41 +584,16 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
     return (
         <div className="space-y-4">
             {/* Tab switcher — only shown when admin passes onViewChange */}
-            {onViewChange && (
-                <div className="flex items-center">
-                    <div className="bg-slate-50 p-0.5 rounded-lg border border-slate-200 flex items-center gap-0.5">
-                        <button
-                            onClick={() => onViewChange('list')}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md font-black text-[8px] uppercase tracking-wider transition-all duration-200 ${activeView === 'list' ? 'bg-primary text-white shadow-sm shadow-primary/20' : 'text-slate-400 hover:text-slate-600 hover:bg-white'}`}
-                        >
-                            <LayoutGrid size={9} />
-                            Templates
-                        </button>
-                        <button
-                            onClick={() => onViewChange('history')}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md font-black text-[8px] uppercase tracking-wider transition-all duration-200 ${activeView === 'history' ? 'bg-primary text-white shadow-sm shadow-primary/20' : 'text-slate-400 hover:text-slate-600 hover:bg-white'}`}
-                        >
-                            <History size={9} />
-                            History
-                        </button>
-                        <button
-                            onClick={() => onViewChange('reports')}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md font-black text-[8px] uppercase tracking-wider transition-all duration-200 ${activeView === 'reports' ? 'bg-primary text-white shadow-sm shadow-primary/20' : 'text-slate-400 hover:text-slate-600 hover:bg-white'}`}
-                        >
-                            <FileText size={9} />
-                            Reports
-                        </button>
-                    </div>
-                </div>
-            )}
             {/* Stats — 2×2 grid */}
             <div className="grid grid-cols-2 gap-2.5">
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="bg-white/70 backdrop-blur-md p-4 rounded-[2rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
                     <div className="flex items-start justify-between mb-2">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total History</p>
-                        <History size={14} className="text-slate-200" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total History</p>
+                        <div className="p-1.5 bg-slate-50 rounded-lg">
+                            <History size={12} className="text-slate-400" />
+                        </div>
                     </div>
-                    <p className="text-3xl font-black text-slate-900">{stats.total}</p>
+                    <p className="text-3xl font-black text-slate-900 tracking-tight">{stats.total}</p>
                 </div>
                 <div className="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-100 shadow-sm">
                     <div className="flex items-start justify-between mb-2">
@@ -624,12 +609,14 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                     </div>
                     <p className="text-3xl font-black text-amber-600">{dueTemplates.length}</p>
                 </div>
-                <div className="bg-rose-50 p-3.5 rounded-2xl border border-rose-100 shadow-sm">
+                <div className="bg-rose-50/70 backdrop-blur-md p-4 rounded-[2rem] border border-rose-100 shadow-sm transition-all hover:shadow-md">
                     <div className="flex items-start justify-between mb-2">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-rose-400">Missed</p>
-                        <XCircle size={14} className="text-rose-200" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-400">Missed</p>
+                        <div className="p-1.5 bg-rose-100/50 rounded-lg">
+                            <XCircle size={12} className="text-rose-400" />
+                        </div>
                     </div>
-                    <p className="text-3xl font-black text-rose-600">{missedTemplates.length}</p>
+                    <p className="text-3xl font-black text-rose-600 tracking-tight">{missedTemplates.length}</p>
                 </div>
             </div>
 
@@ -694,46 +681,26 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                     {dueTemplates.map((template, index) => (
                         <motion.div
                             key={`due-${template.id}`}
-                            initial={{ opacity: 0, y: 8 }}
+                            initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.03 }}
-                            className="bg-rose-50 border border-rose-200 rounded-2xl overflow-hidden flex shadow-sm"
+                            className="group relative bg-white border border-rose-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                            onClick={() => onSelectTemplate(template.id, template.property_id, template.inProgressId || undefined, template.historicalDate)}
                         >
-                            <div className="w-1.5 bg-rose-500 flex-shrink-0" />
-                            <div className="flex items-center gap-3 px-3 py-3 flex-1">
-                                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
-                                    <AlertTriangle size={16} className="text-rose-500" />
+                            <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500" />
+                            <div className="flex items-center gap-4 px-4 py-4">
+                                <div className="w-11 h-11 rounded-2xl bg-rose-50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                    <AlertTriangle size={18} className="text-rose-500" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-black text-sm text-slate-900 tracking-tight truncate">{template.title}</h4>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className="text-[9px] font-black text-rose-600 uppercase tracking-wider">{template.dueLabel}</span>
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">{frequencyLabel(template.frequency)}</span>
-                                         {template.isHistorical && template.historicalDate && (
-                                             <>
-                                                 <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                                                     {new Date(template.historicalDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                 </span>
-                                             </>
-                                         )}
-                                        {template.completedAt && (
-                                            <>
-                                                <span className="w-1 h-1 rounded-full bg-emerald-200" />
-                                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">
-                                                    {new Date(template.completedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                                </span>
-                                            </>
-                                        )}</div>
+                                    <h4 className="font-black text-[15px] text-slate-900 tracking-tight truncate leading-tight">{template.title}</h4>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                        <span className="px-2 py-0.5 bg-rose-500 text-white text-[8px] font-black uppercase tracking-widest rounded-full">{template.dueLabel}</span>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{frequencyLabel(template.frequency)}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <button
-                                        onClick={() => onSelectTemplate(template.id, template.property_id, template.inProgressId || undefined, template.historicalDate)}
-                                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary transition-all shadow-sm"
-                                    >
-                                        <Play size={9} />
-                                        {template.inProgressId ? 'Resume' : template.isHistorical ? 'Resume Late' : 'Start'}
-                                    </button>
+                                <div className="flex-shrink-0 bg-slate-900 text-white p-2.5 rounded-xl">
+                                    <Play size={14} fill="currentColor" />
                                 </div>
                             </div>
                         </motion.div>
@@ -748,40 +715,35 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                     {missedTemplates.map((template, index) => (
                         <motion.div
                             key={`missed-${template.id}-${template.historicalDate}`}
-                            initial={{ opacity: 0, y: 8 }}
+                            initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.03 }}
-                            className="bg-white border border-rose-100 rounded-2xl overflow-hidden flex shadow-sm border-l-4 border-l-rose-500"
+                            className="group relative bg-white border border-rose-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                            onClick={() => onSelectTemplate(template.id, template.property_id, template.inProgressId || undefined, template.historicalDate)}
                         >
-                            <div className="flex items-center gap-3 px-3 py-3 flex-1">
-                                <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
-                                    <XCircle size={16} className="text-rose-500" />
+                            <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-400/30" />
+                            <div className="flex items-center gap-4 px-4 py-4">
+                                <div className="w-11 h-11 rounded-2xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+                                    <XCircle size={18} className="text-rose-400" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <h4 className="font-black text-sm text-slate-900 tracking-tight truncate">{template.title}</h4>
-                                        <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[7px] font-black uppercase tracking-widest rounded-md mt-0.5">Missed</span>
+                                        <h4 className="font-black text-[15px] text-slate-900 tracking-tight truncate leading-tight">{template.title}</h4>
                                         {template.historicalDate && (
-                                            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[7px] font-black uppercase tracking-widest rounded-md mt-0.5">
+                                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
                                                 {new Date(template.historicalDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider">
-                                            {template.start_time && template.end_time ? `${fmt12h(template.start_time)} - ${fmt12h(template.end_time)}` : 'No window set'}
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <span className="px-2 py-0.5 bg-rose-100 text-rose-600 text-[8px] font-black uppercase tracking-widest rounded-full">Missed</span>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                                            {template.start_time && template.end_time ? `${fmt12h(template.start_time)} - ${fmt12h(template.end_time)}` : 'No window'}
                                         </span>
-                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider">· {frequencyLabel(template.frequency)}</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <button
-                                        onClick={() => onSelectTemplate(template.id, template.property_id, template.inProgressId || undefined, template.historicalDate)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-sm"
-                                    >
-                                        <Play size={9} />
-                                        {template.inProgressId ? 'Resume' : 'Resume Late'}
-                                    </button>
+                                <div className="flex-shrink-0 bg-rose-500 text-white p-2.5 rounded-xl shadow-lg shadow-rose-200">
+                                    <Play size={14} fill="currentColor" />
                                 </div>
                             </div>
                         </motion.div>
@@ -992,117 +954,56 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                         return (
                             <motion.div
                                 key={completion.id}
-                                initial={{ opacity: 0, y: 8 }}
+                                initial={{ opacity: 0, y: 12 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.03 }}
+                                className="group relative bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all active:scale-[0.98] p-4 mb-3"
                                 onClick={() => {
-                                    if (isInProgress) onSelectTemplate(completion.template_id, completion.property_id, completion.id);
+                                    if (isInProgress || completion.status === 'pending') onSelectTemplate(completion.template_id, completion.property_id, completion.id);
                                     else onViewDetail(completion.id, completion.template_id, completion.property_id);
                                 }}
-                                className="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm cursor-pointer hover:border-primary/20 transition-all hover:bg-slate-50/50"
                             >
-                                {/* Top row: icon + title + meta */}
-                                <div className="flex items-start gap-3">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isCompleted ? 'bg-emerald-100' : isExpired ? 'bg-rose-100' : 'bg-amber-100'}`}>
-                                        {isCompleted
-                                            ? <CheckCircle2 size={18} className="text-emerald-500" />
-                                            : isExpired 
-                                                ? <XCircle size={18} className="text-rose-500" />
-                                                : <Clock size={18} className="text-amber-500" />}
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${isCompleted ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+                                        {isCompleted ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Clock size={18} className="text-amber-500" />}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="font-black text-sm text-slate-900 tracking-tight truncate">
+                                        <h4 className="font-black text-[15px] text-slate-900 tracking-tight truncate leading-tight">
                                             {completion.template?.title || 'Unknown Checklist'}
                                         </h4>
-                                        <div className="flex items-center flex-wrap gap-2 mt-0.5">
-                                            <div className="flex items-center gap-1 text-slate-400">
-                                                <Calendar size={9} />
-                                                <span className="text-[9px] font-bold uppercase tracking-wider">
-                                                    {new Date(completion.completion_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                </span>
-                                            </div>
-                                            {slot && (
-                                                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md ${isExpired ? 'bg-rose-50' : 'bg-amber-50'}`}>
-                                                    <Clock size={9} className={isExpired ? 'text-rose-400' : 'text-amber-500'} />
-                                                    <span className={`text-[9px] font-black tracking-wider ${isExpired ? 'text-rose-500' : 'text-amber-600'}`}>
-                                                        {slot.includes('–') ? slot : `@ ${slot}`}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {/* (Removed top-row status badge for simplicity) */}
-                                            <div className="flex items-center gap-1 text-slate-400">
-                                                <User size={9} />
-                                                <span className="text-[9px] font-bold uppercase tracking-wider truncate max-w-[70px]">
-                                                    {completion.user?.full_name || 'System'}
-                                                </span>
-                                            </div>
-                                            {isCompleted && completion.completed_at && (
-                                                <div className="flex items-center gap-1 text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                                                    <CheckCircle2 size={9} />
-                                                    <span className="text-[9px] font-black uppercase tracking-wider">
-                                                        Done: {new Date(completion.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} @ {new Date(completion.completed_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                                    </span>
-                                                </div>
-                                            )}
+                                        <div className="flex items-center flex-wrap gap-2 mt-1">
+                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isExpired ? 'bg-rose-500 text-white' : completion.is_late ? 'bg-amber-100 text-amber-700' : isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                                                {isExpired ? 'Missed' : completion.is_late ? 'Late' : isCompleted ? 'Done' : 'Active'}
+                                            </span>
+                                            {slot && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{slot.includes('–') ? slot : `@ ${slot}`}</span>}
                                         </div>
                                     </div>
-                                    {isAdmin && (
-                                        <button
-                                            onClick={(e) => handleDelete(completion.id, e)}
-                                            className="p-1.5 text-slate-200 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all flex-shrink-0"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
-                                    )}
+                                    <div className="flex-shrink-0 text-slate-200">
+                                        <ChevronRight size={18} />
+                                    </div>
                                 </div>
-
-                                {/* Completion row */}
-                                <div className="flex items-center justify-between mt-2.5">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Completion</span>
-                                    <span className={`text-[9px] font-black uppercase tracking-widest ${isExpired ? 'text-rose-500' : 'text-primary'}`}>{checkedItems}/{totalItems} Points</span>
+                                
+                                <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1.5 text-slate-400">
+                                            <User size={10} />
+                                            <span className="text-[9px] font-bold uppercase tracking-wider">{completion.user?.full_name?.split(' ')[0] || 'System'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-slate-400">
+                                            <Calendar size={10} />
+                                            <span className="text-[9px] font-bold uppercase tracking-wider">
+                                                {new Date(completion.completion_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black text-slate-900 tracking-tight">{checkedItems}/{totalItems}</span>
+                                        <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className={`h-full ${progress === 100 ? 'bg-emerald-500' : 'bg-primary'}`} style={{ width: `${progress}%` }} />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden mt-1">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${progress}%` }}
-                                        className={`h-full ${isExpired ? 'bg-rose-400' : progress === 100 ? 'bg-emerald-500' : 'bg-primary'}`}
-                                    />
-                                </div>
-
-                                {/* Simplified Action Row */}
-                                 <div className="flex items-center justify-between mt-3 px-1">
-                                     <div className="flex items-center gap-2">
-                                         {!isCompleted && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); onSelectTemplate(completion.template_id, completion.property_id, completion.id); }}
-                                                className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary transition-all shadow-sm"
-                                            >
-                                                <Play size={10} />
-                                                {isExpired ? 'Resume Late' : isInProgress ? 'Resume' : 'Start'}
-                                            </button>
-                                         )}
-                                         {isCompleted && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const dateStr = new Date(completion.completion_date).toISOString().split('T')[0];
-                                                    window.open(`/api/properties/${propertyId}/sop/report?templateId=${completion.template_id}&date=${dateStr}`, '_blank');
-                                                }}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white hover:text-primary border border-slate-100 transition-all font-inter"
-                                            >
-                                                <Download size={10} />
-                                                Report
-                                            </button>
-                                         )}
-                                     </div>
-                                     <div className="flex items-center gap-2">
-                                         <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm ${isExpired ? 'bg-rose-500 text-white' : completion.is_late ? 'bg-amber-100 text-amber-700' : isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
-                                            {isExpired ? 'Missed' : completion.is_late ? 'Completed Late' : isCompleted ? 'Done' : 'In Progress'}
-                                         </span>
-                                     </div>
-                                 </div>
-                                 </motion.div>
+                            </motion.div>
                         );
                     })}
                 </AnimatePresence>
@@ -1116,6 +1017,7 @@ const SOPCompletionHistory: React.FC<SOPCompletionHistoryProps> = ({ propertyId,
                         <p className="text-slate-500 text-xs font-medium max-w-sm mx-auto">Completing checklist items will populate this history log with audit records.</p>
                     </div>
                 )}
+                <div className="h-32" />
             </div>
         </div>
     );

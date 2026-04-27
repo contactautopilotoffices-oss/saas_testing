@@ -27,6 +27,15 @@ interface SOPChecklistRunnerProps {
     onCancel?: () => void;
 }
 
+/** Format HH:MM (24h) → "H:MM AM/PM" */
+function fmt12Step(hhmm: string): string {
+    if (!hhmm) return '00:00 AM';
+    const [h, m] = hhmm.slice(0, 5).split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, completionId, isSuperAdmin = false, propertyId, completionDate, onComplete, onCancel }) => {
     const [completion, setCompletion] = useState<any>(null);
     const [template, setTemplate] = useState<any>(null);
@@ -40,6 +49,7 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
     const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
     const [itemValues, setItemValues] = useState<Record<string, string | number | boolean>>({});
     const [userNames, setUserNames] = useState<Record<string, string>>({});
+    const [currentUser, setCurrentUser] = useState<any>(null);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [liveNow, setLiveNow] = useState(() => new Date());
@@ -52,34 +62,44 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
         return () => clearInterval(id);
     }, []);
 
-    // Window closed = end_time is set and current time is past it → hard lock
-    const isWindowClosed = useMemo(() => {
-        if (!template?.end_time) return false;
+    // Time-window logic: distinguishes between Early, Active, and Late states.
+    const windowStatus = useMemo(() => {
+        if (!template?.end_time) return { isWindowClosed: false, isLate: false, isUpcoming: false };
+        
         const nowMins = liveNow.getHours() * 60 + liveNow.getMinutes();
         const [sH, sM] = (template.start_time ?? '00:00').slice(0, 5).split(':').map(Number);
         const [eH, eM] = template.end_time.slice(0, 5).split(':').map(Number);
         
         const startMins = sH * 60 + sM;
         const endMins = eH * 60 + eM;
-        const isOvernight = endMins <= startMins;
+        const isOvernight = endMins < startMins;
 
         const withinWindow = isOvernight
             ? (nowMins >= startMins || nowMins < endMins)
             : (nowMins >= startMins && nowMins <= endMins);
+        
+        // Late means after the end time but before the next day's start time
+        const isLate = isOvernight
+            ? (nowMins >= endMins && nowMins < startMins)
+            : (nowMins > endMins);
+        
+        // Upcoming means before the start time but after the previous day's end time
+        const isUpcoming = isOvernight
+            ? (nowMins < startMins && nowMins >= endMins)
+            : (nowMins < startMins);
 
-        return !withinWindow;
+        return { isWindowClosed: !withinWindow, isLate, isUpcoming };
     }, [template, liveNow]);
 
-    // Slot overdue = current time is past the end of the slot window that was active when
-    // the session was opened. Uses slot_time (stored on the completion row) if available,
-    // otherwise falls back to the completion's creation time as the slot start.
-    // This is a soft overdue — user can still submit.
+    // Destructure for easier use in JSX
+    const { isWindowClosed, isLate, isUpcoming } = windowStatus;
+
+    // Slot overdue check for hourly checklists
     const isSlotOverdue = useMemo(() => {
         if (!template || isWindowClosed) return false;
         const hourlyMatch = template.frequency?.match(/^every_(\d+)_hours?$/);
         if (hourlyMatch) {
             const intervalH = parseInt(hourlyMatch[1]);
-            // Prefer slot_time (HH:MM) on the completion row; fall back to created_at
             let slotStartMs: number;
             if (completion?.slot_time) {
                 const [sH, sM] = completion.slot_time.slice(0, 5).split(':').map(Number);
@@ -96,12 +116,12 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
         return false;
     }, [template, completion, liveNow, isWindowClosed]);
 
-    // Keep isExpired for any code that references it
-    const isExpired = isWindowClosed || isSlotOverdue;
+    // Combined expiration check
+    const isExpired = isLate || isSlotOverdue;
 
     const [adminUnlocked, setAdminUnlocked] = useState(false);
-    // Hard lock: completed OR window has closed (end_time passed). Slot-overdue alone does NOT lock.
-    const isReadOnly = (completion?.status === 'completed' || isWindowClosed) && !adminUnlocked;
+    // Hard lock: only if already completed. Time-window based lock removed per user request.
+    const isReadOnly = (completion?.status === 'completed') && !adminUnlocked;
 
     // Realtime: sync item checks + completion status changes made by other users
     useEffect(() => {
@@ -169,11 +189,17 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
 
     useEffect(() => {
         const initializeChecklist = async () => {
+            // We rely on the parent component's 'key' prop to unmount/remount
+            // but we still want to avoid double-firing within a single mount.
             if (hasInitialized.current) return;
             hasInitialized.current = true;
+            console.log('SOPChecklistRunner: Initializing...', { templateId, completionId, propertyId, completionDate });
 
             try {
                 setIsLoading(true);
+                const { data: { user } } = await supabase.auth.getUser();
+                setCurrentUser(user);
+                console.log('SOPChecklistRunner: User fetched', user?.id);
 
                 // Fetch template (skip property_id filter if not provided — checklist deep-link page)
                 let templateQuery = supabase
@@ -202,6 +228,7 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                 }
 
                 setTemplate(templateData); // Set template here
+                console.log('SOPChecklistRunner: Template fetched', templateData?.id);
 
                 // Use resolved propertyId — fall back to template row's property_id if prop not passed
                 const resolvedPropertyId = propertyId || templateData.property_id;
@@ -231,6 +258,7 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                 }
 
                 setCompletion(completionData);
+                console.log('SOPChecklistRunner: Completion session fetched/started', completionData?.id);
 
                 // Initialize item values and user names cache
                 const initialValues: Record<string, any> = {};
@@ -245,19 +273,27 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                 });
                 setItemValues(initialValues);
                 setUserNames(initialNames);
-
+                setIsLoading(false);
+                console.log('SOPChecklistRunner: Loading finished');
             } catch (err: any) {
                 const msg = err?.message || err?.error_description || (typeof err === 'string' ? err : null) || JSON.stringify(err) || 'Unknown error';
                 console.error('Initialization error:', msg, err);
                 setToast({ message: `Error loading checklist: ${msg}`, type: 'error' });
-                onCancel?.();
-            } finally {
-                setIsLoading(false);
+                setIsLoading(false); 
+                console.log('SOPChecklistRunner: Loading finished with error');
             }
-
         };
 
+        const timeoutId = setTimeout(() => {
+            if (isLoading) {
+                console.warn('SOPChecklistRunner: Initialization timed out');
+                setToast({ message: 'Loading is taking longer than expected. Please check your connection.', type: 'error' });
+                setIsLoading(false);
+            }
+        }, 30000);
+
         initializeChecklist();
+        return () => clearTimeout(timeoutId);
     }, [templateId, completionId, propertyId, completionDate]);
 
     const handleItemToggle = async (itemId: string, value: any = null) => {
@@ -281,26 +317,31 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
             };
 
             const { tItem: templateItem, cItem: item } = findContext(completion, template);
-
-            if (!item || !templateItem) {
-                console.error('[SOP Debug] CRITICAL: Context missing for toggle.', {
-                    targetId: itemId,
-                    foundInTemplate: !!templateItem,
-                    foundInCompletion: !!item,
-                    availableTemplateIds: template?.items?.map((i: any) => i.id),
-                    availableCompletionIds: completion?.items?.map((i: any) => i.checklist_item_id),
-                    completionId: completion?.id
-                });
-                setToast({ message: 'Sync error: Item not found in session', type: 'error' });
-                return;
-            }
+            if (!item || !templateItem) return;
 
             const newValue = value !== null ? value : !item.is_checked;
             const isChecked = templateItem.type === 'checkbox' ? !!newValue : true;
             const dbValue = templateItem.type !== 'checkbox' ? String(newValue) : null;
 
-            console.log(`[SOP Debug] Proceeding with DB update for row: ${item.id}`);
-            
+            // ── OPTIMISTIC UPDATE ──
+            const previousCompletion = { ...completion };
+
+            const optimisticItems = completion.items.map((i: any) => {
+                if (String(i.checklist_item_id).toLowerCase() === String(itemId).toLowerCase()) {
+                    return { 
+                        ...i, 
+                        is_checked: isChecked, 
+                        value: dbValue, 
+                        checked_by: currentUser?.id,
+                        checked_by_user: currentUser ? { full_name: currentUser.user_metadata?.full_name || 'You' } : i.checked_by_user
+                    };
+                }
+                return i;
+            });
+
+            setCompletion({ ...completion, items: optimisticItems });
+            setItemValues({ ...itemValues, [itemId]: newValue });
+
             const resolvedPropId = propertyId || completion?.property_id || template?.property_id;
             const res = await fetch(`/api/properties/${resolvedPropId}/sop/completions/${completion.id}`, {
                 method: 'PUT',
@@ -313,11 +354,17 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                     }
                 }),
             });
+            
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to update checklist point');
+            }
+
             const data = await res.json();
             if (data.success && data.completion) {
+                // Final state sync with server data
                 setCompletion(data.completion);
-                
-                // Update user names cache if we got new data
+                // Update user names cache
                 const newNames: Record<string, string> = { ...userNames };
                 let namesChanged = false;
                 data.completion.items.forEach((i: any) => {
@@ -328,11 +375,11 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                 });
                 if (namesChanged) setUserNames(newNames);
             }
-
-            console.log('[SOP Debug] handleItemToggle success');
         } catch (err) {
             console.error('[SOP Debug] handleItemToggle Exception:', err);
-            setToast({ message: 'Failed to update checklist point', type: 'error' });
+            // ── ROLLBACK ──
+            if (completion) setCompletion(completion); 
+            setToast({ message: 'Sync failed. Reverting changes...', type: 'error' });
         }
     };
 
@@ -499,22 +546,40 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
         try {
             setIsSaving(true);
 
-            // Check mandatory items (photo/video are optional — only check/value interaction required)
-            const uncheckedMandatory = template.items.filter((item: any) => {
+            // Check mandatory items and evidence requirements
+            const missingEvidence: string[] = [];
+            const missingMandatory: string[] = [];
+
+            template.items.forEach((item: any) => {
                 const comp = completion.items.find((c: any) => c.checklist_item_id === item.id);
-                const hasInteraction = comp && (comp.is_checked || comp.value);
-                return !item.is_optional && !hasInteraction;
+                const hasInteraction = comp && (comp.is_checked || (comp.value !== null && comp.value !== ''));
+                
+                // 1. Mandatory check (STRICT)
+                if (!item.is_optional && !hasInteraction) {
+                    missingMandatory.push(`"${item.title}"`);
+                }
+
+                // 2. Evidence check (SOFT - per user request to loosen rule)
+                if (hasInteraction) {
+                    if (item.requires_photo && !comp.photo_url) {
+                        missingEvidence.push(`Photo for "${item.title}"`);
+                    }
+                    if (item.requires_comment && (!comp.comment || comp.comment.trim() === '')) {
+                        missingEvidence.push(`Comment for "${item.title}"`);
+                    }
+                }
             });
 
-
-            if (uncheckedMandatory.length > 0) {
+            if (missingMandatory.length > 0) {
                 setToast({
-                    message: `${uncheckedMandatory.length} mandatory item(s) not completed`,
+                    message: `Mandatory items missing: ${missingMandatory[0]}`,
                     type: 'error',
                 });
                 setIsSaving(false);
                 return;
             }
+
+            // Evidence check logic removed per user request (staff can add if they want)
 
             // Update completion status via API (supabaseAdmin, bypasses RLS)
             const resolvedPropId = propertyId || completion?.property_id || template?.property_id;
@@ -522,8 +587,7 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    status: 'completed',
-                    ...(isWindowClosed || (adminUnlocked && isWindowClosed) ? { is_late: true } : {})
+                    status: 'completed'
                 }),
             });
             if (!submitRes.ok) throw new Error('Failed to submit checklist');
@@ -604,72 +668,113 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                     <div className="flex items-center gap-1.5">
                         <Clock size={12} className="text-slate-400" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
-                            {template.start_time ? fmt12Step(template.start_time) : '00:00'} – {template.end_time ? fmt12Step(template.end_time) : '23:59'}
+                            {(() => {
+                                const freq = template.frequency || '';
+                                const hourlyMatch = freq.match(/^every_(\d+)_hours?$/i);
+                                
+                                // Robust slot time extraction with IST conversion
+                                let slotTime = completion?.slot_time;
+                                if (!slotTime && hourlyMatch && (completion?.due_at || completion?.created_at)) {
+                                    const date = new Date(completion.due_at || completion.created_at);
+                                    slotTime = date.toLocaleTimeString('en-GB', { 
+                                        timeZone: 'Asia/Kolkata', 
+                                        hour12: false, 
+                                        hour: '2-digit', 
+                                        minute: '2-digit',
+                                        second: '2-digit'
+                                    });
+                                }
+                                
+                                if (hourlyMatch && slotTime) {
+                                    const intervalH = parseInt(hourlyMatch[1]);
+                                    const [h, m] = slotTime.split(':').map(Number);
+                                    const endH = (h + intervalH) % 24;
+                                    const slotEnd = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+                                    return `${fmt12Step(slotTime)} – ${fmt12Step(slotEnd)}`;
+                                }
+                                return `${template.start_time ? fmt12Step(template.start_time) : '00:00'} – ${template.end_time ? fmt12Step(template.end_time) : '23:59'}`;
+                            })()}
                         </span>
                     </div>
                 )}
                 <div className="flex items-center gap-1.5">
                     <Repeat size={12} className="text-slate-400" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
-                        {template.frequency?.replace('_', ' ') || 'Daily'}
+                        {(() => {
+                            const freq = template.frequency || '';
+                            const hourlyMatch = freq.match(/^every_(\d+)_hours?$/i);
+                            if (hourlyMatch) return `Every ${hourlyMatch[1]} hr${parseInt(hourlyMatch[1]) > 1 ? 's' : ''}`;
+                            const map: Record<string, string> = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', on_demand: 'On Demand' };
+                            return map[freq.toLowerCase()] ?? freq.replace(/_/g, ' ');
+                        })()}
                     </span>
                 </div>
             </div>
 
             {/* ── PROGRESS BAR ── */}
-            <div className="px-4 pt-3 pb-2 bg-white">
-                <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Completion status</span>
-                    <span className="text-[11px] font-black text-primary uppercase tracking-widest">{Math.round(progress)}% ({checkedCount}/{completion.items.length} PTS)</span>
+            <div className="px-6 pb-4 bg-white">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Completion</span>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">{Math.round(progress)}% — {checkedCount}/{completion.items.length} PTS</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                <div className="w-full bg-slate-50 rounded-full h-1.5 overflow-hidden">
                     <motion.div
-                        className="bg-primary h-full rounded-full"
+                        className="bg-primary h-full rounded-full shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]"
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        transition={{ duration: 0.8, ease: "circOut" }}
                     />
                 </div>
             </div>
 
-            {/* ── BANNER: completed / window-closed / slot-overdue / admin ── */}
-            {adminUnlocked ? (
-                <div className="mx-4 mt-3 mb-1 flex items-center gap-2.5 px-4 py-3 rounded-2xl border bg-amber-50 border-amber-200">
-                    <Lock size={14} className="flex-shrink-0 text-amber-500" />
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Admin Override Active</p>
-                        <p className="text-[9px] font-medium mt-0.5 text-amber-500">Lock is lifted — edits are allowed. Tap the lock icon to re-lock.</p>
+            {/* ── BANNERS ── */}
+            <div className="px-6 space-y-2">
+                {adminUnlocked ? (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-50/50 border border-amber-100 backdrop-blur-sm">
+                        <div className="p-2 bg-amber-100 rounded-xl">
+                            <Lock size={14} className="text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Admin Override Active</p>
+                            <p className="text-[9px] font-medium text-amber-600/80">Lock is lifted — edits allowed.</p>
+                        </div>
                     </div>
-                </div>
-            ) : isWindowClosed ? (
-                <div className="mx-4 mt-3 mb-1 flex items-center gap-2.5 px-4 py-3 rounded-2xl border bg-rose-50 border-rose-200">
-                    <Lock size={14} className="flex-shrink-0 text-rose-500" />
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Time Window Closed</p>
-                        <p className="text-[9px] font-medium mt-0.5 text-rose-500">The daily window has ended. This checklist is now read-only.</p>
+                ) : isUpcoming && completion?.status !== 'completed' ? (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-50/50 border border-blue-100 backdrop-blur-sm">
+                        <div className="p-2 bg-blue-100 rounded-xl">
+                            <Clock size={14} className="text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-700">Upcoming Checklist</p>
+                            <p className="text-[9px] font-medium text-blue-600/80">Scheduled window has not started yet.</p>
+                        </div>
                     </div>
-                </div>
-            ) : completion?.status === 'completed' ? (
-                <div className={`mx-4 mt-3 mb-1 flex items-center gap-2.5 px-4 py-3 rounded-2xl border ${completion.is_late ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
-                    <Lock size={14} className={`flex-shrink-0 ${completion.is_late ? 'text-amber-500' : 'text-emerald-500'}`} />
-                    <div className="flex-1 min-w-0">
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${completion.is_late ? 'text-amber-600' : 'text-emerald-600'}`}>
-                            {completion.is_late ? 'Completed Late' : 'Checklist Completed'}
-                        </p>
-                        <p className={`text-[9px] font-medium mt-0.5 ${completion.is_late ? 'text-amber-500' : 'text-emerald-500'}`}>
-                            {completion.is_late ? 'This checklist was submitted after the daily window closed.' : 'This checklist has been submitted and is now read-only.'}
-                        </p>
+                ) : isLate && completion?.status !== 'completed' ? (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-rose-50/50 border border-rose-100 backdrop-blur-sm">
+                        <div className="p-2 bg-rose-100 rounded-xl">
+                            <Clock size={14} className="text-rose-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-700">Late Entry Mode</p>
+                            <p className="text-[9px] font-medium text-rose-600/80">Scheduled window has ended.</p>
+                        </div>
                     </div>
-                </div>
-            ) : isSlotOverdue ? (
-                <div className="mx-4 mt-3 mb-1 flex items-center gap-2.5 px-4 py-3 rounded-2xl border bg-amber-50 border-amber-200">
-                    <Lock size={14} className="flex-shrink-0 text-amber-500" />
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Overdue — Submit Now</p>
-                        <p className="text-[9px] font-medium mt-0.5 text-amber-500">This slot&apos;s time has passed. You can still submit your responses.</p>
+                ) : completion?.status === 'completed' ? (
+                    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border backdrop-blur-sm ${completion.is_late ? 'bg-rose-50/50 border-rose-100' : 'bg-emerald-50/50 border-emerald-100'}`}>
+                        <div className={`p-2 rounded-xl ${completion.is_late ? 'bg-rose-100' : 'bg-emerald-100'}`}>
+                            <Lock size={14} className={completion.is_late ? 'text-rose-600' : 'text-emerald-600'} />
+                        </div>
+                        <div className="flex-1">
+                            <p className={`text-[10px] font-black uppercase tracking-widest ${completion.is_late ? 'text-rose-700' : 'text-emerald-700'}`}>
+                                {completion.is_late ? 'Completed Late' : 'Checklist Completed'}
+                            </p>
+                            <p className={`text-[9px] font-medium ${completion.is_late ? 'text-rose-600/80' : 'text-emerald-600/80'}`}>
+                                Record is now read-only.
+                            </p>
+                        </div>
                     </div>
-                </div>
-            ) : null}
+                ) : null}
+            </div>
 
             {/* ── CHECKLIST ITEMS ── */}
             <div className="flex-1 overflow-y-auto pb-24">
@@ -719,7 +824,7 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                         }
                         return nowMins < startMins;
                     })();
-                    const itemDisabled = isReadOnly || itemSlotLocked || itemSlotUpcoming;
+                    const itemDisabled = isReadOnly; // Per-item slot locks removed per user request
 
 
                         return (
@@ -772,7 +877,7 @@ const SOPChecklistRunner: React.FC<SOPChecklistRunnerProps> = ({ templateId, com
                                     )}
                                     {/* Step time slot badge */}
                                     {(item.start_time || item.end_time) && (
-                                        <div className="flex items-center gap-1.5 mt-1">
+                                        <div className="flex items-center flex-wrap gap-1.5 mt-1">
                                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest
                                                 ${itemSlotLocked ? 'bg-rose-100 text-rose-600' : itemSlotUpcoming ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary'}`}>
                                                 {item.start_time ? fmt12Step(item.start_time) : '—'} – {item.end_time ? fmt12Step(item.end_time) : '—'}

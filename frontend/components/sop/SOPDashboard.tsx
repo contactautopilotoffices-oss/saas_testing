@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/frontend/context/AuthContext';
 import Skeleton from '@/frontend/components/ui/Skeleton';
 import { Toast } from '@/frontend/components/ui/Toast';
-import { ClipboardCheck, ScanLine } from 'lucide-react';
+import { ClipboardCheck, ScanLine, LayoutGrid, History, FileBarChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SOPTemplateManager from './SOPTemplateManager';
 import SOPCompletionHistory from './SOPCompletionHistory';
@@ -82,10 +82,10 @@ const SOPDashboard: React.FC<SOPDashboardProps> = ({ propertyId, propertyIds, pr
 
     // Non-admin users should always land on history view
     useEffect(() => {
-        if (!isLoading && !isAdmin) {
+        if (!isLoading && userRole && !isAdmin) {
             setActiveView('history');
         }
-    }, [isLoading, isAdmin]);
+    }, [isLoading, isAdmin, userRole]);
 
     const handleStartChecklist = (templateId: string, propertyId: string, completionId?: string, completionDate?: string) => {
         // Remember where we came from (list or history) to return correctly on cancel
@@ -159,8 +159,64 @@ const SOPDashboard: React.FC<SOPDashboardProps> = ({ propertyId, propertyIds, pr
                     )}
 
                     {/* Right side: headerRight (notification bell etc) */}
-                    {headerRight && <div className="flex-shrink-0">{headerRight}</div>}
+                    <div className="flex items-center gap-2">
+                        {isAdmin && (activeView === 'list' || activeView === 'history' || activeView === 'reports') && (
+                            <div className="hidden md:flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                                <button
+                                    onClick={() => setActiveView('list')}
+                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    <LayoutGrid size={12} />
+                                    Templates
+                                </button>
+                                <button
+                                    onClick={() => setActiveView('history')}
+                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    <History size={12} />
+                                    History
+                                </button>
+                                <button
+                                    onClick={() => setActiveView('reports')}
+                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'reports' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    <FileBarChart size={12} />
+                                    Reports
+                                </button>
+                            </div>
+                        )}
+                        {headerRight && <div className="flex-shrink-0">{headerRight}</div>}
+                    </div>
                 </div>
+
+                {/* Mobile View Toggle - Separate Row for accessibility */}
+                {isAdmin && (activeView === 'list' || activeView === 'history' || activeView === 'reports') && (
+                    <div className="md:hidden px-3 pb-1">
+                        <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 w-full">
+                            <button
+                                onClick={() => setActiveView('list')}
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                            >
+                                <LayoutGrid size={12} />
+                                Templates
+                            </button>
+                            <button
+                                onClick={() => setActiveView('history')}
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                            >
+                                <History size={12} />
+                                History
+                            </button>
+                            <button
+                                onClick={() => setActiveView('reports')}
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'reports' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                            >
+                                <FileBarChart size={12} />
+                                Reports
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Content Area */}
                 <motion.div
@@ -235,6 +291,7 @@ const SOPDashboard: React.FC<SOPDashboardProps> = ({ propertyId, propertyIds, pr
                                 {activeView === 'runner' && selectedTemplateId && (
                                     <div className="max-w-3xl mx-auto py-2 md:py-8">
                                         <SOPChecklistRunner
+                                            key={`${selectedTemplateId}-${selectedCompletionId || 'new'}-${selectedCompletionDate || 'now'}`}
                                             templateId={selectedTemplateId}
                                             completionId={selectedCompletionId || undefined}
                                             completionDate={selectedCompletionDate || undefined}

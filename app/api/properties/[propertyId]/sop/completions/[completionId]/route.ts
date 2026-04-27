@@ -112,7 +112,64 @@ export async function PUT(
             if (status) updates.status = status;
             if (notes !== undefined) updates.notes = notes;
             if (is_late !== undefined) updates.is_late = is_late;
-            if (status === 'completed') updates.completed_at = new Date().toISOString();
+            if (status === 'completed') {
+                updates.completed_at = new Date().toISOString();
+                
+                // Final hard-check for lateness if template window exists
+                const { data: fullComp } = await supabaseAdmin
+                    .from('sop_completions')
+                    .select('*, template:sop_templates(start_time, end_time)')
+                    .eq('id', completionId)
+                    .single();
+
+                if (fullComp?.template?.end_time) {
+                    const now = new Date();
+                    const indiaFormatter = new Intl.DateTimeFormat('en-US', {
+                        timeZone: 'Asia/Kolkata',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: false
+                    });
+                    const partsInRange = indiaFormatter.formatToParts(now);
+                    const h = parseInt(partsInRange.find(p => p.type === 'hour')?.value || '0');
+                    const m = parseInt(partsInRange.find(p => p.type === 'minute')?.value || '0');
+                    const currentMins = h * 60 + m;
+
+                    const [sH, sM] = fullComp.template.start_time.slice(0, 5).split(':').map(Number);
+                    const [eH, eM] = fullComp.template.end_time.slice(0, 5).split(':').map(Number);
+                    const startM = sH * 60 + sM;
+                    const endM = eH * 60 + eM;
+
+                    const isOvernight = endM < startM;
+                    
+                    // Use completion_date to distinguish between logical shifts
+                    const logicalDate = fullComp.completion_date;
+                    const indiaDate = new Intl.DateTimeFormat('en-CA', {
+                        timeZone: 'Asia/Kolkata',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(now);
+                    const todayStr = indiaDate;
+                    
+                    const isHistorical = logicalDate < todayStr;
+                    const isFuture = logicalDate > todayStr;
+
+                    if (isHistorical) {
+                        // Past day checklist is definitely late
+                        updates.is_late = true;
+                    } else if (!isFuture) {
+                        // It is for TODAY. Only mark late if past end time and before next start
+                        const isAfterWindow = isOvernight
+                            ? (currentMins >= endM && currentMins < startM)
+                            : (currentMins >= endM);
+
+                        if (isAfterWindow) {
+                            updates.is_late = true;
+                        }
+                    }
+                }
+            }
 
             const { error: updateError } = await supabaseAdmin
                 .from('sop_completions')

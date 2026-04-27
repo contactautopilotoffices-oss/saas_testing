@@ -309,7 +309,9 @@ const SOPCompletionDetail: React.FC<SOPCompletionDetailProps> = ({ completionId,
                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                     : 'bg-amber-50 text-amber-600 border border-amber-100'
                     }`}>
-                    {completion.status.replace('_', ' ')}
+                    {completion.status === 'pending' || completion.status === 'missed' 
+                        ? 'Pending' 
+                        : completion.status.replace('_', ' ')}
                 </div>
             </div>
 
@@ -527,19 +529,13 @@ const SOPCompletionDetail: React.FC<SOPCompletionDetailProps> = ({ completionId,
 
             {/* Bottom Actions */}
             <div className="flex justify-center gap-3 pt-2 md:pt-4">
-                <button
-                    onClick={onBack}
-                    className="px-6 md:px-8 py-2.5 md:py-3 border border-slate-200 text-slate-600 rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all"
-                >
-                    {completion?.status === 'in_progress' ? 'Back' : 'Close'}
-                </button>
-                {completion?.status === 'in_progress' && (
+                {completion?.status !== 'completed' && (
                     <button
                         onClick={onResume}
                         className="px-6 md:px-8 py-2.5 md:py-3 bg-slate-900 text-white rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg flex items-center gap-2"
                     >
                         <Play size={10} />
-                        Resume Checklist
+                        {completion.status === 'pending' ? 'Start Checklist' : 'Resume Checklist'}
                     </button>
                 )}
             </div>

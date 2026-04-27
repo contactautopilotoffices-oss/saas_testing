@@ -1,10 +1,19 @@
 'use client';
 
 import { use } from 'react';
-import PropertyAdminDashboard from '@/frontend/components/dashboard/PropertyAdminDashboard';
-import SoftServiceManagerDashboard from '@/frontend/components/dashboard/SoftServiceManagerDashboard';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/frontend/context/AuthContext';
 import Loader from '@/frontend/components/ui/Loader';
+
+const PropertyAdminDashboard = dynamic(
+    () => import('@/frontend/components/dashboard/PropertyAdminDashboard'),
+    { ssr: false, loading: () => <Loader /> }
+);
+
+const SoftServiceManagerDashboard = dynamic(
+    () => import('@/frontend/components/dashboard/SoftServiceManagerDashboard'),
+    { ssr: false, loading: () => <Loader /> }
+);
 
 export default function PropertyDashboardPage({ params }: { params: Promise<{ propertyId: string }> }) {
     const { propertyId } = use(params);
@@ -21,7 +30,7 @@ export default function PropertyDashboardPage({ params }: { params: Promise<{ pr
 
     // Check if user has the Soft Service Manager role for this property
     const propertyMembership = membership?.properties?.find(p => p.id === propertyId);
-    const isSoftServiceManager = propertyMembership?.role === 'soft_service_manager';
+    const isSoftServiceManager = propertyMembership?.role === 'soft_service_manager' || propertyMembership?.role === 'soft_service_supervisor';
 
     if (isSoftServiceManager) {
         return <SoftServiceManagerDashboard propertyId={propertyId} userRole={propertyMembership?.role} />;

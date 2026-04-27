@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Check, Info, Edit3 } from 'lucide-react';
+import { X, Plus, Trash2, Check, Info, Edit3, Camera, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/frontend/utils/supabase/client';
 import { Toast } from '@/frontend/components/ui/Toast';
@@ -38,7 +38,7 @@ const SOPTemplateFormModal: React.FC<SOPTemplateFormModalProps> = ({ isOpen, onC
     const [newItem, setNewItem] = useState({
         title: '',
         description: '',
-        requires_photo: true,
+        requires_photo: false,
         requires_comment: false,
         type: 'checkbox' as 'checkbox' | 'text' | 'number' | 'yes_no',
         is_optional: false,
@@ -154,7 +154,7 @@ const SOPTemplateFormModal: React.FC<SOPTemplateFormModalProps> = ({ isOpen, onC
         setNewItem({
             title: '',
             description: '',
-            requires_photo: true,
+            requires_photo: false,
             requires_comment: false,
             type: 'checkbox',
             is_optional: false,
@@ -185,7 +185,7 @@ const SOPTemplateFormModal: React.FC<SOPTemplateFormModalProps> = ({ isOpen, onC
                     description: it.description || '',
                     type: it.type || 'checkbox',
                     requires_photo: it.requires_photo || false,
-                    requires_comment: false,
+                    requires_comment: it.requires_comment || false,
                     is_optional: false,
                     order_index: idx,
                     start_time: it.start_time || null,
@@ -559,9 +559,11 @@ const SOPTemplateFormModal: React.FC<SOPTemplateFormModalProps> = ({ isOpen, onC
                                                     <p className="font-black text-sm text-slate-900 truncate">{item.title}</p>
                                                     {item.description && <p className="text-[10px] text-slate-400 font-medium truncate">{item.description}</p>}
                                                     {(item.start_time || item.end_time) && (
-                                                        <p className="text-[9px] font-black text-primary/70 mt-0.5">
-                                                            {item.start_time ? fmt12(item.start_time) : '—'} – {item.end_time ? fmt12(item.end_time) : '—'}
-                                                        </p>
+                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                            <p className="text-[9px] font-black text-primary/70">
+                                                                {item.start_time ? fmt12(item.start_time) : '—'} – {item.end_time ? fmt12(item.end_time) : '—'}
+                                                            </p>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -598,6 +600,8 @@ const SOPTemplateFormModal: React.FC<SOPTemplateFormModalProps> = ({ isOpen, onC
                                             <option value="yes_no">Yes / No Toggle</option>
                                         </select>
                                     </div>
+
+                                    {/* Verification Requirements Removed - Optional for all steps per user request */}
 
                                     {/* Step-level time slot */}
                                     {!showStepTimeSlot ? (
