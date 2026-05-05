@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import {
     LayoutDashboard, Users, Ticket, Package, Settings, LogOut,
-    Menu, X, GitMerge, Calendar
+    Menu, X, GitMerge, Calendar, Receipt
 } from 'lucide-react';
 import CapabilityWrapper from '../auth/CapabilityWrapper';
 import { useAuth } from '@/frontend/context/AuthContext';
@@ -30,6 +30,7 @@ export default function DashboardSidebar({ isMobileOpen, onMobileClose }: Dashbo
         { label: 'Tickets', href: `/${orgId}/tickets`, icon: Ticket, domain: 'tickets' as const },
         { label: 'Flow Map', href: `/${orgId}/flow-map`, icon: GitMerge, domain: 'tickets' as const },
         { label: 'Inventory', href: `/${orgId}/procurement`, icon: Package, domain: 'procurement' as const },
+        { label: 'Purchase Orders', href: `/${orgId}/purchase-orders`, icon: Receipt, domain: 'procurement' as const },
         { label: 'Staff', href: `/${orgId}/users`, icon: Users, domain: 'users' as const },
     ];
 

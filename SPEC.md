@@ -1,76 +1,198 @@
 # SPEC.md — Zoho MCP Purchase Order Module
-## Autopilot AI-Powered PO Creation from Proforma Invoice
+## Autopilot AI-Powered PO Creation via Zoho Books MCP Server
 
-**Version:** 1.0 | **Date:** 2026-05-05
+**Version:** 1.1 | **Date:** 2026-05-05 | Status: MCP Architecture Complete
 
 ---
 
 ## 1. Overview
 
-A new module within the saas_one (Autopilot) Next.js application that enables users to create Purchase Orders in Zoho Books by uploading Proforma Invoices. The flow: **Invoice Upload → AI Document Parsing → 5-Question Context Prompt → AI Middleware Processing → Zoho Books PO Creation → Confirmation**.
+This module provides a **Zoho Books MCP (Model Context Protocol) Server** that exposes Zoho Books operations as discoverable AI tools, plus a complete web UI for human users to create Purchase Orders from Proforma Invoices.
 
-The AI middleware is **model-agnostic** — swap LLM providers via environment variable without code changes.
+### Two Interface Layers:
+
+**Layer 1 — MCP Server (AI-facing):**
+An MCP-compliant server at `/api/mcp/zoho` that exposes 9 tools via the Model Context Protocol. AI agents connect via HTTP, discover available tools through `tools/list`, and call them with `tools/call`. No Zoho API knowledge required by the AI — all authentication, GST logic, and error handling is managed by the MCP server.
+
+**Layer 2 — Web Wizard (Human-facing):**
+A 4-step UI at `/zoho-po` for human users: **Invoice Upload → AI Document Parsing → 5-Question Context Prompt → Zoho Books PO Creation → Confirmation**. The web layer internally calls the same business logic that backs the MCP tools.
+
+### Core Capabilities:
+- **MCP Protocol Server**: 9 tools exposed via `/api/mcp/zoho` (Streamable HTTP transport)
+- **AI Document Parsing**: Extract structured data from proforma invoice PDFs/images (model-agnostic)
+- **GST Engine**: Automatic inter/intra-state detection with correct CGST/SGST/IGST
+- **Vendor Intelligence**: Fuzzy-matched empanelled vendor lookup + new vendor creation
+- **Model-Agnostic AI**: Swap LLM providers via `AI_MODEL_PROVIDER` env var
+- **Full Audit Trail**: Every PO creation attempt logged with inputs, outputs, model used
 
 ---
 
 ## 2. Module Structure
 
+### MCP Server (The Core)
+```
+lib/zoho-mcp-server.ts          # McpServer with 9 registered MCP tools
+lib/zoho-mcp-client.ts          # MCP client for calling Zoho tools from app code
+
+app/api/mcp/zoho/
+  route.ts                      # Streamable HTTP transport (POST/GET/DELETE)
+  tools/route.ts                # Tool discovery endpoint (GET /tools)
+```
+
+### MCP Tools Exposed:
+| Tool | Description |
+|------|-------------|
+| `create_purchase_order` | Create a PO in Zoho Books with line items, GST, vendor |
+| `get_vendors` | List/search vendors in Zoho Books |
+| `get_vendor_by_id` | Get a single vendor's full details |
+| `create_vendor` | Add a new vendor (validates GSTIN/PAN, checks duplicates) |
+| `get_purchase_order` | Retrieve PO by ID |
+| `get_gst_entities` | Get GST entity master (filters by city) |
+| `parse_invoice` | AI-powered document parsing (PDF/image → structured JSON) |
+| `search_empanelled_vendor` | Fuzzy-search empanelled vendor master |
+| `calculate_gst` | Compute CGST/SGST/IGST for given vendor + entity GSTINs |
+
+### Backend Services:
 ```
 backend/lib/zoho-po/
-  ai-middleware.ts          # Model-agnostic AI middleware abstraction
-  document-parser.ts        # Invoice document parsing orchestrator
-  gst-engine.ts             # GST logic engine (IGST/CGST/SGST)
-  vendor-service.ts         # Empanelled vendor lookup + new vendor creation
-  zoho-client.ts            # Zoho Books API client
-  types.ts                  # Shared TypeScript types for the module
+  types.ts                    # Shared TypeScript types
+  ai-middleware.ts            # Model-agnostic AI abstraction layer
+  document-parser.ts          # Invoice document parsing orchestrator
+  gst-engine.ts               # GST logic engine (IGST/CGST/SGST)
+  vendor-service.ts           # Empanelled vendor lookup + new vendor creation
+  zoho-client.ts              # Zoho Books REST API client (OAuth, retries)
   adapters/
-    claude-adapter.ts       # Anthropic Claude adapter
-    openai-adapter.ts       # OpenAI GPT-4o adapter
-    gemini-adapter.ts       # Google Gemini adapter
-    groq-adapter.ts         # Groq/Llama adapter
+    claude-adapter.ts         # Anthropic Claude adapter
+    openai-adapter.ts         # OpenAI GPT-4o adapter
+    gemini-adapter.ts         # Google Gemini adapter
+    groq-adapter.ts           # Groq/Llama adapter
+```
 
+### REST API Routes (Web Layer → MCP Tools):
+```
 app/api/zoho-po/
-  parse-invoice/route.ts    # POST: Upload & parse invoice
-  vendors/route.ts          # GET: List empanelled vendors, POST: Create new vendor
-  create/route.ts           # POST: Full PO creation pipeline
-  audit-log/route.ts        # GET: PO audit trail
-  gst-entities/route.ts     # GET: GST entity master data
-  status/[poId]/route.ts    # GET: Check PO status in Zoho
+  parse-invoice/route.ts      # POST: Upload & parse invoice
+  vendors/route.ts            # GET/POST: Vendor search & creation
+  create/route.ts             # POST: Full PO creation pipeline
+  audit-log/route.ts          # GET: PO audit trail
+  gst-entities/route.ts       # GET: GST entity master
+  status/[poId]/route.ts      # GET: Check PO status in Zoho
+```
 
+### Frontend Wizard:
+```
 app/zoho-po/
-  page.tsx                  # Main PO creation wizard (redirects to /new)
-  new/page.tsx              # Step 1: Upload invoice
-  context/page.tsx          # Step 2: 5-question context prompt
-  review/page.tsx           # Step 3: Review line items
-  confirmation/page.tsx     # Step 4: PO confirmation
-  history/page.tsx          # List of all POs created via this flow
-  layout.tsx                # Shared layout for zoho-po pages
+  page.tsx                    # Redirects to /new
+  new/page.tsx                # Step 1: Invoice upload + AI parse
+  context/page.tsx            # Steps 2-5: City -> GST -> Vendor -> Billing -> Review
+  confirmation/page.tsx       # Step 6: PO number + Zoho deep link
+  history/page.tsx            # Past POs with status badges
+  layout.tsx                  # Tab navigation (New PO / History)
 
 frontend/components/zoho-po/
-  InvoiceUpload.tsx         # Drag-and-drop invoice upload
-  ContextPromptFlow.tsx     # 5-question wizard component
-  LineItemReview.tsx        # Editable line item confirmation table
-  POConfirmation.tsx        # Success screen with PO number + Zoho link
-  POHistoryTable.tsx        # Table of past POs
-  VendorSearch.tsx          # Empanelled vendor search with fuzzy match
-  NewVendorForm.tsx         # New vendor capture form
-  GSTEntitySelector.tsx     # GST entity dropdown (cascading from city)
-  CitySelector.tsx          # City/site selector
-  StepIndicator.tsx         # Progress indicator for wizard steps
-  ErrorBoundary.tsx         # Error handling for PO flow
+  InvoiceUpload.tsx           # Drag-and-drop upload zone
+  StepIndicator.tsx           # 5-step progress indicator
+  POFlowContext.tsx           # Cross-step state management
 
+frontend/context/
+  POFlowContext.tsx           # Enhanced wizard state context
+  POFlowTypes.ts              # Frontend type exports
+```
+
+### Database:
+```
 backend/db/migrations/
-  zoho_po_audit_log.sql     # Audit log table
-  zoho_po_vendor_cache.sql  # Vendor cache table
-  zoho_po_entity_master.sql # Entity master table (GSTIN ↔ entity ↔ address)
-  zoho_po_settings.sql      # Module settings per organization
+  zoho_po_module.sql          # Audit log, vendor cache, entity master, settings
 ```
 
 ---
 
-## 3. Data Models
+## 3. MCP Architecture (The Core Innovation)
 
-### 3.1 Audit Log Table
+### 3.1 What is the MCP Server?
+
+The **Zoho Books MCP Server** is the heart of this module. It is an MCP-compliant server built with `@modelcontextprotocol/sdk` that exposes Zoho Books operations as **discoverable, callable tools**. AI agents don't need to know Zoho's API -- they discover the tools through the MCP protocol and call them with simple JSON arguments.
+
+### 3.2 How It Works
+
+```
+AI Agent (Claude, GPT-4o, etc.)
+    |
+    |  1. Connects to /api/mcp/zoho (Streamable HTTP)
+    |  2. Calls tools/list -> discovers 9 available tools
+    |  3. Calls tools/call with arguments
+    v
++-------------------------------------------+
+|  Zoho Books MCP Server                    |
+|  (lib/zoho-mcp-server.ts)                 |
+|                                           |
+|  Tools:                                   |
+|  - create_purchase_order                  |
+|  - get_vendors                            |
+|  - get_vendor_by_id                       |
+|  - create_vendor                          |
+|  - get_purchase_order                     |
+|  - get_gst_entities                       |
+|  - parse_invoice                          |
+|  - search_empanelled_vendor               |
+|  - calculate_gst                          |
++-------------------------------------------+
+    |
+    |  Validates args, calls business logic
+    v
++-------------------------------------------+
+|  Backend Services                         |
+|  - zoho-client.ts (Zoho REST API)         |
+|  - vendor-service.ts (fuzzy matching)     |
+|  - gst-engine.ts (tax calculation)        |
+|  - document-parser.ts (AI OCR)            |
++-------------------------------------------+
+```
+
+### 3.3 Transport: Streamable HTTP
+
+The MCP server uses `WebStandardStreamableHTTPServerTransport` (Web Standard APIs), making it compatible with Next.js App Router:
+
+- **POST**: JSON-RPC messages (tool calls, initialization)
+- **GET**: SSE stream for server-to-client notifications
+- **DELETE**: Session termination
+- **Stateful**: Sessions tracked via `sessionIdGenerator` with `InMemoryEventStore`
+
+### 3.4 MCP Client for Internal Use
+
+The app's own code uses `lib/zoho-mcp-client.ts` to call MCP tools internally:
+
+```typescript
+import { callZohoTool, parseInvoiceViaMCP } from "@/lib/zoho-mcp-client";
+
+// Parse an invoice
+const parsed = await parseInvoiceViaMCP(base64, "invoice.pdf", "claude");
+
+// Create a PO
+const po = await callZohoTool("create_purchase_order", {
+  org_id: "...",
+  vendor_id: "...",
+  line_items: [...],
+  entity_gstin: "...",
+  ...
+});
+```
+
+### 3.5 Why MCP?
+
+| Without MCP | With MCP |
+|-------------|----------|
+| Each AI integration requires custom Zoho API code | AI agents discover tools automatically via `tools/list` |
+| AI models need Zoho API docs in context | Tool descriptions embedded in the protocol |
+| Hard to swap AI providers | Any MCP-compatible agent works (Claude, GPT, etc.) |
+| No standardization | Standardized MCP protocol (Anthropic/open standard) |
+| Auth managed per integration | Centralized auth in the MCP server |
+
+---
+
+## 4. Data Models
+
+### 4.1 Audit Log Table
 ```sql
 CREATE TABLE IF NOT EXISTS zoho_po_audit_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
