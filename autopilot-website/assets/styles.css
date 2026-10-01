@@ -111,19 +111,6 @@ p{margin:0}
 /* ============ hero ============ */
 .hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;overflow:hidden;color:#fff}
 .hero__media{position:absolute;inset:0;z-index:0;isolation:isolate}
-.slide{
-  position:absolute;inset:0;margin:0;background-size:cover;background-position:center;
-  opacity:0;z-index:1;transform:scale(1.06);transition:opacity 2.2s var(--ease-soft)
-}
-/* The incoming frame sweeps in behind a slanted edge, the same diagonal as the
-   A in the wordmark, while the outgoing one fades underneath it. */
-.slide.is-active{
-  opacity:1;z-index:2;
-  animation:kenburns 17s var(--ease-soft) forwards, diagwipe 1.5s var(--ease-out)
-}
-@keyframes kenburns{from{transform:scale(1.06)}to{transform:scale(1.14)}}
-@keyframes diagwipe{
-  from{clip-path:polygon(124% 0,124% 0,84% 100%,84% 100%)}
   to{clip-path:polygon(124% 0,-44% 0,-84% 100%,84% 100%)}
 }
 .hero__scrim{
@@ -146,14 +133,7 @@ p{margin:0}
 .chip:hover{border-color:rgba(183,148,89,.8);background:var(--gold-soft);transform:translateY(-2px)}
 .hero__cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
 
-.hero__ui{position:absolute;z-index:3;bottom:34px;left:0;right:0;max-width:var(--maxw);margin:0 auto;padding:0 var(--pad);display:flex;justify-content:space-between;align-items:center}
-.dots{display:flex;gap:10px}
-.dot{width:38px;height:2px;background:rgba(255,255,255,.28);border:0;padding:0;cursor:pointer;border-radius:2px;
-  position:relative;overflow:hidden;transition:background .5s var(--ease-soft)}
-.dot::after{content:"";position:absolute;inset:0;background:var(--gold);transform:scaleX(0);transform-origin:left;
-  transition:transform .7s var(--ease-out)}
-.dot.is-active::after{transform:scaleX(1)}
-.dot:hover{background:rgba(255,255,255,.5)}
+.hero__ui{position:absolute;z-index:3;bottom:34px;left:0;right:0;max-width:var(--maxw);margin:0 auto;padding:0 var(--pad);display:flex;justify-content:flex-end;align-items:center}
 .scrollcue{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.6)}
 
 /* ============ trust strip ============ */
@@ -377,12 +357,13 @@ p{margin:0}
    not as stock dropped behind type */
 .hero__video{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;
-  opacity:0;transition:opacity 1.6s var(--ease-soft)
+  opacity:0;transition:opacity 1.2s var(--ease-soft);background:var(--ink)
 }
 .hero__video.is-playing{opacity:1}
+/* the poster holds the frame until the first video frame is decoded */
+.hero__media{background:var(--ink)}
 /* the stills stay beneath as poster and fallback, so the hero is never empty */
-.hero__video.is-playing ~ .slide{opacity:0}
-
+.hero__video.is-playing ~ 
 .hero__grain{
   position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.22;mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");

@@ -6,42 +6,6 @@
   var yr = document.getElementById('yr');
   if (yr) yr.textContent = new Date().getFullYear();
 
-  /* ---------- hero slideshow ---------- */
-  var slides = Array.prototype.slice.call(document.querySelectorAll('.hero .slide'));
-  var dotsBox = document.getElementById('heroDots');
-  var index = 0, timer = null, DURATION = 7600;
-
-  function show(i) {
-    index = (i + slides.length) % slides.length;
-    slides.forEach(function (s, n) { s.classList.toggle('is-active', n === index); });
-    if (dotsBox) {
-      Array.prototype.forEach.call(dotsBox.children, function (d, n) {
-        d.classList.toggle('is-active', n === index);
-        if (n === index) d.setAttribute('aria-current', 'true');
-        else d.removeAttribute('aria-current');
-      });
-    }
-  }
-  function start() { if (!reduce && slides.length > 1) { stop(); timer = setInterval(function () { show(index + 1); }, DURATION); } }
-  function stop() { if (timer) clearInterval(timer); timer = null; }
-
-  if (dotsBox && slides.length > 1) {
-    slides.forEach(function (_, n) {
-      var b = document.createElement('button');
-      b.className = 'dot' + (n === 0 ? ' is-active' : '');
-      b.type = 'button';
-      b.setAttribute('aria-label', 'Show hero image ' + (n + 1));
-      if (n === 0) b.setAttribute('aria-current', 'true');
-      b.addEventListener('click', function () { show(n); start(); });
-      dotsBox.appendChild(b);
-    });
-  }
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) stop(); else start();
-  });
-  start();
-
-
   /* ---------- hero background video ----------
      The stills are the poster and the fallback, so the hero is complete before
      any of this runs and stays complete if none of it does. The rendition is
@@ -49,11 +13,7 @@
      so a phone on a slow link is not sent the 1080p file. */
   (function heroVideo() {
     var v = document.getElementById('heroVideo');
-    if (!v || reduce) return;
-
-    var conn = navigator.connection || {};
-    if (conn.saveData) return;                       // honour Data Saver
-    if (/^(slow-)?2g$/.test(conn.effectiveType || '')) return;
+    if (!v) return;
 
     var w = window.innerWidth;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -73,29 +33,28 @@
       v.appendChild(src);
     });
 
-    v.preload = 'auto';
     v.muted = true;            // required for autoplay, and set before load()
     v.load();
-
-    v.addEventListener('playing', function () { v.classList.add('is-playing'); stop(); });
-    v.addEventListener('error', function () { v.classList.remove('is-playing'); start(); });
+    v.addEventListener('playing', function () { v.classList.add('is-playing'); });
 
     function attempt() {
       var p = v.play();
-      if (p && p.catch) p.catch(function () { /* autoplay refused: stills remain */ });
+      if (p && p.catch) p.catch(function () { /* poster frame stands in */ });
     }
-    if (v.readyState >= 3) attempt();
-    else v.addEventListener('canplay', attempt, { once: true });
+    attempt();
+    v.addEventListener('canplay', attempt, { once: true });
 
-    // don't decode video the viewer cannot see
+    // Keep it looping forever, including if a browser ever drops the loop.
+    v.addEventListener('ended', function () { v.currentTime = 0; attempt(); });
+
+    // Stop decoding what nobody is looking at. Invisible to the viewer, and it
+    // resumes from where it left off, so the loop still reads as continuous.
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) v.pause();
-      else if (v.classList.contains('is-playing')) attempt();
+      if (document.hidden) v.pause(); else attempt();
     });
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) {
-        if (es[0].isIntersecting) { if (v.classList.contains('is-playing')) attempt(); }
-        else v.pause();
+        if (es[0].isIntersecting) attempt(); else v.pause();
       }, { threshold: 0.01 }).observe(v);
     }
   })();
