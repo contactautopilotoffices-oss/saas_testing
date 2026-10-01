@@ -473,3 +473,20 @@ p{margin:0}
 
 /* ============ locations ============ */
 .loc__body h3{font-size:clamp(18px,1.9vw,24px);letter-spacing:.01em}
+
+/* ============ client logos ============
+   A real SVG mark where we have the file, the brand wordmark where we do not.
+   Both are sized to the same optical height so the set reads as one row. */
+.client--logo,.wall__mark--logo{display:inline-flex;align-items:center;justify-content:center}
+.client--logo img{
+  height:clamp(26px,3vw,40px);width:auto;
+  filter:brightness(0) invert(1);opacity:.42;
+  transition:opacity .6s var(--ease-soft)
+}
+.client--logo:hover img{opacity:1}
+.wall__mark--logo img{
+  height:clamp(30px,3.4vw,44px);width:auto;
+  filter:brightness(0);opacity:.55;
+  transition:opacity .55s var(--ease-soft),transform .55s var(--ease-out)
+}
+.wall__cell:hover .wall__mark--logo img{opacity:1;transform:translateY(-2px)}
