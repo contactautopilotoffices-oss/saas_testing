@@ -1,0 +1,702 @@
+<title>Autopilot Offices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sen:wght@400;600;700;800&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ Autopilot Offices — design tokens ============ */
+:root{
+  color-scheme:light;
+  --ink:#0C0C0C;
+  --ink-2:#1A1A1A;
+  --grey-900:#2B2B2B;
+  --grey-600:#6B6B6B;
+  --grey-300:#D6D4D1;
+  --grey-100:#F4F3F1;
+  --paper:#FFFFFF;
+  --gold:#B79459;
+  --gold-soft:rgba(183,148,89,.30);
+
+  --f-display:'Sen', system-ui, sans-serif;
+  --f-text:'Montserrat', system-ui, sans-serif;
+
+  --pad:clamp(20px,5vw,80px);
+  --maxw:1280px;
+  --sec-y:clamp(72px,10vw,150px);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--f-text);font-weight:400;font-size:16px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:-.02em;line-height:1.08;margin:0}
+p{margin:0}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:16px;top:16px;z-index:999;background:#fff;padding:10px 16px}
+
+.eyebrow{
+  font-family:var(--f-text);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  font-weight:600;color:var(--gold);margin:0 0 18px
+}
+.section{padding:var(--sec-y) 0}
+.section--dark{background:var(--ink);color:#fff}
+.section--grey{background:var(--grey-100)}
+.sec-title{font-size:clamp(28px,4.2vw,56px)}
+.sec-sub{margin-top:22px;max-width:62ch;color:var(--grey-600);font-size:clamp(15px,1.3vw,18px)}
+.section--dark .sec-sub{color:#9E9C98}
+.sec-head{margin-bottom:clamp(40px,6vw,78px)}
+.sec-head--center{text-align:center}
+.sec-head--center .sec-sub{margin-left:auto;margin-right:auto}
+.sec-head--row{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;flex-wrap:wrap}
+
+/* ============ buttons ============ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--f-text);font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  padding:16px 30px;border:1px solid transparent;transition:all .35s var(--ease);white-space:nowrap
+}
+.btn--gold{background:var(--gold);color:#fff}
+.btn--gold:hover{background:#A07F46}
+.btn--line{border-color:rgba(255,255,255,.45);color:#fff}
+.btn--line:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+.btn--line.btn--dark{border-color:var(--grey-300);color:var(--ink)}
+.btn--line.btn--dark:hover{border-color:var(--ink);background:transparent}
+.section--dark .btn--line.btn--dark{border-color:rgba(255,255,255,.4);color:#fff}
+.btn--ghost{border-color:currentColor;padding:13px 24px}
+
+/* ============ nav ============ */
+.nav{position:fixed;inset:0 0 auto;z-index:50;transition:background .4s var(--ease),border-color .4s var(--ease);border-bottom:1px solid transparent}
+.nav__inner{max-width:var(--maxw);margin:0 auto;padding:18px var(--pad);padding-top:calc(18px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:40px}
+.nav__logo{height:19px;width:auto;filter:invert(1);transition:filter .4s var(--ease)}
+.nav__links{display:flex;gap:34px;margin-left:auto;font-size:13.5px;letter-spacing:.04em;color:#fff;transition:color .4s var(--ease)}
+.nav__links a{position:relative;padding:4px 0}
+.nav__links a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--gold);transition:width .35s var(--ease)}
+.nav__links a:hover::after{width:100%}
+.nav__actions{display:flex;align-items:center;gap:14px;color:#fff;transition:color .4s var(--ease)}
+.nav.is-solid{background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-color:var(--grey-300)}
+.nav.is-solid .nav__logo{filter:none}
+.nav.is-solid .nav__links,.nav.is-solid .nav__actions{color:var(--ink)}
+.nav__toggle{display:none;background:none;border:0;padding:10px;cursor:pointer}
+.nav__toggle span{display:block;width:24px;height:1.5px;background:currentColor;margin:5px 0;transition:transform .3s var(--ease)}
+.mobilenav{display:none;flex-direction:column;gap:4px;padding:8px var(--pad) 28px;max-height:70svh;overflow-y:auto;background:#fff;border-bottom:1px solid var(--grey-300)}
+.mobilenav a{padding:14px 0;font-family:var(--f-display);font-size:20px;border-bottom:1px solid var(--grey-300)}
+.mobilenav .btn{margin-top:18px;border-bottom:0}
+
+/* ============ hero ============ */
+.hero{position:relative;min-height:clamp(620px,88svh,880px);display:flex;align-items:flex-end;overflow:hidden;color:#fff}
+.hero__media{position:absolute;inset:0}
+.slide{
+  position:absolute;inset:0;margin:0;background-size:cover;background-position:center;
+  opacity:0;transform:scale(1.08);transition:opacity 1.6s var(--ease)
+}
+.slide.is-active{opacity:1;animation:kenburns 12s linear forwards}
+@keyframes kenburns{from{transform:scale(1.08)}to{transform:scale(1.16)}}
+.hero__scrim{
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(8,8,8,.86) 0%,rgba(8,8,8,.62) 45%,rgba(8,8,8,.25) 100%),
+             linear-gradient(0deg,rgba(8,8,8,.75) 0%,rgba(8,8,8,0) 55%)
+}
+.hero__content{position:relative;z-index:2;max-width:var(--maxw);margin:0 auto;width:100%;padding:130px var(--pad) 120px}
+.hero__title{font-size:clamp(31px,4.1vw,58px);font-weight:800;max-width:21ch;letter-spacing:-.025em;line-height:1.1}
+.hero__sub{margin-top:22px;max-width:52ch;font-size:clamp(15px,1.35vw,18.5px);color:rgba(255,255,255,.82);font-weight:300}
+
+.chooser{margin-top:36px}
+.chooser__label{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:14px}
+.chooser__row{display:flex;flex-wrap:wrap;gap:10px}
+.chip{
+  border:1px solid rgba(255,255,255,.35);padding:11px 20px;font-size:13px;letter-spacing:.03em;
+  transition:all .3s var(--ease);background:rgba(255,255,255,.04)
+}
+.chip:hover{border-color:var(--gold);background:var(--gold-soft)}
+.hero__cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+
+.hero__ui{position:absolute;z-index:3;bottom:34px;left:0;right:0;max-width:var(--maxw);margin:0 auto;padding:0 var(--pad);display:flex;justify-content:space-between;align-items:center}
+.dots{display:flex;gap:10px}
+.dot{width:34px;height:2px;background:rgba(255,255,255,.3);border:0;padding:0;cursor:pointer;transition:background .3s}
+.dot.is-active{background:var(--gold)}
+.scrollcue{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+
+/* ============ trust strip ============ */
+.trust{background:var(--ink);color:#fff;padding:54px 0 62px;overflow:hidden}
+.trust__head{display:flex;align-items:center;gap:18px;max-width:var(--maxw);margin:0 auto 34px;padding:0 var(--pad)}
+.trust__head .rule{width:48px;height:1px;background:var(--gold);flex:none}
+.trust__head h2{font-size:clamp(14px,1.5vw,17px);font-weight:400;font-family:var(--f-text);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+.marquee{position:relative;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marquee__track{display:flex;gap:clamp(48px,7vw,110px);width:max-content;animation:scrollx 34s linear infinite}
+.marquee:hover .marquee__track{animation-play-state:paused}
+@keyframes scrollx{to{transform:translateX(-50%)}}
+.client{
+  font-family:var(--f-display);font-weight:700;font-size:clamp(22px,2.7vw,36px);
+  letter-spacing:-.01em;color:rgba(255,255,255,.42);transition:color .3s var(--ease);white-space:nowrap
+}
+.client:hover{color:#fff}
+
+/* ============ lifecycle ============ */
+.lc{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(32px,6vw,90px);align-items:start}
+.lc__nav{list-style:none;margin:0;padding:0;border-top:1px solid var(--grey-300)}
+.lc__tab{
+  width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--grey-300);
+  padding:24px 0;cursor:pointer;font-family:var(--f-display);font-weight:700;
+  font-size:clamp(18px,2vw,26px);color:var(--grey-600);transition:color .3s var(--ease);display:flex;gap:18px;align-items:baseline
+}
+.lc__tab em{font-family:var(--f-text);font-style:normal;font-size:12px;letter-spacing:.12em;color:var(--grey-300)}
+.lc__tab:hover{color:var(--ink)}
+.lc__tab.is-active{color:var(--ink)}
+.lc__tab.is-active em{color:var(--gold)}
+.lc__panel{display:none}
+.lc__panel.is-active{display:block;animation:fadeup .5s var(--ease)}
+.lc__panel h3{font-size:clamp(24px,3vw,38px);margin-bottom:18px}
+.lc__panel p{color:var(--grey-600);font-size:clamp(15px,1.3vw,17.5px);max-width:52ch}
+@keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ============ day 1 standard ============ */
+.checklist{list-style:none;margin:0 auto;padding:0;max-width:860px;border-top:1px solid rgba(255,255,255,.14)}
+.checklist li{
+  display:flex;gap:20px;align-items:flex-start;padding:22px 4px;
+  border-bottom:1px solid rgba(255,255,255,.14);font-size:clamp(15px,1.5vw,19px);font-weight:300;color:rgba(255,255,255,.88)
+}
+.tick{flex:none;width:12px;height:12px;margin-top:8px;background:var(--gold);clip-path:polygon(0 0,100% 0,0 100%)}
+.standard__line{max-width:720px;margin:48px auto 0;text-align:center;color:#9E9C98;font-size:clamp(15px,1.4vw,18px)}
+
+/* ============ atlas ============ */
+.atlas__grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,6vw,88px);align-items:center}
+.atlas__copy p{margin-top:20px;color:var(--grey-600);max-width:52ch}
+.atlas__list{list-style:none;margin:30px 0 36px;padding:0}
+.atlas__list li{padding:14px 0 14px 26px;border-bottom:1px solid var(--grey-300);position:relative;font-size:15.5px}
+.atlas__list li::before{content:"";position:absolute;left:0;top:21px;width:9px;height:9px;background:var(--gold);clip-path:polygon(0 0,100% 0,0 100%)}
+.atlas__visual{background:var(--ink);padding:clamp(22px,3vw,40px);min-height:380px;display:flex;align-items:center}
+.panel{width:100%;color:#fff}
+.panel__row{display:flex;justify-content:space-between;padding:17px 0;border-bottom:1px solid rgba(255,255,255,.14);font-size:13.5px}
+.panel__row span{color:#8C8A86;letter-spacing:.05em}
+.panel__row b{font-family:var(--f-display);font-weight:600;color:var(--gold)}
+.panel__bars{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:34px}
+.panel__bars i{flex:1;background:rgba(255,255,255,.16);animation:grow 2.4s var(--ease) infinite alternate}
+.panel__bars i:nth-child(2n){background:var(--gold-soft)}
+.panel__bars i:nth-child(1){height:40%;animation-delay:0s}
+.panel__bars i:nth-child(2){height:70%;animation-delay:.2s}
+.panel__bars i:nth-child(3){height:52%;animation-delay:.4s}
+.panel__bars i:nth-child(4){height:88%;animation-delay:.6s}
+.panel__bars i:nth-child(5){height:62%;animation-delay:.8s}
+.panel__bars i:nth-child(6){height:94%;animation-delay:1s}
+.panel__bars i:nth-child(7){height:46%;animation-delay:1.2s}
+@keyframes grow{to{transform:scaleY(.82);transform-origin:bottom}}
+
+/* ============ ai ============ */
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,4vw,64px)}
+.col{border-top:1px solid var(--grey-300);padding-top:26px}
+.col h3{font-size:clamp(19px,2vw,24px);margin-bottom:14px}
+.col p{color:var(--grey-600);font-size:15.5px}
+
+/* ============ locations ============ */
+.loc__strip{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:10px}
+.loc{position:relative;min-height:clamp(320px,42vw,520px);background-size:cover;background-position:center;display:flex;align-items:flex-end;overflow:hidden}
+.loc::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(8,8,8,.8),rgba(8,8,8,0) 60%);transition:opacity .4s var(--ease)}
+.loc:hover::after{opacity:.75}
+.loc__body{position:relative;z-index:2;padding:clamp(22px,3vw,44px);color:#fff}
+.loc__body h3{font-size:clamp(22px,2.4vw,32px)}
+.loc__body p{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-top:8px}
+
+/* ============ case studies ============ */
+.cases{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.case{background:var(--ink-2);padding:clamp(26px,3vw,44px);border-top:2px solid var(--gold)}
+.case__client{font-size:clamp(24px,2.6vw,34px);margin-bottom:26px}
+.case dl{margin:0}
+.case dt{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-top:22px}
+.case dd{margin:7px 0 0;color:#9E9C98;font-size:15px}
+
+/* ============ people ============ */
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(14px,2vw,30px)}
+.member__photo{aspect-ratio:3/4;background:var(--grey-100);border-bottom:2px solid var(--gold)}
+.member figcaption{padding-top:16px;display:flex;flex-direction:column}
+.member b{font-family:var(--f-display);font-size:18px}
+.member span{font-size:13px;color:var(--grey-600);letter-spacing:.04em}
+.member{margin:0}
+
+/* ============ cta ============ */
+.cta{background:var(--grey-100)}
+.cta__inner{text-align:center}
+.cta__title{font-size:clamp(28px,4.4vw,58px)}
+.cta__actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:40px}
+
+/* ============ footer ============ */
+.foot{background:var(--ink);color:#fff;padding:60px 0 44px}
+.foot__inner{display:flex;align-items:center;gap:30px;flex-wrap:wrap}
+.foot__logo{height:18px;width:auto;filter:invert(1)}
+.foot__links{display:flex;gap:26px;margin-left:auto;font-size:13.5px;color:rgba(255,255,255,.7)}
+.foot__links a:hover{color:var(--gold)}
+.foot__legal{width:100%;font-size:12px;color:#6E6C68;padding-top:28px;margin-top:10px;border-top:1px solid rgba(255,255,255,.12)}
+
+/* ============ reveal ============ */
+.reveal{opacity:0;transform:translateY(22px)}
+.reveal.in{opacity:1;transform:none;transition:opacity .9s var(--ease),transform .9s var(--ease)}
+
+/* ============ responsive ============ */
+@media (max-width:1024px){
+  .lc{grid-template-columns:1fr}
+  .atlas__grid{grid-template-columns:1fr}
+  .cols3{grid-template-columns:1fr}
+  .cases{grid-template-columns:1fr}
+  .team{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:860px){
+  .nav__links{display:none}
+  .nav__actions .btn--ghost{display:none}
+  .nav__toggle{display:block}
+  .nav.is-open{background:#fff}
+  .nav.is-open .nav__logo{filter:none}
+  .nav.is-open .nav__actions{color:var(--ink)}
+  .mobilenav{display:flex}
+  .mobilenav[hidden]{display:none}
+  .hero{min-height:clamp(560px,86svh,760px)}
+  .hero__content{padding:120px var(--pad) 110px}
+  .hero__title{max-width:none}
+  .hero__title br{display:none}
+  .loc__strip{grid-template-columns:1fr}
+  .sec-head--row{align-items:flex-start}
+  .foot__links{margin-left:0;flex-wrap:wrap;gap:16px 22px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+  .reveal{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+
+</style>
+
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ================= NAV ================= -->
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#top" aria-label="Autopilot Offices home">
+      <img src="assets/img/autopilot-logo-dark.png" alt="Autopilot" class="nav__logo">
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#lifecycle">Solutions</a>
+      <a href="#locations">Locations</a>
+      <a href="#standard">Why Autopilot</a>
+      <a href="#work">Case Studies</a>
+      <a href="#people">About</a>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--ghost" href="#contact">Book a Consultation</a>
+      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="mobileNav" aria-label="Open menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobilenav" id="mobileNav" hidden>
+    <a href="#lifecycle">Solutions</a>
+    <a href="#locations">Locations</a>
+    <a href="#standard">Why Autopilot</a>
+    <a href="#work">Case Studies</a>
+    <a href="#people">About</a>
+    <a class="btn btn--gold" href="#contact">Book a Consultation</a>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top">
+  <div class="hero__media" aria-hidden="true">
+    <figure class="slide is-active" style="background-image:url('assets/img/hero-1.webp')"></figure>
+    <figure class="slide" style="background-image:url('assets/img/hero-2.webp')"></figure>
+    <div class="hero__scrim"></div>
+  </div>
+
+  <div class="hero__content">
+    <p class="eyebrow">Enterprise workspace partner</p>
+    <h1 class="hero__title">
+      Workspaces your teams trust.<br>
+      Operations you never think about.
+    </h1>
+    <p class="hero__sub">
+      Autopilot takes on the entire workspace lifecycle, from finding the right space to
+      designing, building and running it every day. You get a workplace that simply works.
+    </p>
+
+    <div class="chooser" role="group" aria-label="What are you looking for?">
+      <span class="chooser__label">What are you looking for?</span>
+      <div class="chooser__row">
+        <a class="chip" href="#lifecycle">Custom-Built Office</a>
+        <a class="chip" href="#lifecycle">Ready-to-Move-In</a>
+        <a class="chip" href="#lifecycle">Design &amp; Build</a>
+        <a class="chip" href="#lifecycle">Facility Management</a>
+      </div>
+    </div>
+
+    <div class="hero__cta">
+      <a class="btn btn--gold" href="#contact">Talk to Autopilot</a>
+      <a class="btn btn--line" href="#locations">View Locations</a>
+    </div>
+  </div>
+
+  <div class="hero__ui">
+    <div class="dots" id="heroDots" role="tablist" aria-label="Hero images"></div>
+    <span class="scrollcue">Scroll</span>
+  </div>
+</section>
+
+<!-- ================= TRUST STRIP ================= -->
+<section class="trust" aria-labelledby="trustHeading">
+  <div class="trust__head">
+    <span class="rule"></span>
+    <h2 id="trustHeading">Trusted by businesses that demand more</h2>
+  </div>
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track" id="marqueeTrack">
+      <span class="client">MyGate</span>
+      <span class="client">Zepto</span>
+      <span class="client">Digitide</span>
+      <span class="client">Altruist</span>
+    </div>
+  </div>
+  <p class="visually-hidden">Clients include MyGate, Zepto, Digitide and Altruist.</p>
+</section>
+
+<!-- ================= LIFECYCLE ================= -->
+<section class="section lifecycle" id="lifecycle">
+  <div class="wrap">
+    <header class="sec-head">
+      <span class="eyebrow">What we do</span>
+      <h2 class="sec-title">One partner across the entire workspace lifecycle</h2>
+      <p class="sec-sub">
+        Most companies stitch together a broker, a designer, a contractor and a facility vendor,
+        then spend the next three years managing all four. Autopilot holds the whole chain,
+        so accountability never sits in a gap between suppliers.
+      </p>
+    </header>
+
+    <div class="lc">
+      <ol class="lc__nav" role="tablist" aria-label="Workspace lifecycle">
+        <li><button class="lc__tab is-active" role="tab" aria-selected="true" data-step="1"><em>01</em> Strategy &amp; Sourcing</button></li>
+        <li><button class="lc__tab" role="tab" aria-selected="false" data-step="2"><em>02</em> Design &amp; Build</button></li>
+        <li><button class="lc__tab" role="tab" aria-selected="false" data-step="3"><em>03</em> Ready-to-Move-In</button></li>
+        <li><button class="lc__tab" role="tab" aria-selected="false" data-step="4"><em>04</em> Facility Management</button></li>
+      </ol>
+      <div class="lc__panels">
+        <article class="lc__panel is-active" data-step="1">
+          <h3>Strategy &amp; Sourcing</h3>
+          <p>We start with the business case, not the floor plan. Headcount plans, locations your
+             people can actually reach, commercial terms worth signing. We shortlist, negotiate and
+             take the space to the point where a decision is easy to defend internally.</p>
+        </article>
+        <article class="lc__panel" data-step="2">
+          <h3>Design &amp; Build</h3>
+          <p>Design that reflects how your teams work, delivered under a single schedule and a single
+             budget line. One team owns drawings, approvals, vendors, site quality and handover dates.</p>
+        </article>
+        <article class="lc__panel" data-step="3">
+          <h3>Ready-to-Move-In</h3>
+          <p>Fully fitted, serviced offices your team can occupy without a capex cycle. The space,
+             the furniture, the connectivity and the daily operations arrive together.</p>
+        </article>
+        <article class="lc__panel" data-step="4">
+          <h3>Integrated Facility Management</h3>
+          <p>The part that decides how the workspace actually feels. Housekeeping, technical upkeep,
+             pantry, security coordination, vendor management and reporting, run to a defined standard
+             and measured against it.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DAY 1 STANDARD ================= -->
+<section class="section section--dark standard" id="standard">
+  <div class="wrap">
+    <header class="sec-head sec-head--center">
+      <span class="eyebrow">The Day 1 Standard</span>
+      <h2 class="sec-title">The office is not ready when the keys arrive.<br>It is ready when nobody has to ask for anything.</h2>
+    </header>
+    <ul class="checklist">
+      <li><span class="tick"></span>Every seat, screen and meeting room working before the first person sits down</li>
+      <li><span class="tick"></span>Network, access control and support desk live from the first morning</li>
+      <li><span class="tick"></span>Housekeeping, pantry and upkeep running to a written standard, not to memory</li>
+      <li><span class="tick"></span>A named Autopilot team on site, accountable for the space from day one</li>
+      <li><span class="tick"></span>Snags closed before handover, not tracked for months afterwards</li>
+    </ul>
+    <p class="standard__line">That is what we mean by invisible excellence. The work is visible to us. The result is quiet for you.</p>
+  </div>
+</section>
+
+<!-- ================= ATLAS ================= -->
+<section class="section atlas" id="atlas">
+  <div class="wrap atlas__grid">
+    <div class="atlas__copy">
+      <span class="eyebrow">ATLAS</span>
+      <h2 class="sec-title">The operating system behind every Autopilot workspace</h2>
+      <p>ATLAS is the platform our teams run on. Every request, asset, inspection, vendor and
+         service schedule across your workspace sits in one place, so a question about your office
+         has an answer rather than an investigation.</p>
+      <ul class="atlas__list">
+        <li>A single record of every asset and every service across sites</li>
+        <li>Requests, approvals and escalations tracked end to end</li>
+        <li>Preventive schedules that run on time, not on reminders</li>
+        <li>Reporting your facility and finance teams can use directly</li>
+      </ul>
+      <a class="btn btn--line btn--dark" href="#contact">See ATLAS in action</a>
+    </div>
+    <div class="atlas__visual" aria-hidden="true">
+      <div class="panel">
+        <div class="panel__row"><span>Sites live</span><b>All locations</b></div>
+        <div class="panel__row"><span>Open requests</span><b>Tracked</b></div>
+        <div class="panel__row"><span>Preventive tasks</span><b>On schedule</b></div>
+        <div class="panel__bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AI SPOTLIGHT ================= -->
+<section class="section section--grey ai">
+  <div class="wrap">
+    <header class="sec-head">
+      <span class="eyebrow">Intelligence, applied quietly</span>
+      <h2 class="sec-title">We use AI to get ahead of problems, not to talk about AI</h2>
+    </header>
+    <div class="cols3">
+      <div class="col">
+        <h3>Proactive, not reactive</h3>
+        <p>Patterns across tickets and assets tell us where a failure is forming, so the fix is
+           scheduled instead of escalated.</p>
+      </div>
+      <div class="col">
+        <h3>Faster resolution</h3>
+        <p>Requests are routed to the right person with the right context the first time, which is
+           usually the difference between an hour and a week.</p>
+      </div>
+      <div class="col">
+        <h3>Sharper operations</h3>
+        <p>Consumption, manpower and service data turn into decisions your team can see, rather than
+           reports nobody opens.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LOCATIONS ================= -->
+<section class="section locations" id="locations">
+  <div class="wrap">
+    <header class="sec-head sec-head--row">
+      <div>
+        <span class="eyebrow">Locations</span>
+        <h2 class="sec-title">Where our teams are working today</h2>
+      </div>
+      <a class="btn btn--line" href="#contact">Enquire about availability</a>
+    </header>
+  </div>
+  <div class="loc__strip">
+    <article class="loc" style="background-image:url('assets/img/hero-1.webp')">
+      <div class="loc__body"><h3>Workspace</h3><p>Enquire for availability</p></div>
+    </article>
+    <article class="loc" style="background-image:url('assets/img/hero-2.webp')">
+      <div class="loc__body"><h3>Workspace</h3><p>Enquire for availability</p></div>
+    </article>
+  </div>
+</section>
+
+<!-- ================= CASE STUDIES ================= -->
+<section class="section section--dark work" id="work">
+  <div class="wrap">
+    <header class="sec-head">
+      <span class="eyebrow">Selected work</span>
+      <h2 class="sec-title">Workspaces delivered for businesses that could not afford a bad one</h2>
+    </header>
+    <div class="cases">
+      <article class="case">
+        <h3 class="case__client">MyGate</h3>
+        <dl>
+          <dt>Challenge</dt><dd data-slot>Awaiting approved project detail.</dd>
+          <dt>Our role</dt><dd data-slot>Awaiting approved project detail.</dd>
+          <dt>Outcome</dt><dd data-slot>Awaiting approved project detail.</dd>
+        </dl>
+      </article>
+      <article class="case">
+        <h3 class="case__client">Zepto</h3>
+        <dl>
+          <dt>Challenge</dt><dd data-slot>Awaiting approved project detail.</dd>
+          <dt>Our role</dt><dd data-slot>Awaiting approved project detail.</dd>
+          <dt>Outcome</dt><dd data-slot>Awaiting approved project detail.</dd>
+        </dl>
+      </article>
+      <article class="case">
+        <h3 class="case__client">Digitide</h3>
+        <dl>
+          <dt>Challenge</dt><dd data-slot>Awaiting approved project detail.</dd>
+          <dt>Our role</dt><dd data-slot>Awaiting approved project detail.</dd>
+          <dt>Outcome</dt><dd data-slot>Awaiting approved project detail.</dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PEOPLE ================= -->
+<section class="section people" id="people">
+  <div class="wrap">
+    <header class="sec-head">
+      <span class="eyebrow">The people behind it</span>
+      <h2 class="sec-title">Meet the people responsible for making this work</h2>
+      <p class="sec-sub">Workspace delivery is not a product you buy. It is a team you rely on.
+         These are the people your business will actually be working with.</p>
+    </header>
+    <div class="team" id="team">
+      <figure class="member"><div class="member__photo" data-slot></div>
+        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+      <figure class="member"><div class="member__photo" data-slot></div>
+        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+      <figure class="member"><div class="member__photo" data-slot></div>
+        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+      <figure class="member"><div class="member__photo" data-slot></div>
+        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section class="section cta" id="contact">
+  <div class="wrap cta__inner">
+    <h2 class="cta__title">Tell us what your workspace has to do.<br>We will take it from there.</h2>
+    <div class="cta__actions">
+      <a class="btn btn--gold" href="mailto:contact.autopilotoffices@gmail.com">Book a Consultation</a>
+      <a class="btn btn--line btn--dark" href="#lifecycle">Explore Solutions</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__inner">
+    <img src="assets/img/autopilot-logo-dark.png" alt="Autopilot" class="foot__logo">
+    <nav class="foot__links" aria-label="Footer">
+      <a href="#lifecycle">Solutions</a>
+      <a href="#locations">Locations</a>
+      <a href="#work">Case Studies</a>
+      <a href="#people">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <p class="foot__legal">&copy; <span id="yr"></span> Autopilot Offices. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="assets/main.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- year ---------- */
+  var yr = document.getElementById('yr');
+  if (yr) yr.textContent = new Date().getFullYear();
+
+  /* ---------- hero slideshow ---------- */
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.hero .slide'));
+  var dotsBox = document.getElementById('heroDots');
+  var index = 0, timer = null, DURATION = 6500;
+
+  function show(i) {
+    index = (i + slides.length) % slides.length;
+    slides.forEach(function (s, n) { s.classList.toggle('is-active', n === index); });
+    if (dotsBox) {
+      Array.prototype.forEach.call(dotsBox.children, function (d, n) {
+        d.classList.toggle('is-active', n === index);
+        d.setAttribute('aria-selected', n === index ? 'true' : 'false');
+      });
+    }
+  }
+  function start() { if (!reduce && slides.length > 1) { stop(); timer = setInterval(function () { show(index + 1); }, DURATION); } }
+  function stop() { if (timer) clearInterval(timer); timer = null; }
+
+  if (dotsBox && slides.length > 1) {
+    slides.forEach(function (_, n) {
+      var b = document.createElement('button');
+      b.className = 'dot' + (n === 0 ? ' is-active' : '');
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-label', 'Show image ' + (n + 1));
+      b.setAttribute('aria-selected', n === 0 ? 'true' : 'false');
+      b.addEventListener('click', function () { show(n); start(); });
+      dotsBox.appendChild(b);
+    });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stop(); else start();
+  });
+  start();
+
+  /* ---------- nav on scroll ---------- */
+  var nav = document.getElementById('nav');
+  function onScroll() { if (nav) nav.classList.toggle('is-solid', window.scrollY > 80); }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* ---------- mobile nav ---------- */
+  var toggle = document.getElementById('navToggle');
+  var mobile = document.getElementById('mobileNav');
+  if (toggle && mobile) {
+    toggle.addEventListener('click', function () {
+      var open = mobile.hasAttribute('hidden');
+      if (open) { mobile.removeAttribute('hidden'); } else { mobile.setAttribute('hidden', ''); }
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      nav.classList.toggle('is-open', open);
+    });
+    mobile.addEventListener('click', function (e) {
+      if (e.target.tagName === 'A') {
+        mobile.setAttribute('hidden', '');
+        toggle.setAttribute('aria-expanded', 'false');
+        nav.classList.remove('is-open');
+      }
+    });
+  }
+
+  /* ---------- seamless client marquee ---------- */
+  var track = document.getElementById('marqueeTrack');
+  if (track) {
+    track.innerHTML += track.innerHTML; // duplicate for a continuous loop
+  }
+
+  /* ---------- lifecycle tabs ---------- */
+  var tabs = document.querySelectorAll('.lc__tab');
+  var panels = document.querySelectorAll('.lc__panel');
+  Array.prototype.forEach.call(tabs, function (tab) {
+    tab.addEventListener('click', function () {
+      var step = tab.getAttribute('data-step');
+      Array.prototype.forEach.call(tabs, function (t) {
+        var on = t === tab;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      Array.prototype.forEach.call(panels, function (p) {
+        p.classList.toggle('is-active', p.getAttribute('data-step') === step);
+      });
+    });
+  });
+
+  /* ---------- scroll reveal ---------- */
+  var targets = document.querySelectorAll('.reveal, .sec-head, .lc, .checklist, .atlas__grid, .cols3, .loc__strip, .cases, .team, .cta__inner');
+  if (!('IntersectionObserver' in window) || reduce) {
+    Array.prototype.forEach.call(targets, function (t) { t.classList.add('in'); });
+  } else {
+    Array.prototype.forEach.call(targets, function (t) { t.classList.add('reveal'); });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    Array.prototype.forEach.call(targets, function (t) { io.observe(t); });
+  }
+})();
+
+</script>
