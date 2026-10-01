@@ -58,6 +58,18 @@ TRUST = (SRC / 'partials/trust.html').read_text().replace(
 WALL = (SRC / 'partials/wall.html').read_text().replace(
     '{{WALLCELLS}}', '\n' + ''.join(wall_cell(n, s) for n, s in CLIENTS))
 CTA = (SRC / 'partials/cta.html').read_text()
+NEXTSTEP = (SRC / 'partials/nextstep.html').read_text()
+STICKY = (SRC / 'partials/stickycta.html').read_text()
+
+# Every page points at the next sensible step, so no page is a dead end.
+NEXT = {
+    'index.html': ('solutions.html', 'See what we take on'),
+    'solutions.html': ('why-autopilot.html', 'Why Autopilot delivers it differently'),
+    'why-autopilot.html': ('case-studies.html', 'See it in practice'),
+    'case-studies.html': ('locations.html', 'Explore our workspaces'),
+    'locations.html': ('about.html', 'Meet the team behind them'),
+    'about.html': ('contact.html', 'Start a conversation'),
+}
 
 HEAD = (SRC / 'partials/head.html').read_text()
 HEADER = (SRC / 'partials/header.html').read_text()
@@ -90,7 +102,12 @@ for page in sorted((SRC / 'pages').glob('*.html')):
     for fname, token in ACTIVE.items():
         header = header.replace('{{%s}}' % token,
                                 ' aria-current="page"' if fname == page.name else '')
-    out = head + header + body + FOOTER.replace('{{JS}}', JS)
+    if page.name in NEXT:
+        href, label = NEXT[page.name]
+        body += NEXTSTEP.replace('{{NEXT_HREF}}', href).replace('{{NEXT_TITLE}}', label)
+
+    footer = FOOTER.replace('{{JS}}', JS).replace('{{STICKY}}', STICKY)
+    out = head + header + body + footer
     (ROOT / page.name).write_text(out)
     built.append((page.name, len(out)))
 

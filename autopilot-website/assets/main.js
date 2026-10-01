@@ -101,6 +101,33 @@
     });
   }
 
+  /* ---------- sticky call to action ----------
+     Held back until the hero is behind the viewer, so the page does not open
+     by asking for something. */
+  var bar = document.getElementById('stickyBar');
+  if (bar) {
+    var heroEl = document.querySelector('.hero');
+    var trigger = heroEl ? heroEl.offsetHeight * 0.75 : 420;
+    var barTicking = false;
+    function barScroll() {
+      if (barTicking) return;
+      barTicking = true;
+      requestAnimationFrame(function () {
+        var past = window.scrollY > trigger;
+        var atEnd = window.innerHeight + window.scrollY >
+                    document.body.offsetHeight - 220;   // the footer already asks
+        if (past && !atEnd) { bar.hidden = false; bar.classList.add('is-up'); }
+        else { bar.classList.remove('is-up'); }
+        barTicking = false;
+      });
+    }
+    window.addEventListener('scroll', barScroll, { passive: true });
+    window.addEventListener('resize', function () {
+      trigger = heroEl ? heroEl.offsetHeight * 0.75 : 420;
+    }, { passive: true });
+    barScroll();
+  }
+
   /* ---------- nav on scroll ---------- */
   var nav = document.getElementById('nav');
   function onScroll() {
