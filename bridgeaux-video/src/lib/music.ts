@@ -28,7 +28,7 @@ export const musicVolume = (globalFrame: number) => {
   }
   const level = BASE + (DUCKED - BASE) * duck;
   const fadeIn = interpolate(globalFrame, [0, 24], [0, 1], { extrapolateRight: 'clamp' });
-  const fadeOut = interpolate(globalFrame, [TOTAL_FRAMES - 45, TOTAL_FRAMES], [1, 0], {
+  const fadeOut = interpolate(globalFrame, [TOTAL_FRAMES - 15, TOTAL_FRAMES], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

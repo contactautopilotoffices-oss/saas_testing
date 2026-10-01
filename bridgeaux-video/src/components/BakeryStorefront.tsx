@@ -322,8 +322,11 @@ export const BakeryStorefront: React.FC<Props> = ({ frame, lights = 1, width = W
         {/* counter glass front */}
         <rect x="600" y="718" width="460" height="82" fill="#FFFFFF" opacity="0.18" />
         {/* window lettering */}
-        <text x="830" y="772" textAnchor="middle" fontFamily="Fraunces" fontStyle="italic" fontWeight="500" fontSize="30" fill="#B97A33" opacity="0.85">
-          fresh every morning
+        <text x="709" y="772" textAnchor="middle" fontFamily="Fraunces" fontStyle="italic" fontWeight="500" fontSize="30" fill="#B97A33" opacity="0.85">
+          fresh every
+        </text>
+        <text x="951" y="772" textAnchor="middle" fontFamily="Fraunces" fontStyle="italic" fontWeight="500" fontSize="30" fill="#B97A33" opacity="0.85">
+          morning
         </text>
         {/* reflections */}
         <rect x="590" y="500" width="480" height="300" fill={`url(#${id}-glass)`} />

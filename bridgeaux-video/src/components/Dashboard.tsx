@@ -21,7 +21,7 @@ import {
   Target,
   Users,
 } from 'lucide-react';
-import { business, customerActivity, formatINR } from '../data/business';
+import { business, customerActivity, formatINR, metrics } from '../data/business';
 import { colors, fonts, radii } from '../styles/tokens';
 import { BridgeAuxLogo } from './BridgeAuxLogo';
 import { KesarMark } from './KesarLogo';
@@ -117,8 +117,8 @@ const Chip: React.FC<{ tone: 'new' | 'replied' | 'resolved' | 'live'; children: 
 };
 
 const enquiries = [
-  { who: 'Rahul Desai', text: customerActivity.message.text, via: 'WhatsApp', tone: 'replied' as const, label: 'REPLIED' },
-  { who: 'Meera Iyer', text: 'Office order, 40 pastries for Friday', via: 'Google listing', tone: 'replied' as const, label: 'REPLIED' },
+  { who: 'Rahul Desai', text: customerActivity.message.text, via: 'WhatsApp', tone: 'new' as const, label: 'NEW' },
+  { who: 'Meera Iyer', text: 'Office order, 40 pastries for Friday', via: 'Email', tone: 'replied' as const, label: 'REPLIED' },
   { who: 'Kabir Rao', text: 'Is the mango cheesecake available today?', via: 'Website', tone: 'resolved' as const, label: 'RESOLVED' },
   { who: 'Sana Khan', text: 'Do you deliver to Khar West?', via: 'Google listing', tone: 'replied' as const, label: 'REPLIED' },
   { who: 'Dev Malhotra', text: 'Can I pre-order 12 croissants for Sunday?', via: 'Website', tone: 'resolved' as const, label: 'RESOLVED' },
@@ -234,8 +234,8 @@ export const Dashboard: React.FC<{ state: DashboardState }> = ({ state }) => {
                   {n.icon}
                   <span style={{ flex: 1 }}>{n.label}</span>
                   {n.label === 'Enquiries' ? (
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', background: colors.blue, borderRadius: 99, padding: '2px 7px', opacity: reply === 'replied' ? 0 : ne }}>
-                      1
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', background: colors.blue, borderRadius: 99, padding: '2px 7px', opacity: ne }}>
+                      {reply === 'replied' ? 1 : 2}
                     </span>
                   ) : null}
                 </div>
@@ -295,7 +295,7 @@ export const Dashboard: React.FC<{ state: DashboardState }> = ({ state }) => {
                 text={customerActivity.enquiry.text}
                 via="Website"
                 tint="#FCE3C8"
-                style={{ borderTop: 'none', background: reply === 'replied' ? 'transparent' : 'rgba(2,116,239,0.035)', borderRadius: 12, padding: '13px 10px' }}
+                style={{ borderTop: 'none', background: reply === 'replied' ? 'transparent' : 'rgba(2,116,239,0.035)', borderRadius: 12, padding: '13px 10px', margin: '0 -6px' }}
                 chip={reply === 'replied' ? <Chip tone="replied">REPLIED</Chip> : <Chip tone="new">NEW</Chip>}
                 action={
                   reply === 'replied' ? (
@@ -350,6 +350,7 @@ export const Dashboard: React.FC<{ state: DashboardState }> = ({ state }) => {
             </Panel>
             <Panel title="Grow" style={{ flex: 1 }}>
               {[
+                { icon: <Users size={16} />, label: 'Customers', detail: `${metrics.customers} customers · 14 new this month` },
                 { icon: <Search size={16} />, label: 'SEO', detail: 'Found for "bakery in Bandra"' },
                 { icon: <Megaphone size={16} />, label: 'Marketing', detail: '12 posts scheduled this month' },
                 { icon: <Target size={16} />, label: 'Ads', detail: 'Local campaign · 3 km radius' },

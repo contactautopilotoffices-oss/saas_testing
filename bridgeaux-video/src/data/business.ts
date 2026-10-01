@@ -47,7 +47,7 @@ export const metrics = {
 
 // Customers who interact with the bakery in scene 05
 export const customerActivity = {
-  search: { who: 'Priya Menon', query: 'cake shop near me' },
+  search: { query: 'cake shop near me' },
   message: { who: 'Rahul Desai', text: 'Hi! Do you make eggless cakes?' },
   enquiry: { who: 'Ananya Shah', text: 'Custom birthday cake, 2 kg, for Saturday' },
   order: { id: '#1042', text: '2 × Mango Cheesecake, 1 × Chocolate Cake', amount: '₹1,170' },

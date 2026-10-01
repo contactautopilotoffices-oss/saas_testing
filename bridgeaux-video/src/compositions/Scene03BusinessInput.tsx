@@ -26,8 +26,8 @@ import { ease, mix, progress, typed } from '../lib/motion';
 
 const WIN = { w: ONBOARD_W, h: ONBOARD_H + 44, cx: 960, cy: 540 };
 const TEXT = business.onboardingInput;
-const TYPE_START = 66;
-const CPS = 27;
+const TYPE_START = 56;
+const CPS = 30;
 const TYPE_END = TYPE_START + Math.ceil((TEXT.length / CPS) * 30);
 const CLICK = TYPE_END + 16;
 
@@ -37,7 +37,7 @@ const CARD_IN_WINDOW = { x: 830, y: 100 };
 /** Profile card position on scene 04's first frame (centre + scale). */
 export const S3_END = { card: { cx: 360, cy: 560, scale: 0.7 } };
 
-const ROW_IN = [CLICK + 22, CLICK + 30, CLICK + 38, CLICK + 46, CLICK + 54];
+const ROW_IN = [0, 1, 2, 3, 4].map((i) => CLICK + 24 + i * 6);
 const PHRASES = ['bakery', 'Mumbai', 'cakes, pastries and custom orders', '', 'more customers online'];
 
 export const Scene03BusinessInput: React.FC<SceneProps> = ({ withMusic }) => {
@@ -66,14 +66,14 @@ export const Scene03BusinessInput: React.FC<SceneProps> = ({ withMusic }) => {
 
   // --- understanding: column slides left, profile builds on the right
   const split = progress(frame, CLICK + 4, 26, ease.inOut);
-  const cardIn = progress(frame, CLICK + 12, 22, ease.out);
+  const cardIn = progress(frame, CLICK + 16, 18, ease.out);
   const rowsIn = ROW_IN.map((f) => progress(frame, f, 16, ease.out));
   const ready = progress(frame, ROW_IN[4] + 14, 12);
   const highlights = PHRASES.map((phrase, i) => ({ phrase, on: phrase ? progress(frame, ROW_IN[i] - 4, 12) : 0 }));
 
   // --- hand-off to scene 04: the card lifts out, the window falls away
   const handoff = progress(frame, 262, 38, ease.inOut);
-  const windowOut = progress(frame, 258, 30, ease.in);
+  const windowOut = progress(frame, 252, 30, ease.inOut);
 
   const winLeft = WIN.cx - WIN.w / 2;
   const winTop = WIN.cy - WIN.h / 2;
@@ -112,13 +112,13 @@ export const Scene03BusinessInput: React.FC<SceneProps> = ({ withMusic }) => {
           height: h,
           borderRadius: radius,
           background: '#FFFFFF',
-          boxShadow: `0 40px 90px rgba(21,34,40,${0.08 + 0.08 * open}), 0 8px 20px rgba(21,34,40,0.06)`,
+          boxShadow: `0 0 0 ${10 * (1 - open)}px rgba(2,116,239,${0.05 * (1 - open)}), 0 24px 70px rgba(2,116,239,${0.16 * (1 - open)}), 0 40px 90px rgba(21,34,40,${0.08 * open}), 0 8px 20px rgba(21,34,40,${0.08 * (1 - open) + 0.06 * open})`,
           overflow: 'hidden',
           opacity: 1 - windowOut,
         }}
       >
         {logoOut > 0 ? (
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%, -50%) scale(${1 + open * 0.4})`, opacity: logoOut }}>
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%, calc(-50% + ${node.r * 0.04 * S2_END.camera}px)) scale(${1 + open * 0.4})`, opacity: logoOut }}>
             <BridgeAuxLogo height={node.r * 0.66 * S2_END.camera} />
           </div>
         ) : null}

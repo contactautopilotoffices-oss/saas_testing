@@ -21,7 +21,7 @@ import { ease, mix, progress } from '../lib/motion';
 export const S2_END = { camera: 1.1, node: { x: ECO_CENTER.x, y: ECO_CENTER.y, r: 112 } };
 
 // when each ecosystem node appears (frame), in ECO_ITEMS order
-const NODE_IN = [82, 150, 158, 166, 194, 200, 206, 212, 218];
+const NODE_IN = [82, 140, 147, 154, 192, 198, 204, 210, 216];
 
 /** The finished ecosystem, as it looks on scene 02's last frame. */
 export const EcosystemEnding: React.FC<{ frame: number; opacity: number; camera: number }> = ({ frame, opacity, camera }) => {
@@ -36,7 +36,7 @@ export const EcosystemEnding: React.FC<{ frame: number; opacity: number; camera:
             from={slots[i]}
             to={{ x: node.x, y: node.y }}
             draw={1}
-            pulse={((frame + 300 - NODE_IN[i] - 14 + i * 11) % 66) / 66}
+            pulse={((frame + 300 - NODE_IN[i] - 22 + i * 11) % 66) / 66}
             color={groupColor(item.group)}
             width={2.2}
             curve={i < 4 ? -0.08 : 0.08}
@@ -57,7 +57,7 @@ export const Scene02BridgeAux: React.FC<SceneProps> = ({ withMusic }) => {
 
   // camera: continue from scene 01's push, settle, then lean into the centre
   const settleCam = progress(frame, 34, 60, ease.inOut);
-  const endPush = progress(frame, 266, 34, ease.in);
+  const endPush = progress(frame, 266, 33, ease.inOut);
   const camera = mix(settleCam, S1_LAYOUT.endCamera, 1) * mix(endPush, 1, S2_END.camera);
 
   // the gap becomes BridgeAux
@@ -75,8 +75,8 @@ export const Scene02BridgeAux: React.FC<SceneProps> = ({ withMusic }) => {
   const website = line('s2b');
   const emphasis = progress(frame, website.start, 10) * (1 - progress(frame, 140, 30, ease.inOut));
   // "Not just a website": the website sits alone beside BridgeAux, then takes its place in the ring
-  const websiteMove = progress(frame, 136, 32, ease.inOut);
-  const websiteFocus = { x: 650, y: S2_END.node.y };
+  const websiteMove = progress(frame, 132, 32, ease.inOut);
+  const websiteFocus = { x: 618, y: S2_END.node.y };
   const nodePos = (i: number) =>
     i === 0
       ? { x: mix(websiteMove, websiteFocus.x, slots[0].x), y: mix(websiteMove, websiteFocus.y, slots[0].y) }
@@ -120,9 +120,9 @@ export const Scene02BridgeAux: React.FC<SceneProps> = ({ withMusic }) => {
 
           {/* ecosystem connections */}
           {ECO_ITEMS.map((item, i) => {
-            const a = progress(frame, NODE_IN[i], 20, ease.out);
+            const a = progress(frame, NODE_IN[i] + 8, 20, ease.out);
             if (a <= 0) return null;
-            const since = frame - NODE_IN[i] - 14;
+            const since = frame - NODE_IN[i] - 22;
             const pulse = since > 0 ? ((since + i * 11) % 66) / 66 : undefined;
             return (
               <ConnectionLine
@@ -173,7 +173,7 @@ export const Scene02BridgeAux: React.FC<SceneProps> = ({ withMusic }) => {
             left: nodeX,
             top: nodeY + nodeR + 34,
             transform: `translate(-50%, ${mix(wordmark, 12, 0)}px)`,
-            opacity: wordmark * (1 - endPush),
+            opacity: wordmark * (1 - progress(frame, 258, 24, ease.inOut)),
             fontFamily: fonts.display,
             fontWeight: 600,
             fontSize: 50,
@@ -193,6 +193,7 @@ export const Scene02BridgeAux: React.FC<SceneProps> = ({ withMusic }) => {
             y={nodePos(i).y}
             appear={progress(frame, NODE_IN[i], 18, ease.out)}
             emphasis={i === 0 ? emphasis * 1.4 : 0}
+            scale={i === 0 ? mix(websiteMove, 1.3, 1) : 1}
           />
         ))}
 

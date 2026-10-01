@@ -8,7 +8,7 @@ import { colors, fonts, radii, shadows } from '../styles/tokens';
 export type FoundationItem = { key: string; icon: React.ReactNode; title: string; detail: string; done: string };
 
 export const FOUNDATION: FoundationItem[] = [
-  { key: 'website', icon: <Globe size={22} />, title: 'Website', detail: business.domain, done: 'Live' },
+  { key: 'website', icon: <Globe size={22} />, title: 'Website', detail: business.domain, done: 'Built' },
   { key: 'domain', icon: <Link2 size={22} />, title: 'Domain', detail: `${business.domain} · registered to you`, done: 'Yours' },
   { key: 'email', icon: <AtSign size={22} />, title: 'Business email', detail: business.email, done: 'Ready' },
   { key: 'google', icon: <MapPin size={22} />, title: 'Google Business Profile', detail: `Bakery in ${business.area}`, done: 'Listed' },
@@ -110,8 +110,8 @@ export const FoundationRow: React.FC<{
 /** The new business inbox. */
 export const EmailCard: React.FC<{ width: number; rowsIn?: number[] }> = ({ width, rowsIn = [1, 1] }) => {
   const mails = [
-    { from: 'BridgeAux', subject: `Your domain ${business.domain} is live`, time: '9:02' },
-    { from: 'BridgeAux', subject: 'Your Google listing is published', time: '9:04' },
+    { from: 'BridgeAux', subject: `${business.domain} is live`, time: '9:02' },
+    { from: 'Meera Iyer', subject: 'Office order, 40 pastries for Friday', time: '9:14' },
   ];
   return (
     <div style={{ width, background: '#fff', borderRadius: 20, boxShadow: shadows.raised, overflow: 'hidden', fontFamily: fonts.ui }}>

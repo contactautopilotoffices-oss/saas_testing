@@ -164,7 +164,7 @@ const MissingKesar: React.FC<{ p: number; focus: number }> = ({ p, focus }) => (
       <div style={{ fontFamily: fonts.ui, fontWeight: 600, fontSize: 15.5, color: colors.inkSoft }}>{business.name}</div>
       <CircleHelp size={16} color={colors.warn} />
     </div>
-    <div style={{ fontFamily: fonts.ui, fontSize: 12.5, color: colors.faint, marginTop: 4 }}>Bakery · No reviews yet</div>
+    <div style={{ fontFamily: fonts.ui, fontSize: 12.5, color: colors.faint, marginTop: 4 }}>Bakery · Listing incomplete</div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: fonts.ui, fontSize: 12.5, color: colors.faint, marginTop: 3 }}>
       <Clock size={12} /> Hours not listed
     </div>

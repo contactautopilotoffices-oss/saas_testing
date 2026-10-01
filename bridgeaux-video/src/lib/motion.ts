@@ -6,8 +6,8 @@ export const ease = {
   out: Easing.bezier(0.16, 1, 0.3, 1),
   // Balanced move between two states
   inOut: Easing.bezier(0.65, 0, 0.35, 1),
-  // Gentle start for exits
-  in: Easing.bezier(0.55, 0, 1, 0.45),
+  // Gentle start for exits (finite end slope, so fades never cut on the last frame)
+  in: Easing.bezier(0.4, 0, 0.7, 0.6),
   // Very soft, for long camera drifts
   drift: Easing.bezier(0.33, 0, 0.67, 1),
 };

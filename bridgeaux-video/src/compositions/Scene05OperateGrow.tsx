@@ -25,6 +25,8 @@ import { ease, mix, progress } from '../lib/motion';
 // BridgeAux brings the work together, the owner stays in charge.
 
 const PHONE = { x: 250, y: 145, w: 380 };
+// the phone opens as the hero, centred, then makes room for the activity flow
+const PHONE_START_X = 960 - PHONE.w / 2;
 const NODE = { x: 1560, y: 560, r: 82 };
 const TOASTS_X = 700;
 
@@ -39,7 +41,7 @@ const actions = [
     at: ACT.find,
     icon: <Search size={22} />,
     title: 'Found on Google',
-    detail: `${customerActivity.search.who.split(' ')[0]} searched "${customerActivity.search.query}"`,
+    detail: `Shown for "${customerActivity.search.query}"`,
     accent: 'blue' as const,
   },
   {
@@ -70,10 +72,12 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
 
   // --- opening: the listing card from scene 04 becomes the top search result
   const phoneIn = progress(frame, 0, 22, ease.out);
-  const listingOut = progress(frame, 6, 16, ease.in);
+  const listingOut = progress(frame, 0, 12, ease.out);
   const heading = progress(frame, 10, 22, ease.out);
-  const headingOut = progress(frame, 200, 16, ease.in);
-  const nodeIn = progress(frame, 34, 24, ease.out);
+  const headingOut = progress(frame, 210, 16, ease.in);
+  const nodeIn = progress(frame, 100, 22, ease.out);
+  const slide = progress(frame, 80, 26, ease.inOut);
+  const phoneX = mix(slide, PHONE_START_X, PHONE.x);
 
   // --- phone screens
   const toSite = progress(frame, ACT.find + 16, 14, ease.inOut);
@@ -82,10 +86,10 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
   const orderSheet = progress(frame, ACT.buy - 6, 16, ease.out);
 
   // --- phase C: everything comes together in the owner's dashboard
-  const gather = progress(frame, 198, 26, ease.inOut);
-  const expand = progress(frame, 206, 30, ease.inOut);
-  const dashContent = progress(frame, 214, 14, ease.out);
-  const counts = progress(frame, 226, 26, ease.out);
+  const gather = progress(frame, 208, 26, ease.inOut);
+  const expand = progress(frame, 216, 30, ease.inOut);
+  const dashContent = progress(frame, 224, 14, ease.out);
+  const counts = progress(frame, 236, 26, ease.out);
   const dash = S5_END.dash;
   const dW = DASH_W * dash.scale;
   const dH = (DASH_H + 44) * dash.scale;
@@ -95,7 +99,7 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
   const cy = mix(expand, NODE.y, dash.cy);
   const radius = mix(expand, NODE.r, 20 * dash.scale);
 
-  const REPLY_CLICK = 262;
+  const REPLY_CLICK = 272;
   const reply = frame < REPLY_CLICK ? 'new' : frame < REPLY_CLICK + 5 ? 'pressed' : 'replied';
   // Reply button centre in dashboard coordinates (see Dashboard layout)
   const replyBtn = { x: 984, y: 44 + 376 };
@@ -104,8 +108,8 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
     y: dash.cy - dH / 2 + p.y * dash.scale,
   });
   const target = toScreen(replyBtn);
-  const pointerIn = progress(frame, 238, 22, ease.inOut);
-  const pointerOut = progress(frame, REPLY_CLICK + 14, 12);
+  const pointerIn = progress(frame, 248, 22, ease.inOut);
+  const pointerOut = progress(frame, REPLY_CLICK + 10, 12);
 
   const L = S4_END.listing;
 
@@ -115,7 +119,7 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
 
       {/* the customer's phone */}
       <AbsoluteFill style={{ opacity: 1 - gather, transform: `translateX(${mix(gather, 0, -80)}px)` }}>
-        <div style={{ position: 'absolute', left: PHONE.x, top: PHONE.y, opacity: phoneIn, transform: `scale(${mix(phoneIn, 0.94, 1)})` }}>
+        <div style={{ position: 'absolute', left: phoneX, top: PHONE.y, opacity: phoneIn, transform: `scale(${mix(phoneIn, 0.94, 1)})` }}>
           <PhoneFrame width={PHONE.w}>
             <div style={{ position: 'absolute', inset: 0, opacity: 1 - toSite }}>
               <SearchScreen
@@ -152,7 +156,11 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
                   <span style={{ fontWeight: 700, fontSize: 18, color: colors.ink }}>Order placed</span>
                   <span style={{ marginLeft: 'auto', fontSize: 14, color: colors.muted }}>{customerActivity.order.id}</span>
                 </div>
-                <div style={{ fontSize: 14.5, color: colors.muted, marginTop: 8 }}>{customerActivity.order.text}</div>
+                <div style={{ fontSize: 14.5, color: colors.muted, marginTop: 8, lineHeight: 1.45 }}>
+                  {customerActivity.order.text.split(', ').map((l) => (
+                    <div key={l}>{l}</div>
+                  ))}
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 15 }}>
                   <span style={{ color: colors.muted }}>Paid by UPI</span>
                   <span style={{ fontWeight: 700, color: colors.ink }}>{customerActivity.order.amount}</span>
@@ -171,7 +179,7 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
               top: L.cy - 195,
               width: 340,
               opacity: 1 - listingOut,
-              transform: `scale(${(L.w / 340) * mix(listingOut, 1, 0.92)})`,
+              transform: `scale(${(L.w / 340) * mix(listingOut, 1, 0.96)})`,
               transformOrigin: '50% 195px',
             }}
           >
@@ -181,22 +189,6 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
 
         {/* activity flowing to BridgeAux */}
         <svg width={1920} height={1080} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
-          {(() => {
-            const guide = progress(frame, 44, 24, ease.out) * (1 - progress(frame, ACT.find, 14));
-            return guide > 0 ? (
-              <line
-                x1={PHONE.x + PHONE.w + 30}
-                x2={PHONE.x + PHONE.w + 30 + (NODE.x - NODE.r - 30 - (PHONE.x + PHONE.w + 30)) * guide}
-                y1={NODE.y}
-                y2={NODE.y}
-                stroke={colors.blue}
-                strokeOpacity={0.35}
-                strokeWidth={2.5}
-                strokeDasharray="2 12"
-                strokeLinecap="round"
-              />
-            ) : null;
-          })()}
           {actions.map((a, i) => {
             const y = 300 + i * 132;
             const p = progress(frame, a.at + 6, 16, ease.out);
@@ -261,14 +253,15 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
             <BrowserFrame url="bridgeaux.com/dashboard" width={DASH_W} height={DASH_H + 44} style={{ transform: `scale(${dash.scale})`, transformOrigin: 'top left', boxShadow: 'none', border: 'none' }}>
               <Dashboard
                 state={{
-                  visits: Math.round(mix(counts, metrics.visits * 0.9, metrics.visits)),
-                  enquiries: Math.round(mix(counts, metrics.enquiries - 6, metrics.enquiries)),
-                  orders: Math.round(mix(counts, metrics.orders - 4, metrics.orders)),
-                  revenue: Math.round(mix(counts, metrics.revenue - 4680, metrics.revenue) / 10) * 10,
-                  spark: progress(frame, 228, 30),
-                  newEnquiry: progress(frame, 232, 16, ease.out),
+                  // the customers just seen land here: +1 order of ₹1,170, +2 enquiries
+                  visits: Math.round(mix(counts, metrics.visits - 12, metrics.visits)),
+                  enquiries: Math.round(mix(counts, metrics.enquiries - 2, metrics.enquiries)),
+                  orders: Math.round(mix(counts, metrics.orders - 1, metrics.orders)),
+                  revenue: Math.round(mix(counts, metrics.revenue - 1170, metrics.revenue)),
+                  spark: progress(frame, 238, 30),
+                  newEnquiry: progress(frame, 242, 16, ease.out),
                   reply,
-                  enquiriesGlow: progress(frame, 236, 10) * (1 - progress(frame, REPLY_CLICK + 10, 20)),
+                  enquiriesGlow: progress(frame, 246, 10) * (1 - progress(frame, REPLY_CLICK + 10, 20)),
                   activeNav: 'Home',
                 }}
               />
@@ -312,7 +305,7 @@ export const Scene05OperateGrow: React.FC<SceneProps> = ({ withMusic }) => {
       {actions.map((a) => (
         <Sfx key={a.title} name="notify" at={a.at} volume={0.2} />
       ))}
-      <Sfx name="whoosh" at={204} volume={0.22} />
+      <Sfx name="whoosh" at={214} volume={0.22} />
       <Sfx name="click" at={REPLY_CLICK} volume={0.5} />
       <Sfx name="confirm" at={REPLY_CLICK + 5} volume={0.26} />
     </SceneShell>

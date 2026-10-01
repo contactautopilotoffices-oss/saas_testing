@@ -71,9 +71,9 @@ export const Scene06Finale: React.FC<SceneProps> = ({ withMusic }) => {
   const logoIn = progress(frame, 149, 30, ease.out);
   const logoRise = progress(frame, 178, 30, ease.inOut);
   const tagline = progress(frame, 186, 26, ease.out);
-  const cta = progress(frame, 232, 24, ease.out);
-  const url = progress(frame, 248, 20, ease.out);
-  const sweep = progress(frame, 258, 30, ease.inOut);
+  const cta = progress(frame, 214, 22, ease.out);
+  const url = progress(frame, 226, 18, ease.out);
+  const sweep = progress(frame, 244, 30, ease.inOut);
   const settle = progress(frame, 176, 124, ease.drift);
 
   return (
@@ -92,7 +92,7 @@ export const Scene06Finale: React.FC<SceneProps> = ({ withMusic }) => {
             return (
               <ConnectionLine
                 key={it.key}
-                from={{ x: s.x + (s.x < CENTER.x ? 150 : -150), y: s.y }}
+                from={{ x: s.x + (s.x < CENTER.x ? 170 : -170), y: s.y }}
                 to={{ x: toX, y: toY }}
                 draw={a}
                 pulse={since > 0 && since < 26 ? since / 26 : undefined}
@@ -116,6 +116,7 @@ export const Scene06Finale: React.FC<SceneProps> = ({ withMusic }) => {
             y={slots[i].y}
             appear={progress(frame, it.at, 18, ease.out)}
             glow={together}
+            width={340}
           />
         ))}
       </AbsoluteFill>
@@ -244,7 +245,7 @@ export const Scene06Finale: React.FC<SceneProps> = ({ withMusic }) => {
       <Sfx name="connect" at={104} volume={0.3} />
       <Sfx name="swell" at={128} volume={0.18} />
       <Sfx name="bloom" at={149} volume={0.5} />
-      <Sfx name="pop" at={232} volume={0.16} />
+      <Sfx name="pop" at={214} volume={0.16} />
     </SceneShell>
   );
 };

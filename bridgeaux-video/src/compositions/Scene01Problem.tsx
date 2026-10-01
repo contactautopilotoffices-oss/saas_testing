@@ -69,9 +69,9 @@ export const Scene01Problem: React.FC<SceneProps> = ({ withMusic }) => {
   // --- shot A: the shop in the real world (0-96)
   const lights = progress(frame, 4, 34, ease.inOut);
   const push = progress(frame, 0, 100, ease.drift);
-  const toCard = progress(frame, 96, 36, ease.inOut);
+  const toCard = progress(frame, 84, 36, ease.inOut);
   const tagIn = enter(frame, 30, { distance: 14 });
-  const tagOut = 1 - progress(frame, 86, 12);
+  const tagOut = 1 - progress(frame, 72, 12, ease.inOut);
 
   // --- shot B: the customer's search (100-215)
   const phoneIn = progress(frame, 100, 28, ease.out);
@@ -187,8 +187,7 @@ export const Scene01Problem: React.FC<SceneProps> = ({ withMusic }) => {
             position: 'absolute',
             left: phone.x + phoneX,
             top: phone.y,
-            opacity: phoneIn,
-            transform: `translateY(${mix(phoneIn, 90, 0)}px) rotate(${mix(phoneIn, 4, 0)}deg)`,
+            transform: `translateX(${mix(phoneIn, 760, 0)}px) rotate(${mix(phoneIn, 4, 0)}deg)`,
           }}
         >
           <PhoneFrame width={phone.w}>
@@ -245,7 +244,7 @@ export const Scene01Problem: React.FC<SceneProps> = ({ withMusic }) => {
       {/* sound */}
       <Sfx name="street" at={0} volume={0.55} durationInFrames={130} fadeOutFrames={40} />
       <Sfx name="shop-bell" at={12} volume={0.32} />
-      <Sfx name="whoosh-soft" at={94} volume={0.35} />
+      <Sfx name="whoosh-soft" at={82} volume={0.35} />
       <Sfx name="typing" at={typeStart} volume={0.32} durationInFrames={typingDone - typeStart + 2} fadeOutFrames={4} />
       <Sfx name="tap" at={typingDone + 2} volume={0.4} />
       {problems.map((p, i) => (

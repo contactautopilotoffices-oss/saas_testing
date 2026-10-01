@@ -27,14 +27,14 @@ const ROW_IN = FOUNDATION.map((_, i) => 26 + i * 10);
 const ROW_DONE = FOUNDATION.map((_, i) => 42 + i * 10);
 
 const LAYOUT_B = {
-  browser: { x: 100, y: 196, w: 1120, h: 704 },
+  browser: { x: 100, y: 196, w: 1080, h: 704 },
   phone: { x: 1150, y: 352, w: 296 },
   listing: { x: 1500, y: 196, w: 340 },
   email: { x: 1500, y: 640, w: 340 },
 };
 
 /** Where the Google listing card lands on the last frame (scene 05 starts here). */
-export const S4_END = { listing: { cx: 440, cy: 572, w: 322 } };
+export const S4_END = { listing: { cx: 960, cy: 572, w: 322 } };
 
 export const Scene04DigitalFoundation: React.FC<SceneProps> = ({ withMusic }) => {
   const frame = useCurrentFrame();
@@ -43,20 +43,21 @@ export const Scene04DigitalFoundation: React.FC<SceneProps> = ({ withMusic }) =>
 
   // --- phase A: building
   const heading = progress(frame, 4, 22, ease.out);
-  const headingOut = progress(frame, 128, 18, ease.in);
+  const headingOut = progress(frame, 106, 18, ease.in);
   const nodeIn = progress(frame, 8, 22, ease.out);
   const feed = progress(frame, 14, 18, ease.out);
   const doneCount = ROW_DONE.filter((f) => frame >= f).length;
-  const buildOut = progress(frame, 112, 30, ease.inOut);
+  const buildOut = progress(frame, 106, 26, ease.inOut);
 
   // --- phase B: the foundation, live
-  const browserIn = progress(frame, 126, 34, ease.out);
-  const siteReveal = progress(frame, 136, 40, ease.out);
-  const siteScroll = mix(progress(frame, 190, 76, ease.inOut), 0, 345);
+  const browserIn = progress(frame, 128, 32, ease.out);
+  const siteReveal = progress(frame, 124, 36, ease.out);
+  const siteScroll = mix(progress(frame, 190, 76, ease.inOut), 0, 330);
   const phoneIn = progress(frame, 170, 28, ease.out);
   const listingIn = progress(frame, 196, 26, ease.out);
   const emailIn = progress(frame, 216, 26, ease.out);
-  const online = progress(frame, 244, 20, ease.out);
+  const online = progress(frame, 226, 18, ease.out);
+  const onlineOut = progress(frame, 284, 14, ease.inOut);
   const handoff = progress(frame, 268, 32, ease.inOut);
   const fadeRest = progress(frame, 266, 22, ease.in);
 
@@ -266,7 +267,7 @@ export const Scene04DigitalFoundation: React.FC<SceneProps> = ({ withMusic }) =>
             left: '50%',
             top: 100,
             transform: `translate(-50%, ${mix(online, 12, 0)}px)`,
-            opacity: online * (1 - fadeRest),
+            opacity: online * (1 - onlineOut),
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -289,8 +290,8 @@ export const Scene04DigitalFoundation: React.FC<SceneProps> = ({ withMusic }) =>
                 inset: -6,
                 borderRadius: 99,
                 border: `2px solid ${colors.live}`,
-                opacity: 0.5 * (1 - ((frame - 244) % 30) / 30),
-                transform: `scale(${0.6 + ((frame - 244) % 30) / 30})`,
+                opacity: 0.5 * (1 - ((frame - 226) % 30) / 30),
+                transform: `scale(${0.6 + ((frame - 226) % 30) / 30})`,
               }}
             />
           </span>
@@ -310,7 +311,7 @@ export const Scene04DigitalFoundation: React.FC<SceneProps> = ({ withMusic }) =>
       <Sfx name="pop" at={170} volume={0.16} />
       <Sfx name="pop" at={196} volume={0.16} />
       <Sfx name="notify" at={232} volume={0.18} />
-      <Sfx name="confirm" at={246} volume={0.3} />
+      <Sfx name="confirm" at={228} volume={0.3} />
       <Sfx name="whoosh-soft" at={268} volume={0.2} />
     </SceneShell>
   );

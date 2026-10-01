@@ -414,11 +414,16 @@ def make_music() -> np.ndarray:
             for k in range(8):
                 if k % 2 == 1:
                     place(drums, stereo(shaker(), pan=0.25), start + k * BEAT / 2, 0.05 if i >= 12 else 0.035)
-        # piano accents at scene openings
-        if i in (0, 4, 8, 12, 16, 20, 22):
+        # piano accents at scene openings, and a resolving hit under the final CTA
+        if i in (0, 4, 8, 12, 16, 20):
             top = voicing[-1] + (12 if i in (4, 22) else 0)
             place(keys, stereo(soft_piano(midi_hz(top)), pan=0.1), start + 0.02, 0.12)
             place(keys, stereo(soft_piano(midi_hz(voicing[1] + 12)), pan=-0.1), start + BEAT * 1.5, 0.06)
+
+    # the button: a soft Dmaj9 piano chord at 57.7 s (the CTA) that rings to the end
+    for k, note in enumerate((62, 66, 69, 73, 76, 81)):
+        place(keys, stereo(soft_piano(midi_hz(note), 2.6), pan=(k - 2.5) * 0.12), 57.7 + k * 0.012, 0.11)
+    place(bass, stereo(np.sin(2 * np.pi * midi_hz(38) * t_axis(2.3)) * np.exp(-t_axis(2.3) / 1.2)), 57.7, 0.2)
 
     pads = fx(pads, Pedalboard([LowpassFilter(2600), room(0.4, 0.8)]))
     arps = fx(arps, Pedalboard([HighpassFilter(300), LowpassFilter(6000), room(0.35, 0.6)]))
@@ -431,7 +436,7 @@ def make_music() -> np.ndarray:
     mix = fx(mix, Pedalboard([HighpassFilter(35), Compressor(threshold_db=-18, ratio=2.0, attack_ms=20, release_ms=250), Limiter(threshold_db=-1.5)]))
     # final length: exactly 60 s with a gentle tail fade
     mix = mix[:, : int(60.0 * SR)]
-    fade_n = int(2.5 * SR)
+    fade_n = int(0.6 * SR)
     mix[:, -fade_n:] *= np.linspace(1, 0, fade_n) ** 1.5
     return mix
 

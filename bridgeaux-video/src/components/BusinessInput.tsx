@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cake, CircleCheck, Loader, MapPin, Sparkles, Store, TrendingUp, Users } from 'lucide-react';
+import { Cake, CircleCheck, Loader, MapPin, Store, TrendingUp, Users } from 'lucide-react';
 import { business } from '../data/business';
 import { colors, fonts, radii, shadows } from '../styles/tokens';
 import { BridgeAuxLogo } from './BridgeAuxLogo';
@@ -236,8 +236,8 @@ export const ProfileCard: React.FC<{ rowsIn: number[]; ready: number; header?: n
           letterSpacing: '0.02em',
         }}
       >
-        {ready > 0 ? <CircleCheck size={15} /> : <Sparkles size={15} />}
-        {ready > 0 ? 'Ready' : 'Understanding'}
+        {ready > 0 ? <CircleCheck size={15} /> : <Loader size={15} />}
+        {ready > 0 ? 'Ready' : 'Building profile'}
       </div>
     </div>
     <div style={{ marginTop: 18 }}>
@@ -273,7 +273,7 @@ export const ProfileCard: React.FC<{ rowsIn: number[]; ready: number; header?: n
       })}
     </div>
     <div style={{ borderTop: `1px solid ${colors.lineSoft}`, paddingTop: 14, fontSize: 14.5, color: colors.muted, opacity: ready }}>
-      Told once. You can edit anything later.
+      You only tell us once. Edit anything later.
     </div>
   </div>
 );
