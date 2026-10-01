@@ -5,14 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Autopilot Offices | Enterprise workspaces, handled end to end</title>
 <meta name="description" content="Autopilot Offices builds and runs enterprise workspaces across the full lifecycle: sourcing, design and build, ready-to-move-in offices and integrated facility management.">
+<link rel="canonical" href="https://www.autopilotoffices.com/">
+<meta name="theme-color" content="#15120F">
+<meta property="og:site_name" content="Autopilot Offices">
 <meta property="og:title" content="Autopilot Offices">
-<meta property="og:description" content="Enterprise workspaces, without the complexity.">
+<meta property="og:description" content="One partner across the entire workspace lifecycle: sourcing, design and build, ready-to-move-in offices and integrated facility management.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://www.autopilotoffices.com/">
+<meta property="og:image" content="https://www.autopilotoffices.com/assets/img/hero-1.webp">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Autopilot Offices">
+<meta name="twitter:description" content="Enterprise workspaces, without the complexity.">
+<meta name="twitter:image" content="https://www.autopilotoffices.com/assets/img/hero-1.webp">
 <link rel="icon" href="assets/img/autopilot-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sen:wght@400;600;700;800&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
+<link rel="preload" as="image" href="assets/img/hero-1.webp" fetchpriority="high">
 </head>
 <body>
 
@@ -76,10 +86,10 @@
     <div class="chooser" role="group" aria-label="What are you looking for?">
       <span class="chooser__label">What are you looking for?</span>
       <div class="chooser__row">
-        <a class="chip" href="#lifecycle">Custom-Built Office</a>
-        <a class="chip" href="#lifecycle">Ready-to-Move-In</a>
-        <a class="chip" href="#lifecycle">Design &amp; Build</a>
-        <a class="chip" href="#lifecycle">Facility Management</a>
+        <a class="chip" href="#lifecycle" data-stage="1">Custom-Built Office</a>
+        <a class="chip" href="#lifecycle" data-stage="3">Ready-to-Move-In</a>
+        <a class="chip" href="#lifecycle" data-stage="2">Design &amp; Build</a>
+        <a class="chip" href="#lifecycle" data-stage="4">Facility Management</a>
       </div>
     </div>
 
@@ -90,7 +100,7 @@
   </div>
 
   <div class="hero__ui">
-    <div class="dots" id="heroDots" role="tablist" aria-label="Hero images"></div>
+    <div class="dots" id="heroDots" role="group" aria-label="Choose hero image"></div>
     <span class="scrollcue">Scroll</span>
   </div>
 </section>
@@ -158,29 +168,29 @@
 
     <div class="lc">
       <ol class="lc__nav" role="tablist" aria-label="Workspace lifecycle">
-        <li><button class="lc__tab is-active" role="tab" aria-selected="true" data-step="1"><em>01</em> Strategy &amp; Sourcing</button></li>
-        <li><button class="lc__tab" role="tab" aria-selected="false" data-step="2"><em>02</em> Design &amp; Build</button></li>
-        <li><button class="lc__tab" role="tab" aria-selected="false" data-step="3"><em>03</em> Ready-to-Move-In</button></li>
-        <li><button class="lc__tab" role="tab" aria-selected="false" data-step="4"><em>04</em> Facility Management</button></li>
+        <li><button class="lc__tab is-active" role="tab" id="lctab1" aria-controls="lcpanel1" aria-selected="true" tabindex="0" data-step="1"><em>01</em> Strategy &amp; Sourcing</button></li>
+        <li><button class="lc__tab" role="tab" id="lctab2" aria-controls="lcpanel2" aria-selected="false" tabindex="-1" data-step="2"><em>02</em> Design &amp; Build</button></li>
+        <li><button class="lc__tab" role="tab" id="lctab3" aria-controls="lcpanel3" aria-selected="false" tabindex="-1" data-step="3"><em>03</em> Ready-to-Move-In</button></li>
+        <li><button class="lc__tab" role="tab" id="lctab4" aria-controls="lcpanel4" aria-selected="false" tabindex="-1" data-step="4"><em>04</em> Facility Management</button></li>
       </ol>
       <div class="lc__panels">
-        <article class="lc__panel is-active" data-step="1">
+        <article class="lc__panel is-active" id="lcpanel1" role="tabpanel" aria-labelledby="lctab1" tabindex="0" data-step="1">
           <h3>Strategy &amp; Sourcing</h3>
           <p>We start with the business case, not the floor plan. Headcount plans, locations your
              people can actually reach, commercial terms worth signing. We shortlist, negotiate and
              take the space to the point where a decision is easy to defend internally.</p>
         </article>
-        <article class="lc__panel" data-step="2">
+        <article class="lc__panel" id="lcpanel2" role="tabpanel" aria-labelledby="lctab2" tabindex="0" data-step="2">
           <h3>Design &amp; Build</h3>
           <p>Design that reflects how your teams work, delivered under a single schedule and a single
              budget line. One team owns drawings, approvals, vendors, site quality and handover dates.</p>
         </article>
-        <article class="lc__panel" data-step="3">
+        <article class="lc__panel" id="lcpanel3" role="tabpanel" aria-labelledby="lctab3" tabindex="0" data-step="3">
           <h3>Ready-to-Move-In</h3>
           <p>Fully fitted, serviced offices your team can occupy without a capex cycle. The space,
              the furniture, the connectivity and the daily operations arrive together.</p>
         </article>
-        <article class="lc__panel" data-step="4">
+        <article class="lc__panel" id="lcpanel4" role="tabpanel" aria-labelledby="lctab4" tabindex="0" data-step="4">
           <h3>Integrated Facility Management</h3>
           <p>The part that decides how the workspace actually feels. Housekeeping, technical upkeep,
              pantry, security coordination, vendor management and reporting, run to a defined standard
@@ -277,13 +287,13 @@
   </div>
   <div class="loc__strip">
     <article class="loc" style="background-image:url('assets/img/hero-1.webp')">
-      <div class="loc__body"><h3>Workspace</h3><p>Enquire for availability</p></div>
+      <div class="loc__body"><h3>Location 01</h3><p data-slot>Name and availability to follow</p></div>
     </article>
     <article class="loc" style="background-image:url('assets/img/hero-2.webp')">
-      <div class="loc__body"><h3>Workspace</h3><p>Enquire for availability</p></div>
+      <div class="loc__body"><h3>Location 02</h3><p data-slot>Name and availability to follow</p></div>
     </article>
     <article class="loc" style="background-image:url('assets/img/hero-3.webp')">
-      <div class="loc__body"><h3>Workspace</h3><p>Enquire for availability</p></div>
+      <div class="loc__body"><h3>Location 03</h3><p data-slot>Name and availability to follow</p></div>
     </article>
   </div>
 </section>
@@ -298,27 +308,30 @@
     <div class="cases">
       <article class="case">
         <h3 class="case__client">MyGate</h3>
-        <dl>
-          <dt>Challenge</dt><dd data-slot>Awaiting approved project detail.</dd>
-          <dt>Our role</dt><dd data-slot>Awaiting approved project detail.</dd>
-          <dt>Outcome</dt><dd data-slot>Awaiting approved project detail.</dd>
-        </dl>
+        <ul class="case__fields">
+          <li>Challenge</li>
+          <li>Our role</li>
+          <li>Outcome</li>
+        </ul>
+        <p class="case__pending" data-slot>Detail pending client approval.</p>
       </article>
       <article class="case">
         <h3 class="case__client">Zepto</h3>
-        <dl>
-          <dt>Challenge</dt><dd data-slot>Awaiting approved project detail.</dd>
-          <dt>Our role</dt><dd data-slot>Awaiting approved project detail.</dd>
-          <dt>Outcome</dt><dd data-slot>Awaiting approved project detail.</dd>
-        </dl>
+        <ul class="case__fields">
+          <li>Challenge</li>
+          <li>Our role</li>
+          <li>Outcome</li>
+        </ul>
+        <p class="case__pending" data-slot>Detail pending client approval.</p>
       </article>
       <article class="case">
         <h3 class="case__client">Digitide</h3>
-        <dl>
-          <dt>Challenge</dt><dd data-slot>Awaiting approved project detail.</dd>
-          <dt>Our role</dt><dd data-slot>Awaiting approved project detail.</dd>
-          <dt>Outcome</dt><dd data-slot>Awaiting approved project detail.</dd>
-        </dl>
+        <ul class="case__fields">
+          <li>Challenge</li>
+          <li>Our role</li>
+          <li>Outcome</li>
+        </ul>
+        <p class="case__pending" data-slot>Detail pending client approval.</p>
       </article>
     </div>
   </div>
@@ -335,13 +348,13 @@
     </header>
     <div class="team" id="team">
       <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
       <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
       <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
       <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b>Name</b><span>Role</span></figcaption></figure>
+        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
     </div>
   </div>
 </section>
@@ -373,6 +386,16 @@
   </div>
 </footer>
 
-<script src="assets/main.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Autopilot Offices",
+  "url": "https://www.autopilotoffices.com/",
+  "logo": "https://www.autopilotoffices.com/assets/img/autopilot-logo.png",
+  "description": "Autopilot Offices delivers and operates enterprise workspaces across the full lifecycle: strategy and sourcing, design and build, ready-to-move-in offices and integrated facility management."
+}
+</script>
+<script src="assets/main.js" defer></script>
 </body>
 </html>

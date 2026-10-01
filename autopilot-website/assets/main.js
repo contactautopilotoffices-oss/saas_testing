@@ -17,7 +17,8 @@
     if (dotsBox) {
       Array.prototype.forEach.call(dotsBox.children, function (d, n) {
         d.classList.toggle('is-active', n === index);
-        d.setAttribute('aria-selected', n === index ? 'true' : 'false');
+        if (n === index) d.setAttribute('aria-current', 'true');
+        else d.removeAttribute('aria-current');
       });
     }
   }
@@ -29,9 +30,8 @@
       var b = document.createElement('button');
       b.className = 'dot' + (n === 0 ? ' is-active' : '');
       b.type = 'button';
-      b.setAttribute('role', 'tab');
-      b.setAttribute('aria-label', 'Show image ' + (n + 1));
-      b.setAttribute('aria-selected', n === 0 ? 'true' : 'false');
+      b.setAttribute('aria-label', 'Show hero image ' + (n + 1));
+      if (n === 0) b.setAttribute('aria-current', 'true');
       b.addEventListener('click', function () { show(n); start(); });
       dotsBox.appendChild(b);
     });
@@ -132,20 +132,39 @@
   }
 
   /* ---------- lifecycle tabs ---------- */
-  var tabs = document.querySelectorAll('.lc__tab');
-  var panels = document.querySelectorAll('.lc__panel');
-  Array.prototype.forEach.call(tabs, function (tab) {
-    tab.addEventListener('click', function () {
-      var step = tab.getAttribute('data-step');
-      Array.prototype.forEach.call(tabs, function (t) {
-        var on = t === tab;
-        t.classList.toggle('is-active', on);
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-      Array.prototype.forEach.call(panels, function (p) {
-        p.classList.toggle('is-active', p.getAttribute('data-step') === step);
-      });
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.lc__tab'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.lc__panel'));
+
+  function selectStage(step, focusTab) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('data-step') === String(step);
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;               // roving tabindex, one stop per tablist
+      if (on && focusTab) t.focus();
     });
+    panels.forEach(function (p) {
+      p.classList.toggle('is-active', p.getAttribute('data-step') === String(step));
+    });
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { selectStage(tab.getAttribute('data-step')); });
+    tab.addEventListener('keydown', function (e) {
+      var k = e.key, next = null;
+      if (k === 'ArrowDown' || k === 'ArrowRight') next = (i + 1) % tabs.length;
+      else if (k === 'ArrowUp' || k === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+      else if (k === 'Home') next = 0;
+      else if (k === 'End') next = tabs.length - 1;
+      if (next === null) return;
+      e.preventDefault();
+      selectStage(tabs[next].getAttribute('data-step'), true);
+    });
+  });
+
+  /* the hero chips open the lifecycle stage that actually delivers that offering */
+  Array.prototype.forEach.call(document.querySelectorAll('.chip[data-stage]'), function (chip) {
+    chip.addEventListener('click', function () { selectStage(chip.getAttribute('data-stage')); });
   });
 
   /* ---------- scroll reveal ----------

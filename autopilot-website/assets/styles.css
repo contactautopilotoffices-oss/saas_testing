@@ -10,6 +10,8 @@
   --paper:#FFFDFA;
   --gold:#B79459;
   --gold-deep:#9C7E47;
+  --gold-text:#7D6130;   /* AA-compliant gold for small text on light */
+  --gold-photo:#D2B176;  /* lifted gold for small text over photography */
   --gold-soft:rgba(183,148,89,.26);
 
   --line:rgba(21,18,15,.12);
@@ -48,8 +50,12 @@ p{margin:0}
 
 .eyebrow{
   font-family:var(--f-text);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
-  font-weight:600;color:var(--gold);margin:0 0 18px
+  font-weight:600;color:var(--gold-text);margin:0 0 18px
 }
+/* on dark grounds the lighter gold already clears AA, and reads better */
+.section--dark .eyebrow,.trust .eyebrow{color:var(--gold)}
+/* over photography the ground shifts as the slides change, so this needs headroom */
+.hero .eyebrow{color:var(--gold-photo)}
 .section{padding:var(--sec-y) 0}
 .section--dark{background:var(--ink);color:#fff}
 .section--dark .sec-title,.section--dark h3{color:#fff}
@@ -433,3 +439,37 @@ p{margin:0}
 @media (max-width:860px){
   .wall__grid{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* ============ keyboard focus ============ */
+:where(a,button,[tabindex]):focus-visible{
+  outline:2px solid var(--gold);outline-offset:3px;border-radius:2px
+}
+.section--dark :where(a,button):focus-visible,
+.hero :where(a,button):focus-visible,
+.trust :where(a,button):focus-visible{outline-color:#E8C98E}
+
+/* ============ case studies: pending detail reads as deliberate ============ */
+.case__fields{list-style:none;margin:0 0 22px;padding:0;display:flex;flex-direction:column;gap:9px}
+.case__fields li{
+  font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+  padding-left:18px;position:relative
+}
+.case__fields li::before{
+  content:"";position:absolute;left:0;top:6px;width:8px;height:8px;background:rgba(183,148,89,.4);
+  clip-path:polygon(0 0,100% 0,0 100%)
+}
+.case__pending{
+  font-size:13.5px;color:#8C857C;border-top:1px solid var(--line-dark);padding-top:18px
+}
+
+/* ============ team: an honest empty frame, not a broken one ============ */
+.member__photo{position:relative}
+.member__photo::after{
+  content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);
+  background:var(--grey-300);clip-path:polygon(50% 0,100% 100%,0 100%)
+}
+.member figcaption b,.member figcaption span{color:var(--grey-600)}
+
+/* ============ locations ============ */
+.loc__body h3{font-size:clamp(18px,1.9vw,24px);letter-spacing:.01em}

@@ -7,6 +7,7 @@ from the source only where the hosted viewer requires it. Edit the source and
 re-run this; never edit artifact.html by hand.
 """
 import pathlib
+import re
 
 root = pathlib.Path(__file__).parent
 html = (root / 'index.html').read_text()
@@ -14,6 +15,10 @@ css = (root / 'assets/styles.css').read_text()
 js = (root / 'assets/main.js').read_text()
 
 body = html.split('<body>', 1)[1].split('</body>', 1)[0]
+
+# Drop the external script tag: the same code is inlined at the end of this
+# file, and leaving both in would run main.js twice wherever it resolves.
+body = re.sub(r'\s*<script src="assets/main\.js"[^>]*></script>', '', body)
 
 # Reveal classes are added by script, so nothing sits at opacity 0 at rest.
 # Guard anyway, in case a class ever gets hard-coded back into the markup.
