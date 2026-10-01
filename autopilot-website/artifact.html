@@ -1,4 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Autopilot Offices</title>
+<meta name="description" content="The workspace partner enterprises trust. One partner across sourcing, design and build, ready-to-move-in offices and integrated facility management.">
+<link rel="canonical" href="https://www.autopilotoffices.com/">
+<meta name="theme-color" content="#15120F">
+<meta property="og:site_name" content="Autopilot Offices">
+<meta property="og:title" content="Autopilot Offices">
+<meta property="og:description" content="The workspace partner enterprises trust. One partner across sourcing, design and build, ready-to-move-in offices and integrated facility management.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://www.autopilotoffices.com/assets/img/hero-video-poster.webp">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/img/autopilot-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sen:wght@400;600;700;800&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -322,37 +337,6 @@ p{margin:0}
 }
 
 
-/* ============ the statement band ============
-   The one moment on the page that is pure typography. Set at display scale
-   against black, split by the same diagonal taken from the A in the wordmark. */
-.statement{max-width:var(--maxw);margin:0 auto;padding:clamp(18px,3vw,46px) var(--pad) clamp(44px,6vw,74px)}
-.statement__line{
-  font-family:var(--f-display);font-weight:800;
-  font-size:clamp(34px,7.4vw,104px);line-height:.98;letter-spacing:-.035em;
-  display:flex;align-items:center;flex-wrap:wrap;gap:clamp(12px,1.8vw,30px);margin:0
-}
-/* the reveal wraps heading text in a span, so the row layout has to live
-   there too, or the parts collapse into one inline run */
-.statement__line .wipe__i{
-  display:flex;align-items:center;flex-wrap:wrap;
-  gap:clamp(12px,1.8vw,30px);width:100%
-}
-.statement__a,.statement__b{white-space:nowrap}
-.statement__a{color:#fff}
-.statement__b{
-  color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.52);
-  transition:color .9s var(--ease-soft),-webkit-text-stroke-color .9s var(--ease-soft)
-}
-.statement:hover .statement__b{color:var(--gold);-webkit-text-stroke-color:transparent}
-.statement__bar{
-  flex:none;width:clamp(16px,2.2vw,34px);height:clamp(34px,6vw,86px);background:var(--gold);
-  clip-path:polygon(58% 0,100% 0,42% 100%,0 100%)
-}
-.statement__sub{
-  margin-top:clamp(20px,2.4vw,32px);max-width:46ch;color:#9A938B;
-  font-size:clamp(14.5px,1.25vw,17px);font-weight:300
-}
-
 /* triangle separators in the client marquee */
 .sep{
   flex:none;align-self:center;width:9px;height:9px;background:var(--gold);opacity:.5;
@@ -390,9 +374,7 @@ p{margin:0}
 .sec-head.drawn::before{transform:scaleX(1)}
 
 @media (max-width:860px){
-  .statement__line{font-size:clamp(27px,8.8vw,48px)}
-  .statement__bar{height:clamp(28px,8vw,48px)}
-  .hero::after{background:radial-gradient(150% 95% at 55% 45%,transparent 42%,rgba(10,8,6,.45) 100%)}
+      .hero::after{background:radial-gradient(150% 95% at 55% 45%,transparent 42%,rgba(10,8,6,.45) 100%)}
   /* portrait has no quiet left third, so the scrim darkens from the bottom up */
   .hero__scrim{
     background:linear-gradient(0deg,rgba(14,11,9,.92) 0%,rgba(14,11,9,.74) 42%,
@@ -416,6 +398,7 @@ p{margin:0}
 }
 .wall__cell:hover{background:#fff}
 .wall__mark{
+  display:flex;align-items:center;gap:14px;
   font-family:var(--f-display);font-weight:700;letter-spacing:-.02em;
   font-size:clamp(19px,2.4vw,31px);color:var(--grey-600);
   transition:color .55s var(--ease-soft),transform .55s var(--ease-out)
@@ -461,61 +444,115 @@ p{margin:0}
 /* ============ locations ============ */
 .loc__body h3{font-size:clamp(18px,1.9vw,24px);letter-spacing:.01em}
 
-/* ============ client logos ============
-   A real SVG mark where we have the file, the brand wordmark where we do not.
-   Both are sized to the same optical height so the set reads as one row. */
-.client--logo,.wall__mark--logo{display:inline-flex;align-items:center;justify-content:center}
-.client--logo img{
-  height:clamp(26px,3vw,40px);width:auto;
-  filter:brightness(0) invert(1);opacity:.42;
-  transition:opacity .6s var(--ease-soft)
+
+
+/* ============ client marks ============
+   The official SVG where we hold the file, always paired with the name so the
+   row reads consistently whether or not a mark exists. */
+.clogo{height:1em;width:auto;flex:none}
+.client .clogo{filter:brightness(0) invert(1);opacity:.42;transition:opacity .6s var(--ease-soft)}
+.client:hover .clogo{opacity:1}
+.wall__mark .clogo{filter:brightness(0);opacity:.5;transition:opacity .55s var(--ease-soft)}
+.wall__cell:hover .wall__mark .clogo{opacity:1}
+
+/* ============ interior page heads ============ */
+.pagehead{padding:calc(118px + env(safe-area-inset-top,0px)) 0 clamp(40px,5vw,70px);background:var(--grey-100)}
+.page-title{font-size:clamp(30px,4.6vw,60px);max-width:20ch;margin-top:4px}
+.page-sub{margin-top:22px;max-width:62ch;color:var(--grey-600);font-size:clamp(15px,1.3vw,18px)}
+/* interior pages have no hero behind the bar, so it starts solid and stays put */
+.nav.is-static{position:sticky;top:0}
+.nav__links a[aria-current="page"]{color:var(--ink)}
+.nav__links a[aria-current="page"]::after{transform:scaleX(1)}
+
+/* ============ lifecycle summary on the home page ============ */
+.stages{
+  list-style:none;margin:clamp(40px,5vw,70px) 0 0;padding:0;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden
 }
-.client--logo:hover img{opacity:1}
-.wall__mark--logo img{
-  height:clamp(30px,3.4vw,44px);width:auto;
-  filter:brightness(0);opacity:.55;
-  transition:opacity .55s var(--ease-soft),transform .55s var(--ease-out)
+.stage{background:var(--paper);padding:clamp(22px,2.4vw,34px);transition:background .5s var(--ease-soft)}
+.stage:hover{background:#fff}
+.stage em{font-family:var(--f-text);font-style:normal;font-size:11px;letter-spacing:.18em;color:var(--gold-text)}
+.stage h3{font-size:clamp(17px,1.6vw,21px);margin:14px 0 10px}
+.stage p{color:var(--grey-600);font-size:14.5px}
+
+/* ============ solutions detail ============ */
+.detail{border-top:1px solid var(--line);padding:clamp(26px,3vw,40px) 0}
+.detail h3{font-size:clamp(21px,2.4vw,30px);margin-bottom:12px}
+.detail p{color:var(--grey-600);max-width:62ch}
+
+/* ============ contact ============ */
+.contact__grid{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(36px,6vw,88px);align-items:start}
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.field label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--grey-600);font-weight:600}
+.field input,.field select,.field textarea{
+  font:inherit;font-size:15px;color:var(--ink);background:var(--paper);
+  border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px;width:100%;
+  transition:border-color .4s var(--ease-soft)
 }
-.wall__cell:hover .wall__mark--logo img{opacity:1;transform:translateY(-2px)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);outline:none}
+.field textarea{resize:vertical;min-width:0}
+.form__note{margin-top:16px;font-size:14px;color:var(--grey-600);min-height:1.2em}
+.form__note.is-error{color:#9B3A2F}
+.contact__aside h2{font-size:clamp(18px,1.9vw,23px)}
+.contact__h2{margin-top:36px}
+.contact__line{margin-top:12px;color:var(--grey-600);font-size:15px}
+.contact__email{
+  margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  font-size:15px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0
+}
+.contact__email span{word-break:break-all}
+.copybtn{
+  font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;
+  background:none;border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;
+  transition:border-color .4s var(--ease-soft),background .4s var(--ease-soft)
+}
+.copybtn:hover{border-color:var(--gold);background:rgba(183,148,89,.08)}
+.contact__steps{margin:16px 0 0;padding-left:20px;color:var(--grey-600);font-size:15px}
+.contact__steps li{margin-bottom:10px}
+
+@media (max-width:1024px){
+  .stages{grid-template-columns:repeat(2,1fr)}
+  .contact__grid{grid-template-columns:1fr}
+}
+@media (max-width:860px){
+  .stages{grid-template-columns:1fr}
+  .pagehead{padding-top:calc(96px + env(safe-area-inset-top,0px))}
+}
 
 </style>
-
-
+</head>
+<body>
 <a class="skip" href="#main">Skip to content</a>
-
-<!-- ================= NAV ================= -->
 <header class="nav" id="nav">
   <div class="nav__inner">
-    <a class="nav__brand" href="#top" aria-label="Autopilot Offices home">
+    <a class="nav__brand" href="./" aria-label="Autopilot Offices home">
       <img src="assets/img/autopilot-logo-dark.png" alt="Autopilot" class="nav__logo">
     </a>
     <nav class="nav__links" aria-label="Primary">
-      <a href="#lifecycle">Solutions</a>
-      <a href="#locations">Locations</a>
-      <a href="#standard">Why Autopilot</a>
-      <a href="#work">Case Studies</a>
-      <a href="#people">About</a>
+      <a href="solutions.html">Solutions</a>
+      <a href="locations.html">Locations</a>
+      <a href="why-autopilot.html">Why Autopilot</a>
+      <a href="case-studies.html">Case Studies</a>
+      <a href="about.html">About</a>
     </nav>
     <div class="nav__actions">
-      <a class="btn btn--ghost" href="#contact">Book a Consultation</a>
+      <a class="btn btn--ghost" href="contact.html">Book a Consultation</a>
       <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="mobileNav" aria-label="Open menu">
         <span></span><span></span>
       </button>
     </div>
   </div>
   <div class="mobilenav" id="mobileNav" hidden>
-    <a href="#lifecycle">Solutions</a>
-    <a href="#locations">Locations</a>
-    <a href="#standard">Why Autopilot</a>
-    <a href="#work">Case Studies</a>
-    <a href="#people">About</a>
-    <a class="btn btn--gold" href="#contact">Book a Consultation</a>
+    <a href="solutions.html">Solutions</a>
+    <a href="locations.html">Locations</a>
+    <a href="why-autopilot.html">Why Autopilot</a>
+    <a href="case-studies.html">Case Studies</a>
+    <a href="about.html">About</a>
+    <a class="btn btn--gold" href="contact.html">Book a Consultation</a>
   </div>
 </header>
-
 <main id="main">
-
-<!-- ================= HERO ================= -->
 <section class="hero" id="top">
   <div class="hero__media" aria-hidden="true">
     <video class="hero__video" id="heroVideo" muted loop playsinline autoplay preload="auto"
@@ -526,10 +563,7 @@ p{margin:0}
 
   <div class="hero__content">
     <p class="eyebrow">Enterprise workspace partner</p>
-    <h1 class="hero__title">
-      Workspaces your teams trust.<br>
-      Operations you never think about.
-    </h1>
+    <h1 class="hero__title">The workspace<br>enterprises trust.</h1>
     <p class="hero__sub">
       Autopilot takes on the entire workspace lifecycle, from finding the right space to
       designing, building and running it every day. You get a workplace that simply works.
@@ -538,56 +572,77 @@ p{margin:0}
     <div class="chooser" role="group" aria-label="What are you looking for?">
       <span class="chooser__label">What are you looking for?</span>
       <div class="chooser__row">
-        <a class="chip" href="#lifecycle" data-stage="1">Custom-Built Office</a>
-        <a class="chip" href="#lifecycle" data-stage="3">Ready-to-Move-In</a>
-        <a class="chip" href="#lifecycle" data-stage="2">Design &amp; Build</a>
-        <a class="chip" href="#lifecycle" data-stage="4">Facility Management</a>
+        <a class="chip" href="solutions.html#custom">Custom-Built Office</a>
+        <a class="chip" href="solutions.html#ready">Ready-to-Move-In</a>
+        <a class="chip" href="solutions.html#build">Design &amp; Build</a>
+        <a class="chip" href="solutions.html#fm">Facility Management</a>
       </div>
     </div>
 
     <div class="hero__cta">
-      <a class="btn btn--gold" href="#contact">Talk to Autopilot</a>
-      <a class="btn btn--line" href="#locations">View Locations</a>
+      <a class="btn btn--gold" href="contact.html">Talk to Autopilot</a>
+      <a class="btn btn--line" href="locations.html">View Locations</a>
     </div>
   </div>
 
-  <div class="hero__ui">
-    <span class="scrollcue">Scroll</span>
-  </div>
+  <div class="hero__ui"><span class="scrollcue">Scroll</span></div>
 </section>
 
-<!-- ================= TRUST STRIP ================= -->
 <section class="trust" aria-labelledby="trustHeading">
-  <div class="statement">
-    <h2 id="trustHeading" class="statement__line">
-      <span class="statement__a">Enterprises</span><span class="statement__bar" aria-hidden="true"></span><span class="statement__b">Enterprises Trust</span>
-    </h2>
-    <p class="statement__sub">The workspaces behind companies that cannot afford a bad day at the office.</p>
-  </div>
   <div class="trust__head">
     <span class="rule"></span>
-    <h3>Trusted by businesses that demand more</h3>
+    <h2 id="trustHeading">Trusted by businesses that demand more</h2>
   </div>
   <div class="marquee" aria-hidden="true">
     <div class="marquee__track" id="marqueeTrack">
-      <span class="client">MyGate</span><i class="sep"></i>
-      <span class="client">Zepto</span><i class="sep"></i>
-      <span class="client client--logo"><img src="assets/img/clients/zerodha.svg" alt="Zerodha" loading="lazy" width="24" height="24"></span><i class="sep"></i>
-      <span class="client">Myntra</span><i class="sep"></i>
-      <span class="client">Digitide</span><i class="sep"></i>
-      <span class="client">Altruist</span><i class="sep"></i>
-      <span class="client">Zepto</span><i class="sep"></i>
-      <span class="client">Zerodha</span><i class="sep"></i>
-      <span class="client">Myntra</span><i class="sep"></i>
-      <span class="client">Digitide</span><i class="sep"></i>
-      <span class="client">Altruist</span><i class="sep"></i>
-    </div>
+      <span class="client"><span class="client__name">MyGate</span></span><i class="sep"></i>
+      <span class="client"><span class="client__name">Zepto</span></span><i class="sep"></i>
+      <span class="client"><img class="clogo" src="assets/img/clients/zerodha.svg" alt="" aria-hidden="true" loading="lazy" width="24" height="24"><span class="client__name">Zerodha</span></span><i class="sep"></i>
+      <span class="client"><span class="client__name">Myntra</span></span><i class="sep"></i>
+      <span class="client"><span class="client__name">Digitide</span></span><i class="sep"></i>
+      <span class="client"><span class="client__name">Altruist</span></span><i class="sep"></i>
+</div>
   </div>
   <p class="visually-hidden">Clients include MyGate, Zepto, Zerodha, Myntra, Digitide and Altruist.</p>
 </section>
 
 
-<!-- ================= CLIENT WALL ================= -->
+<section class="section lifecycle">
+  <div class="wrap">
+    <header class="sec-head sec-head--row">
+      <div>
+        <span class="eyebrow">What we do</span>
+        <h2 class="sec-title">One partner across the entire<br>workspace lifecycle</h2>
+      </div>
+      <a class="btn btn--line btn--dark" href="solutions.html">Explore Solutions</a>
+    </header>
+    <p class="sec-sub">
+      Most companies stitch together a broker, a designer, a contractor and a facility vendor,
+      then spend the next three years managing all four. Autopilot holds the whole chain, so
+      accountability never sits in a gap between suppliers.
+    </p>
+    <ol class="stages">
+      <li class="stage"><em>01</em><h3>Strategy &amp; Sourcing</h3><p>The business case before the floor plan.</p></li>
+      <li class="stage"><em>02</em><h3>Design &amp; Build</h3><p>One schedule, one budget, one accountable team.</p></li>
+      <li class="stage"><em>03</em><h3>Ready-to-Move-In</h3><p>Fitted, serviced offices with no capex cycle.</p></li>
+      <li class="stage"><em>04</em><h3>Facility Management</h3><p>Run to a written standard, measured against it.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section section--dark standard">
+  <div class="wrap">
+    <header class="sec-head sec-head--center">
+      <span class="eyebrow">The Day 1 Standard</span>
+      <h2 class="sec-title">The office is not ready when the keys arrive.<br>It is ready when nobody has to ask for anything.</h2>
+    </header>
+    <p class="standard__line">That is what we mean by invisible excellence. The work is visible to us. The result is quiet for you.</p>
+    <p class="sec-head--center" style="text-align:center;margin-top:34px">
+      <a class="btn btn--line btn--dark" href="why-autopilot.html">Why Autopilot</a>
+    </p>
+  </div>
+</section>
+
 <section class="section section--grey wall" id="clients">
   <div class="wrap">
     <header class="sec-head sec-head--row">
@@ -595,264 +650,45 @@ p{margin:0}
         <span class="eyebrow">Our clients</span>
         <h2 class="sec-title">The companies we build and run workspaces for</h2>
       </div>
-      <a class="btn btn--line btn--dark" href="#work">Explore Case Studies</a>
+      <a class="btn btn--line btn--dark" href="case-studies.html">Explore Case Studies</a>
     </header>
     <ul class="wall__grid">
-      <li class="wall__cell"><span class="wall__mark">MyGate</span></li>
-      <li class="wall__cell"><span class="wall__mark">Zepto</span></li>
-      <li class="wall__cell"><span class="wall__mark wall__mark--logo"><img src="assets/img/clients/zerodha.svg" alt="Zerodha" loading="lazy" width="24" height="24"></span></li>
-      <li class="wall__cell"><span class="wall__mark">Myntra</span></li>
-      <li class="wall__cell"><span class="wall__mark">Digitide</span></li>
-      <li class="wall__cell"><span class="wall__mark">Altruist</span></li>
-    </ul>
+      <li class="wall__cell"><span class="wall__mark"><span class="wall__name">MyGate</span></span></li>
+      <li class="wall__cell"><span class="wall__mark"><span class="wall__name">Zepto</span></span></li>
+      <li class="wall__cell"><span class="wall__mark"><img class="clogo" src="assets/img/clients/zerodha.svg" alt="" aria-hidden="true" loading="lazy" width="24" height="24"><span class="wall__name">Zerodha</span></span></li>
+      <li class="wall__cell"><span class="wall__mark"><span class="wall__name">Myntra</span></span></li>
+      <li class="wall__cell"><span class="wall__mark"><span class="wall__name">Digitide</span></span></li>
+      <li class="wall__cell"><span class="wall__mark"><span class="wall__name">Altruist</span></span></li>
+</ul>
     <p class="wall__note">Workspaces delivered, fitted out and managed by Autopilot.</p>
   </div>
 </section>
 
-<!-- ================= LIFECYCLE ================= -->
-<section class="section lifecycle" id="lifecycle">
-  <div class="wrap">
-    <header class="sec-head">
-      <span class="eyebrow">What we do</span>
-      <h2 class="sec-title">One partner across the entire workspace lifecycle</h2>
-      <p class="sec-sub">
-        Most companies stitch together a broker, a designer, a contractor and a facility vendor,
-        then spend the next three years managing all four. Autopilot holds the whole chain,
-        so accountability never sits in a gap between suppliers.
-      </p>
-    </header>
 
-    <div class="lc">
-      <ol class="lc__nav" role="tablist" aria-label="Workspace lifecycle">
-        <li><button class="lc__tab is-active" role="tab" id="lctab1" aria-controls="lcpanel1" aria-selected="true" tabindex="0" data-step="1"><em>01</em> Strategy &amp; Sourcing</button></li>
-        <li><button class="lc__tab" role="tab" id="lctab2" aria-controls="lcpanel2" aria-selected="false" tabindex="-1" data-step="2"><em>02</em> Design &amp; Build</button></li>
-        <li><button class="lc__tab" role="tab" id="lctab3" aria-controls="lcpanel3" aria-selected="false" tabindex="-1" data-step="3"><em>03</em> Ready-to-Move-In</button></li>
-        <li><button class="lc__tab" role="tab" id="lctab4" aria-controls="lcpanel4" aria-selected="false" tabindex="-1" data-step="4"><em>04</em> Facility Management</button></li>
-      </ol>
-      <div class="lc__panels">
-        <article class="lc__panel is-active" id="lcpanel1" role="tabpanel" aria-labelledby="lctab1" tabindex="0" data-step="1">
-          <h3>Strategy &amp; Sourcing</h3>
-          <p>We start with the business case, not the floor plan. Headcount plans, locations your
-             people can actually reach, commercial terms worth signing. We shortlist, negotiate and
-             take the space to the point where a decision is easy to defend internally.</p>
-        </article>
-        <article class="lc__panel" id="lcpanel2" role="tabpanel" aria-labelledby="lctab2" tabindex="0" data-step="2">
-          <h3>Design &amp; Build</h3>
-          <p>Design that reflects how your teams work, delivered under a single schedule and a single
-             budget line. One team owns drawings, approvals, vendors, site quality and handover dates.</p>
-        </article>
-        <article class="lc__panel" id="lcpanel3" role="tabpanel" aria-labelledby="lctab3" tabindex="0" data-step="3">
-          <h3>Ready-to-Move-In</h3>
-          <p>Fully fitted, serviced offices your team can occupy without a capex cycle. The space,
-             the furniture, the connectivity and the daily operations arrive together.</p>
-        </article>
-        <article class="lc__panel" id="lcpanel4" role="tabpanel" aria-labelledby="lctab4" tabindex="0" data-step="4">
-          <h3>Integrated Facility Management</h3>
-          <p>The part that decides how the workspace actually feels. Housekeeping, technical upkeep,
-             pantry, security coordination, vendor management and reporting, run to a defined standard
-             and measured against it.</p>
-        </article>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= DAY 1 STANDARD ================= -->
-<section class="section section--dark standard" id="standard">
-  <div class="wrap">
-    <header class="sec-head sec-head--center">
-      <span class="eyebrow">The Day 1 Standard</span>
-      <h2 class="sec-title">The office is not ready when the keys arrive.<br>It is ready when nobody has to ask for anything.</h2>
-    </header>
-    <ul class="checklist">
-      <li><span class="tick"></span>Every seat, screen and meeting room working before the first person sits down</li>
-      <li><span class="tick"></span>Network, access control and support desk live from the first morning</li>
-      <li><span class="tick"></span>Housekeeping, pantry and upkeep running to a written standard, not to memory</li>
-      <li><span class="tick"></span>A named Autopilot team on site, accountable for the space from day one</li>
-      <li><span class="tick"></span>Snags closed before handover, not tracked for months afterwards</li>
-    </ul>
-    <p class="standard__line">That is what we mean by invisible excellence. The work is visible to us. The result is quiet for you.</p>
-  </div>
-</section>
-
-<!-- ================= ATLAS ================= -->
-<section class="section atlas" id="atlas">
-  <div class="wrap atlas__grid">
-    <div class="atlas__copy">
-      <span class="eyebrow">ATLAS</span>
-      <h2 class="sec-title">The operating system behind every Autopilot workspace</h2>
-      <p>ATLAS is the platform our teams run on. Every request, asset, inspection, vendor and
-         service schedule across your workspace sits in one place, so a question about your office
-         has an answer rather than an investigation.</p>
-      <ul class="atlas__list">
-        <li>A single record of every asset and every service across sites</li>
-        <li>Requests, approvals and escalations tracked end to end</li>
-        <li>Preventive schedules that run on time, not on reminders</li>
-        <li>Reporting your facility and finance teams can use directly</li>
-      </ul>
-      <a class="btn btn--line btn--dark" href="#contact">See ATLAS in action</a>
-    </div>
-    <div class="atlas__visual" aria-hidden="true">
-      <div class="panel">
-        <div class="panel__row"><span>Sites live</span><b>All locations</b></div>
-        <div class="panel__row"><span>Open requests</span><b>Tracked</b></div>
-        <div class="panel__row"><span>Preventive tasks</span><b>On schedule</b></div>
-        <div class="panel__bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= AI SPOTLIGHT ================= -->
-<section class="section section--grey ai">
-  <div class="wrap">
-    <header class="sec-head">
-      <span class="eyebrow">Intelligence, applied quietly</span>
-      <h2 class="sec-title">We use AI to get ahead of problems, not to talk about AI</h2>
-    </header>
-    <div class="cols3">
-      <div class="col">
-        <h3>Proactive, not reactive</h3>
-        <p>Patterns across tickets and assets tell us where a failure is forming, so the fix is
-           scheduled instead of escalated.</p>
-      </div>
-      <div class="col">
-        <h3>Faster resolution</h3>
-        <p>Requests are routed to the right person with the right context the first time, which is
-           usually the difference between an hour and a week.</p>
-      </div>
-      <div class="col">
-        <h3>Sharper operations</h3>
-        <p>Consumption, manpower and service data turn into decisions your team can see, rather than
-           reports nobody opens.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= LOCATIONS ================= -->
-<section class="section locations" id="locations">
-  <div class="wrap">
-    <header class="sec-head sec-head--row">
-      <div>
-        <span class="eyebrow">Locations</span>
-        <h2 class="sec-title">Where our teams are working today</h2>
-      </div>
-      <a class="btn btn--line" href="#contact">Enquire about availability</a>
-    </header>
-  </div>
-  <div class="loc__strip">
-    <article class="loc" style="background-image:url('assets/img/hero-1.webp')">
-      <div class="loc__body"><h3>Location 01</h3><p data-slot>Name and availability to follow</p></div>
-    </article>
-    <article class="loc" style="background-image:url('assets/img/hero-2.webp')">
-      <div class="loc__body"><h3>Location 02</h3><p data-slot>Name and availability to follow</p></div>
-    </article>
-    <article class="loc" style="background-image:url('assets/img/hero-3.webp')">
-      <div class="loc__body"><h3>Location 03</h3><p data-slot>Name and availability to follow</p></div>
-    </article>
-  </div>
-</section>
-
-<!-- ================= CASE STUDIES ================= -->
-<section class="section section--dark work" id="work">
-  <div class="wrap">
-    <header class="sec-head">
-      <span class="eyebrow">Selected work</span>
-      <h2 class="sec-title">Workspaces delivered for businesses that could not afford a bad one</h2>
-    </header>
-    <div class="cases">
-      <article class="case">
-        <h3 class="case__client">MyGate</h3>
-        <ul class="case__fields">
-          <li>Challenge</li>
-          <li>Our role</li>
-          <li>Outcome</li>
-        </ul>
-        <p class="case__pending" data-slot>Detail pending client approval.</p>
-      </article>
-      <article class="case">
-        <h3 class="case__client">Zepto</h3>
-        <ul class="case__fields">
-          <li>Challenge</li>
-          <li>Our role</li>
-          <li>Outcome</li>
-        </ul>
-        <p class="case__pending" data-slot>Detail pending client approval.</p>
-      </article>
-      <article class="case">
-        <h3 class="case__client">Digitide</h3>
-        <ul class="case__fields">
-          <li>Challenge</li>
-          <li>Our role</li>
-          <li>Outcome</li>
-        </ul>
-        <p class="case__pending" data-slot>Detail pending client approval.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<!-- ================= PEOPLE ================= -->
-<section class="section people" id="people">
-  <div class="wrap">
-    <header class="sec-head">
-      <span class="eyebrow">The people behind it</span>
-      <h2 class="sec-title">Meet the people responsible for making this work</h2>
-      <p class="sec-sub">Workspace delivery is not a product you buy. It is a team you rely on.
-         These are the people your business will actually be working with.</p>
-    </header>
-    <div class="team" id="team">
-      <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
-      <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
-      <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
-      <figure class="member"><div class="member__photo" data-slot></div>
-        <figcaption><b data-slot>Photograph pending</b><span data-slot>Name and role to follow</span></figcaption></figure>
-    </div>
-  </div>
-</section>
-
-<!-- ================= CONTACT ================= -->
-<section class="section cta" id="contact">
+<section class="section cta">
   <div class="wrap cta__inner">
     <h2 class="cta__title">Tell us what your workspace has to do.<br>We will take it from there.</h2>
     <div class="cta__actions">
-      <a class="btn btn--gold" href="mailto:contact.autopilotoffices@gmail.com">Book a Consultation</a>
-      <a class="btn btn--line btn--dark" href="#lifecycle">Explore Solutions</a>
+      <a class="btn btn--gold" href="contact.html">Book a Consultation</a>
+      <a class="btn btn--line btn--dark" href="case-studies.html">Explore Case Studies</a>
     </div>
   </div>
 </section>
-
 </main>
-
 <footer class="foot">
   <div class="wrap foot__inner">
     <img src="assets/img/autopilot-logo-dark.png" alt="Autopilot" class="foot__logo">
     <nav class="foot__links" aria-label="Footer">
-      <a href="#lifecycle">Solutions</a>
-      <a href="#locations">Locations</a>
-      <a href="#work">Case Studies</a>
-      <a href="#people">About</a>
-      <a href="#contact">Contact</a>
+      <a href="solutions.html">Solutions</a>
+      <a href="locations.html">Locations</a>
+      <a href="why-autopilot.html">Why Autopilot</a>
+      <a href="case-studies.html">Case Studies</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
     </nav>
     <p class="foot__legal">&copy; <span id="yr"></span> Autopilot Offices. All rights reserved.</p>
   </div>
 </footer>
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Autopilot Offices",
-  "url": "https://www.autopilotoffices.com/",
-  "logo": "https://www.autopilotoffices.com/assets/img/autopilot-logo.png",
-  "description": "Autopilot Offices delivers and operates enterprise workspaces across the full lifecycle: strategy and sourcing, design and build, ready-to-move-in offices and integrated facility management."
-}
-</script>
-
 <script>
 (function () {
   'use strict';
@@ -915,9 +751,54 @@ p{margin:0}
     }
   })();
 
+  /* ---------- contact form ----------
+     There is no backend here, so the form validates and then tells the visitor
+     plainly how to reach us rather than pretending to have sent anything. */
+  var form = document.getElementById('contactForm');
+  var note = document.getElementById('formNote');
+  if (form && note) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!form.checkValidity()) {
+        note.className = 'form__note is-error';
+        note.textContent = 'Please complete the required fields.';
+        var bad = form.querySelector(':invalid');
+        if (bad) bad.focus();
+        return;
+      }
+      var name = form.querySelector('#cf-name').value.trim();
+      var interest = form.querySelector('#cf-interest').value;
+      note.className = 'form__note';
+      note.textContent = 'Thanks ' + (name || 'for getting in touch') +
+        '. This form is not connected yet, so please email contact.autopilotoffices@gmail.com ' +
+        'with "' + interest + '" in the subject and we will reply the same working day.';
+    });
+  }
+
+  /* copy the address, since mail links are unreliable inside embedded views */
+  var copyBtn = document.getElementById('copyEmail');
+  var emailEl = document.getElementById('contactEmail');
+  if (copyBtn && emailEl) {
+    copyBtn.addEventListener('click', function () {
+      var text = emailEl.textContent.trim();
+      function done(ok) { copyBtn.textContent = ok ? 'Copied' : 'Select it'; 
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2200); }
+      try {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () {
+          var r = document.createRange(); r.selectNodeContents(emailEl);
+          var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+          done(false);
+        });
+      } catch (err) { done(false); }
+    });
+  }
+
   /* ---------- nav on scroll ---------- */
   var nav = document.getElementById('nav');
-  function onScroll() { if (nav) nav.classList.toggle('is-solid', window.scrollY > 80); }
+  function onScroll() {
+    if (!nav || nav.classList.contains('is-static')) return;   // interior pages start solid
+    nav.classList.toggle('is-solid', window.scrollY > 80);
+  }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
@@ -1070,3 +951,5 @@ p{margin:0}
 })();
 
 </script>
+</body>
+</html>

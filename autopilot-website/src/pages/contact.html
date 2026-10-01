@@ -1,0 +1,59 @@
+<!--TITLE:Contact | Autopilot Offices-->
+<!--DESC:Talk to Autopilot about a custom-built office, ready-to-move-in workspace, design and build, or integrated facility management.-->
+<!--SLUG:contact.html-->
+<section class="pagehead">
+  <div class="wrap">
+    <span class="eyebrow">Contact</span>
+    <h1 class="page-title">Tell us what your workspace has to do</h1>
+    <p class="page-sub">The more you can say about headcount, locations and timing, the more useful
+       our first conversation will be.</p>
+  </div>
+</section>
+
+<section class="section contact">
+  <div class="wrap contact__grid">
+    <form class="form" id="contactForm" novalidate>
+      <div class="field">
+        <label for="cf-name">Name</label>
+        <input id="cf-name" name="name" type="text" autocomplete="name" required>
+      </div>
+      <div class="field">
+        <label for="cf-company">Company</label>
+        <input id="cf-company" name="company" type="text" autocomplete="organization" required>
+      </div>
+      <div class="field">
+        <label for="cf-email">Work email</label>
+        <input id="cf-email" name="email" type="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="cf-interest">What do you need?</label>
+        <select id="cf-interest" name="interest">
+          <option>Custom-Built Office</option>
+          <option>Ready-to-Move-In</option>
+          <option>Design &amp; Build</option>
+          <option>Integrated Facility Management</option>
+          <option>Not sure yet</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="cf-msg">Anything else</label>
+        <textarea id="cf-msg" name="message" rows="4"></textarea>
+      </div>
+      <button class="btn btn--gold" type="submit">Send enquiry</button>
+      <p class="form__note" id="formNote" role="status"></p>
+    </form>
+
+    <aside class="contact__aside">
+      <h2>Prefer to email?</h2>
+      <p class="contact__line">Write to us directly and we will come back the same working day.</p>
+      <p class="contact__email"><span id="contactEmail">contact.autopilotoffices@gmail.com</span>
+        <button class="copybtn" id="copyEmail" type="button">Copy</button></p>
+      <h2 class="contact__h2">What happens next</h2>
+      <ol class="contact__steps">
+        <li>A short call to understand headcount, locations and timing.</li>
+        <li>A written view of the options worth considering, with indicative commercials.</li>
+        <li>A site visit, once there is something worth seeing.</li>
+      </ol>
+    </aside>
+  </div>
+</section>

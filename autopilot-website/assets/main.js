@@ -59,9 +59,54 @@
     }
   })();
 
+  /* ---------- contact form ----------
+     There is no backend here, so the form validates and then tells the visitor
+     plainly how to reach us rather than pretending to have sent anything. */
+  var form = document.getElementById('contactForm');
+  var note = document.getElementById('formNote');
+  if (form && note) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!form.checkValidity()) {
+        note.className = 'form__note is-error';
+        note.textContent = 'Please complete the required fields.';
+        var bad = form.querySelector(':invalid');
+        if (bad) bad.focus();
+        return;
+      }
+      var name = form.querySelector('#cf-name').value.trim();
+      var interest = form.querySelector('#cf-interest').value;
+      note.className = 'form__note';
+      note.textContent = 'Thanks ' + (name || 'for getting in touch') +
+        '. This form is not connected yet, so please email contact.autopilotoffices@gmail.com ' +
+        'with "' + interest + '" in the subject and we will reply the same working day.';
+    });
+  }
+
+  /* copy the address, since mail links are unreliable inside embedded views */
+  var copyBtn = document.getElementById('copyEmail');
+  var emailEl = document.getElementById('contactEmail');
+  if (copyBtn && emailEl) {
+    copyBtn.addEventListener('click', function () {
+      var text = emailEl.textContent.trim();
+      function done(ok) { copyBtn.textContent = ok ? 'Copied' : 'Select it'; 
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2200); }
+      try {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () {
+          var r = document.createRange(); r.selectNodeContents(emailEl);
+          var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+          done(false);
+        });
+      } catch (err) { done(false); }
+    });
+  }
+
   /* ---------- nav on scroll ---------- */
   var nav = document.getElementById('nav');
-  function onScroll() { if (nav) nav.classList.toggle('is-solid', window.scrollY > 80); }
+  function onScroll() {
+    if (!nav || nav.classList.contains('is-static')) return;   // interior pages start solid
+    nav.classList.toggle('is-solid', window.scrollY > 80);
+  }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
