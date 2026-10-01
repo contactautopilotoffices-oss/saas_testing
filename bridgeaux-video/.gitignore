@@ -1,0 +1,6 @@
+node_modules
+.cache
+out/stills
+out/review
+out/*.log
+out/*-v*.mp4
