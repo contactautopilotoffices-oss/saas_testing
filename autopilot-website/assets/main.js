@@ -113,6 +113,7 @@
       if (items.length) out.push(Array.prototype.slice.call(items));
     });
     // single blocks
+    out.push([document.querySelector('.statement__line'), document.querySelector('.statement__sub')]);
     out.push([document.querySelector('.lc'), document.querySelector('.atlas__copy'),
               document.querySelector('.atlas__visual'), document.querySelector('.cta__inner'),
               document.querySelector('.standard__line'), document.querySelector('.trust__head')]);
@@ -125,6 +126,16 @@
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
     }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+
+    // the gold hairline above each section head draws itself on arrival
+    var ruleIo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('drawn'); ruleIo.unobserve(e.target); }
+      });
+    }, { threshold: 0.2 });
+    Array.prototype.forEach.call(document.querySelectorAll('.sec-head'), function (h) {
+      ruleIo.observe(h);
+    });
 
     groups().forEach(function (group) {
       var step = 0;
