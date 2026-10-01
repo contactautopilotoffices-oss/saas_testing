@@ -9,7 +9,7 @@
   /* ---------- hero slideshow ---------- */
   var slides = Array.prototype.slice.call(document.querySelectorAll('.hero .slide'));
   var dotsBox = document.getElementById('heroDots');
-  var index = 0, timer = null, DURATION = 6500;
+  var index = 0, timer = null, DURATION = 7600;
 
   function show(i) {
     index = (i + slides.length) % slides.length;
@@ -89,17 +89,78 @@
     });
   });
 
-  /* ---------- scroll reveal ---------- */
-  var targets = document.querySelectorAll('.reveal, .sec-head, .lc, .checklist, .atlas__grid, .cols3, .loc__strip, .cases, .team, .cta__inner');
-  if (!('IntersectionObserver' in window) || reduce) {
-    Array.prototype.forEach.call(targets, function (t) { t.classList.add('in'); });
-  } else {
-    Array.prototype.forEach.call(targets, function (t) { t.classList.add('reveal'); });
+  /* ---------- scroll reveal ----------
+     Headings wipe up behind a soft mask; everything else rises and fades.
+     Siblings in a group are staggered so a section arrives as a sequence
+     rather than all at once. Applied by script, so the page is fully
+     readable at rest if this never runs. */
+  function groups() {
+    var out = [];
+    // headings and their supporting copy
+    Array.prototype.forEach.call(document.querySelectorAll('.sec-head'), function (h) {
+      out.push(Array.prototype.filter.call(h.children, Boolean));
+    });
+    out.push([
+      document.querySelector('.hero .eyebrow'),
+      document.querySelector('.hero__title'),
+      document.querySelector('.hero__sub'),
+      document.querySelector('.chooser'),
+      document.querySelector('.hero__cta')
+    ]);
+    // repeated items, staggered across the row
+    ['.checklist li', '.col', '.case', '.member', '.loc', '.atlas__list li'].forEach(function (sel) {
+      var items = document.querySelectorAll(sel);
+      if (items.length) out.push(Array.prototype.slice.call(items));
+    });
+    // single blocks
+    out.push([document.querySelector('.lc'), document.querySelector('.atlas__copy'),
+              document.querySelector('.atlas__visual'), document.querySelector('.cta__inner'),
+              document.querySelector('.standard__line'), document.querySelector('.trust__head')]);
+    return out;
+  }
+
+  if ('IntersectionObserver' in window && !reduce) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
-    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
-    Array.prototype.forEach.call(targets, function (t) { io.observe(t); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+
+    groups().forEach(function (group) {
+      var step = 0;
+      group.forEach(function (el) {
+        if (!el || el.classList.contains('reveal') || el.classList.contains('wipe')) return;
+        var heading = /^H[1-3]$/.test(el.tagName);
+        if (heading) {
+          // wrap the text so the mask sits on the span, not on the observed box
+          var inner = document.createElement('span');
+          inner.className = 'wipe__i';
+          while (el.firstChild) inner.appendChild(el.firstChild);
+          el.appendChild(inner);
+          el.classList.add('wipe');
+        } else {
+          el.classList.add('reveal');
+        }
+        el.style.setProperty('--d', (step * 0.085).toFixed(3) + 's');
+        step++;
+        io.observe(el);
+      });
+    });
+  }
+
+  /* ---------- gentle parallax on the hero photography ---------- */
+  var heroMedia = document.querySelector('.hero__media');
+  var hero = document.querySelector('.hero');
+  if (heroMedia && hero && !reduce && window.innerWidth > 860) {
+    var ticking = false;
+    window.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        var y = Math.min(window.scrollY, hero.offsetHeight);
+        heroMedia.style.transform = 'translate3d(0,' + (y * 0.16).toFixed(1) + 'px,0)';
+        ticking = false;
+      });
+    }, { passive: true });
   }
 })();
