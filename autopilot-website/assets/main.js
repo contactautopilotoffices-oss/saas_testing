@@ -41,6 +41,65 @@
   });
   start();
 
+
+  /* ---------- hero background video ----------
+     The stills are the poster and the fallback, so the hero is complete before
+     any of this runs and stays complete if none of it does. The rendition is
+     chosen from viewport, pixel density and the connection the browser reports,
+     so a phone on a slow link is not sent the 1080p file. */
+  (function heroVideo() {
+    var v = document.getElementById('heroVideo');
+    if (!v || reduce) return;
+
+    var conn = navigator.connection || {};
+    if (conn.saveData) return;                       // honour Data Saver
+    if (/^(slow-)?2g$/.test(conn.effectiveType || '')) return;
+
+    var w = window.innerWidth;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var portrait = w < 760 && window.innerHeight > window.innerWidth;
+
+    var base;
+    if (portrait) base = 'hero-portrait';
+    else if (w * dpr >= 1440) base = 'hero-1080';
+    else base = 'hero-720';
+
+    // Offer both formats and let the browser pick the first it can decode.
+    // Choosing one ourselves means a browser missing that codec gets nothing.
+    [['.webm', 'video/webm; codecs="vp9"'], ['.mp4', 'video/mp4']].forEach(function (f) {
+      var src = document.createElement('source');
+      src.src = 'assets/video/' + base + f[0];
+      src.type = f[1];
+      v.appendChild(src);
+    });
+
+    v.preload = 'auto';
+    v.muted = true;            // required for autoplay, and set before load()
+    v.load();
+
+    v.addEventListener('playing', function () { v.classList.add('is-playing'); stop(); });
+    v.addEventListener('error', function () { v.classList.remove('is-playing'); start(); });
+
+    function attempt() {
+      var p = v.play();
+      if (p && p.catch) p.catch(function () { /* autoplay refused: stills remain */ });
+    }
+    if (v.readyState >= 3) attempt();
+    else v.addEventListener('canplay', attempt, { once: true });
+
+    // don't decode video the viewer cannot see
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) v.pause();
+      else if (v.classList.contains('is-playing')) attempt();
+    });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        if (es[0].isIntersecting) { if (v.classList.contains('is-playing')) attempt(); }
+        else v.pause();
+      }, { threshold: 0.01 }).observe(v);
+    }
+  })();
+
   /* ---------- nav on scroll ---------- */
   var nav = document.getElementById('nav');
   function onScroll() { if (nav) nav.classList.toggle('is-solid', window.scrollY > 80); }

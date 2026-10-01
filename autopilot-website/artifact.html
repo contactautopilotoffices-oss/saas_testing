@@ -375,6 +375,14 @@ p{margin:0}
 
 /* hero film grain and vignette: grades the photography so it reads as shot,
    not as stock dropped behind type */
+.hero__video{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;
+  opacity:0;transition:opacity 1.6s var(--ease-soft)
+}
+.hero__video.is-playing{opacity:1}
+/* the stills stay beneath as poster and fallback, so the hero is never empty */
+.hero__video.is-playing ~ .slide{opacity:0}
+
 .hero__grain{
   position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.22;mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
@@ -398,6 +406,38 @@ p{margin:0}
   .statement__line{font-size:clamp(27px,8.8vw,48px)}
   .statement__bar{height:clamp(28px,8vw,48px)}
   .hero::after{background:radial-gradient(150% 95% at 55% 45%,transparent 42%,rgba(10,8,6,.45) 100%)}
+  /* portrait has no quiet left third, so the scrim darkens from the bottom up */
+  .hero__scrim{
+    background:linear-gradient(0deg,rgba(14,11,9,.92) 0%,rgba(14,11,9,.74) 42%,
+               rgba(14,11,9,.52) 70%,rgba(14,11,9,.4) 100%)
+  }
+}
+
+/* ============ client wall ============
+   Each name sits in its own framed cell so the set reads as a roster rather
+   than a ticker. Swap .wall__mark for an <img> once vector logos arrive;
+   the cell is already sized and centred for it. */
+.wall__grid{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden
+}
+.wall__cell{
+  background:var(--paper);display:flex;align-items:center;justify-content:center;
+  min-height:clamp(110px,13vw,168px);padding:20px;
+  transition:background .55s var(--ease-soft)
+}
+.wall__cell:hover{background:#fff}
+.wall__mark{
+  font-family:var(--f-display);font-weight:700;letter-spacing:-.02em;
+  font-size:clamp(19px,2.4vw,31px);color:var(--grey-600);
+  transition:color .55s var(--ease-soft),transform .55s var(--ease-out)
+}
+.wall__cell:hover .wall__mark{color:var(--ink);transform:translateY(-2px)}
+.wall__note{margin-top:26px;font-size:13px;letter-spacing:.04em;color:var(--grey-600)}
+
+@media (max-width:860px){
+  .wall__grid{grid-template-columns:repeat(2,1fr)}
 }
 
 </style>
@@ -440,6 +480,8 @@ p{margin:0}
 <!-- ================= HERO ================= -->
 <section class="hero" id="top">
   <div class="hero__media" aria-hidden="true">
+    <video class="hero__video" id="heroVideo" muted loop playsinline preload="none"
+           poster="assets/img/hero-1.webp" aria-hidden="true" tabindex="-1"></video>
     <figure class="slide is-active" style="background-image:url('assets/img/hero-1.webp')"></figure>
     <figure class="slide" style="background-image:url('assets/img/hero-2.webp')"></figure>
     <figure class="slide" style="background-image:url('assets/img/hero-3.webp')"></figure>
@@ -496,11 +538,36 @@ p{margin:0}
     <div class="marquee__track" id="marqueeTrack">
       <span class="client">MyGate</span><i class="sep"></i>
       <span class="client">Zepto</span><i class="sep"></i>
+      <span class="client">Zerodha</span><i class="sep"></i>
+      <span class="client">Myntra</span><i class="sep"></i>
       <span class="client">Digitide</span><i class="sep"></i>
       <span class="client">Altruist</span><i class="sep"></i>
     </div>
   </div>
-  <p class="visually-hidden">Clients include MyGate, Zepto, Digitide and Altruist.</p>
+  <p class="visually-hidden">Clients include MyGate, Zepto, Zerodha, Myntra, Digitide and Altruist.</p>
+</section>
+
+
+<!-- ================= CLIENT WALL ================= -->
+<section class="section section--grey wall" id="clients">
+  <div class="wrap">
+    <header class="sec-head sec-head--row">
+      <div>
+        <span class="eyebrow">Our clients</span>
+        <h2 class="sec-title">The companies we build and run workspaces for</h2>
+      </div>
+      <a class="btn btn--line btn--dark" href="#work">Explore Case Studies</a>
+    </header>
+    <ul class="wall__grid">
+      <li class="wall__cell"><span class="wall__mark">MyGate</span></li>
+      <li class="wall__cell"><span class="wall__mark">Zepto</span></li>
+      <li class="wall__cell"><span class="wall__mark">Zerodha</span></li>
+      <li class="wall__cell"><span class="wall__mark">Myntra</span></li>
+      <li class="wall__cell"><span class="wall__mark">Digitide</span></li>
+      <li class="wall__cell"><span class="wall__mark">Altruist</span></li>
+    </ul>
+    <p class="wall__note">Workspaces delivered, fitted out and managed by Autopilot.</p>
+  </div>
 </section>
 
 <!-- ================= LIFECYCLE ================= -->
@@ -778,6 +845,65 @@ p{margin:0}
     if (document.hidden) stop(); else start();
   });
   start();
+
+
+  /* ---------- hero background video ----------
+     The stills are the poster and the fallback, so the hero is complete before
+     any of this runs and stays complete if none of it does. The rendition is
+     chosen from viewport, pixel density and the connection the browser reports,
+     so a phone on a slow link is not sent the 1080p file. */
+  (function heroVideo() {
+    var v = document.getElementById('heroVideo');
+    if (!v || reduce) return;
+
+    var conn = navigator.connection || {};
+    if (conn.saveData) return;                       // honour Data Saver
+    if (/^(slow-)?2g$/.test(conn.effectiveType || '')) return;
+
+    var w = window.innerWidth;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var portrait = w < 760 && window.innerHeight > window.innerWidth;
+
+    var base;
+    if (portrait) base = 'hero-portrait';
+    else if (w * dpr >= 1440) base = 'hero-1080';
+    else base = 'hero-720';
+
+    // Offer both formats and let the browser pick the first it can decode.
+    // Choosing one ourselves means a browser missing that codec gets nothing.
+    [['.webm', 'video/webm; codecs="vp9"'], ['.mp4', 'video/mp4']].forEach(function (f) {
+      var src = document.createElement('source');
+      src.src = 'assets/video/' + base + f[0];
+      src.type = f[1];
+      v.appendChild(src);
+    });
+
+    v.preload = 'auto';
+    v.muted = true;            // required for autoplay, and set before load()
+    v.load();
+
+    v.addEventListener('playing', function () { v.classList.add('is-playing'); stop(); });
+    v.addEventListener('error', function () { v.classList.remove('is-playing'); start(); });
+
+    function attempt() {
+      var p = v.play();
+      if (p && p.catch) p.catch(function () { /* autoplay refused: stills remain */ });
+    }
+    if (v.readyState >= 3) attempt();
+    else v.addEventListener('canplay', attempt, { once: true });
+
+    // don't decode video the viewer cannot see
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) v.pause();
+      else if (v.classList.contains('is-playing')) attempt();
+    });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        if (es[0].isIntersecting) { if (v.classList.contains('is-playing')) attempt(); }
+        else v.pause();
+      }, { threshold: 0.01 }).observe(v);
+    }
+  })();
 
   /* ---------- nav on scroll ---------- */
   var nav = document.getElementById('nav');
