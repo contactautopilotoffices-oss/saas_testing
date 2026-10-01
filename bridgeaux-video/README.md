@@ -15,12 +15,20 @@ Six 10 second scenes, each editable on its own, playing as one continuous film.
 The example business throughout is **Kesar Bakehouse**, Hill Road, Bandra West, Mumbai
 (`src/data/business.ts`). All of its numbers are fictional demonstration data.
 
+## Deliverables
+
+* `out/BridgeAux-Explainer-1080p.mp4`: the final film (1920x1080, 30 fps, 60 s, H.264 + AAC,
+  mastered to -16 LUFS integrated, -2.4 dBTP true peak)
+* `out/BridgeAux-Narration.wav`: the full narration track on its own, aligned to the film
+* `public/audio/vo/*.wav`: each narration line separately
+* `public/audio/sfx/*.wav` and `public/audio/music/bed.wav`: sound design and score
+
 ## Render
 
 ```bash
 npm install
-# full film
-npx remotion render src/index.ts BridgeAuxExplainer out/bridgeaux-explainer.mp4
+# full film (exact command used for the delivered file)
+npx remotion render src/index.ts BridgeAuxExplainer out/bridgeaux-explainer.mp4 --concurrency=4
 # then normalise loudness for web delivery (-16 LUFS, -1.5 dBTP)
 scripts/finalize.sh out/bridgeaux-explainer.mp4 out/BridgeAux-Explainer-1080p.mp4
 # a single scene (includes its slice of the music)

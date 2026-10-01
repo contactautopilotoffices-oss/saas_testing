@@ -5,9 +5,10 @@
   "description": "BridgeAux 60-second explainer film, built with Remotion",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts BridgeAuxExplainer out/bridgeaux-explainer.mp4",
+    "render": "remotion render src/index.ts BridgeAuxExplainer out/bridgeaux-explainer.mp4 --concurrency=4",
     "still": "remotion still src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "finalize": "bash scripts/finalize.sh out/bridgeaux-explainer.mp4 out/BridgeAux-Explainer-1080p.mp4"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.531",
