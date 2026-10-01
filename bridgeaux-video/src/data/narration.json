@@ -1,0 +1,103 @@
+{
+  "voice": "af_heart",
+  "engine": "kokoro-82m (onnx)",
+  "sampleRate": 48000,
+  "lines": {
+    "s1a": {
+      "scene": 1,
+      "text": "Your business exists in the real world.",
+      "file": "audio/vo/s1a.wav",
+      "durationSec": 2.17
+    },
+    "s1b": {
+      "scene": 1,
+      "text": "But online, your customers might not even find you.",
+      "file": "audio/vo/s1b.wav",
+      "durationSec": 3.01
+    },
+    "s1c": {
+      "scene": 1,
+      "text": "That's the problem.",
+      "file": "audio/vo/s1c.wav",
+      "durationSec": 1.04
+    },
+    "s2a": {
+      "scene": 2,
+      "text": "That's where BridgeAux comes in.",
+      "file": "audio/vo/s2a.wav",
+      "durationSec": 1.67
+    },
+    "s2b": {
+      "scene": 2,
+      "text": "Not just a website.",
+      "file": "audio/vo/s2b.wav",
+      "durationSec": 1.34
+    },
+    "s2c": {
+      "scene": 2,
+      "text": "Everything your business needs to exist and grow online.",
+      "file": "audio/vo/s2c.wav",
+      "durationSec": 3.24
+    },
+    "s3a": {
+      "scene": 3,
+      "text": "Getting started is simple.",
+      "file": "audio/vo/s3a.wav",
+      "durationSec": 1.47
+    },
+    "s3b": {
+      "scene": 3,
+      "text": "Just tell us about your business.",
+      "file": "audio/vo/s3b.wav",
+      "durationSec": 1.63
+    },
+    "s4a": {
+      "scene": 4,
+      "text": "From there, BridgeAux sets up the digital foundation your business needs.",
+      "file": "audio/vo/s4a.wav",
+      "durationSec": 4.0
+    },
+    "s5a": {
+      "scene": 5,
+      "text": "Once you're online, you can actually operate and grow.",
+      "file": "audio/vo/s5a.wav",
+      "durationSec": 2.88
+    },
+    "s5b": {
+      "scene": 5,
+      "text": "Customers can find you, contact you, enquire, and buy.",
+      "file": "audio/vo/s5b.wav",
+      "durationSec": 3.35
+    },
+    "s5c": {
+      "scene": 5,
+      "text": "And you can manage it all in one place.",
+      "file": "audio/vo/s5c.wav",
+      "durationSec": 2.06
+    },
+    "s6a": {
+      "scene": 6,
+      "text": "Your website, customers, sales and marketing, all connected in one place.",
+      "file": "audio/vo/s6a.wav",
+      "durationSec": 4.39
+    },
+    "s6b": {
+      "scene": 6,
+      "text": "BridgeAux.",
+      "file": "audio/vo/s6b.wav",
+      "durationSec": 0.79
+    },
+    "s6c": {
+      "scene": 6,
+      "text": "Everything your business needs to exist and grow online.",
+      "file": "audio/vo/s6c.wav",
+      "durationSec": 3.14
+    },
+    "s6d": {
+      "scene": 6,
+      "text": "Join the waitlist.",
+      "file": "audio/vo/s6d.wav",
+      "durationSec": 1.09
+    }
+  }
+}

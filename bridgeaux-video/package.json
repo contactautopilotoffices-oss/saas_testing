@@ -1,0 +1,32 @@
+{
+  "name": "bridgeaux-explainer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BridgeAux 60-second explainer film, built with Remotion",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts BridgeAuxExplainer out/bridgeaux-explainer.mp4 --concurrency=4",
+    "still": "remotion still src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "finalize": "bash scripts/finalize.sh out/bridgeaux-explainer.mp4 out/BridgeAux-Explainer-1080p.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.531",
+    "@remotion/fonts": "^4.0.531",
+    "@remotion/media-utils": "^4.0.531",
+    "@remotion/noise": "^4.0.531",
+    "@remotion/paths": "^4.0.531",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "remotion": "^4.0.531"
+  },
+  "devDependencies": {
+    "@fontsource/fraunces": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/sora": "^5.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}
