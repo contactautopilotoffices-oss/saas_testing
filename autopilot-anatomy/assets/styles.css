@@ -1,0 +1,399 @@
+/* ============================================================
+   Autopilot Offices: hero and anatomy
+   Tokens first. Everything below reads from them.
+   ============================================================ */
+:root{
+  color-scheme:dark;
+
+  /* colour: black, white and warm greys; gold only as a detail */
+  --ink:#15120F;
+  --ink-2:#1E1A17;
+  --ink-3:#2A2521;
+  --paper:#F4F0E8;
+  --grey:#B7B0A4;
+  --grey-d:#8F887D;
+  --gold:#B79459;
+  --gold-lift:#D2B176;
+  --line:rgba(244,240,232,.16);
+  --line-2:rgba(244,240,232,.34);
+
+  /* type: Sen for display, Montserrat for text and labels */
+  --f-display:'Sen',system-ui,sans-serif;
+  --f-text:'Montserrat',system-ui,sans-serif;
+
+  /* space */
+  --pad:clamp(20px,5vw,84px);
+  --maxw:1280px;
+  --nav-h:84px;
+
+  /* motion */
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-wall:cubic-bezier(.7,0,.2,1);
+
+  /* set by script to the real viewport height, so phone toolbars do not break the scroll maths */
+  --vh:100vh;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--ink)}
+body{
+  margin:0;background:var(--ink);color:var(--paper);
+  font-family:var(--f-text);font-weight:400;font-size:16px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden
+}
+html.intro,html.intro body{overflow:hidden}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0}
+ol,ul{margin:0;padding:0;list-style:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;z-index:100}
+.skip:focus{left:16px;top:16px;background:var(--paper);color:var(--ink);padding:10px 16px}
+
+:where(a,button):focus-visible{outline:2px solid var(--gold-lift);outline-offset:3px;border-radius:2px}
+
+/* the diagonal cut taken from the A in the wordmark */
+.cut{
+  display:inline-block;width:9px;height:9px;margin-right:12px;background:var(--gold);flex:none;
+  clip-path:polygon(0 0,100% 0,0 100%)
+}
+.eyebrow{
+  display:flex;align-items:center;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  font-weight:600;color:var(--gold-lift);margin-bottom:20px
+}
+
+/* ============ buttons ============ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;
+  font-family:var(--f-text);font-size:12.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:16px 30px;border:1px solid transparent;border-radius:4px;
+  transition:background .5s var(--ease),border-color .5s var(--ease),transform .5s var(--ease-out),box-shadow .5s var(--ease)
+}
+.btn:hover{transform:translateY(-2px)}
+.btn--gold{background:var(--gold);color:var(--ink)}
+.btn--gold:hover{background:var(--gold-lift);box-shadow:0 12px 30px -12px rgba(183,148,89,.7)}
+.btn--line{border-color:var(--line-2);color:var(--paper)}
+.btn--line:hover{border-color:rgba(244,240,232,.8);background:rgba(244,240,232,.06)}
+
+/* inline arrow, built from the same diagonal language */
+.arr{
+  display:inline-block;width:16px;height:7px;margin-left:12px;background:currentColor;flex:none;
+  clip-path:polygon(0 42%,66% 42%,66% 0,100% 50%,66% 100%,66% 58%,0 58%);
+  transition:transform .5s var(--ease-out)
+}
+a:hover .arr{transform:translateX(6px)}
+
+/* ============ navigation ============ */
+.nav{
+  position:fixed;inset:0 0 auto;z-index:60;border-bottom:1px solid transparent;
+  opacity:0;transform:translateY(-12px);
+  transition:opacity 1s var(--ease),transform 1s var(--ease-out),background .6s var(--ease),border-color .6s var(--ease)
+}
+html.ready .nav{opacity:1;transform:none}
+.nav.is-solid{background:rgba(21,18,15,.94);border-bottom-color:var(--line)}
+.nav__inner{
+  max-width:var(--maxw);margin:0 auto;height:var(--nav-h);padding:0 var(--pad);
+  padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;gap:40px
+}
+.nav__brand img{height:19px;width:auto}
+.nav__links{display:flex;gap:34px;margin-left:auto;font-size:13.5px;letter-spacing:.03em}
+.nav__links a{position:relative;padding:4px 0;color:var(--paper)}
+.nav__links a::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--gold);
+  transform:scaleX(0);transform-origin:left;transition:transform .5s var(--ease-out)
+}
+.nav__links a:hover::after{transform:scaleX(1)}
+.nav__cta{padding:13px 24px}
+
+/* ============ the studio ============
+   One fixed scene sits behind every section. Sections are transparent over it,
+   so the model never has to be re-created as the page changes. */
+.scene{position:fixed;inset:0;z-index:0;background:var(--ink);overflow:hidden}
+.scene__light{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(52% 46% at 50% 36%,rgba(222,196,152,.16),transparent 72%),
+    radial-gradient(40% 36% at 14% 0%,rgba(222,196,152,.10),transparent 70%),
+    radial-gradient(60% 24% at 50% 100%,rgba(0,0,0,.55),transparent 80%)
+}
+.haze{
+  position:absolute;width:70vmax;height:70vmax;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(205,190,165,.10),transparent);will-change:transform
+}
+.haze--a{left:-22vmax;top:-26vmax;animation:drift-a 38s ease-in-out infinite alternate}
+.haze--b{right:-28vmax;bottom:-30vmax;animation:drift-b 46s ease-in-out infinite alternate}
+@keyframes drift-a{to{transform:translate3d(9vmax,5vmax,0)}}
+@keyframes drift-b{to{transform:translate3d(-8vmax,-6vmax,0)}}
+.scene__vignette{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(130% 100% at 50% 44%,transparent 46%,rgba(8,6,5,.62) 100%)
+}
+.grain,.intro__grain{
+  position:absolute;inset:0;pointer-events:none;opacity:.22;mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  background-size:180px 180px
+}
+
+/* AUTOPILOT, outline only, set behind the model */
+.outline{
+  position:absolute;left:0;right:0;top:37%;display:flex;justify-content:center;
+  transform:translate3d(0,-50%,0);opacity:0;pointer-events:none;will-change:transform,opacity
+}
+.outline span{
+  font-family:var(--f-display);font-weight:800;font-size:9.2vw;line-height:1;letter-spacing:-.02em;
+  color:transparent;-webkit-text-stroke:1.4px rgba(244,240,232,.5);white-space:nowrap
+}
+
+/* the model: five planes, tilted and stacked in CSS 3D */
+.model-wrap{
+  position:absolute;left:50%;top:50%;width:0;height:0;perspective:2600px;
+  opacity:0;transition:opacity 1.6s var(--ease) .35s
+}
+html.revealed .model-wrap{opacity:1}
+.model{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d;will-change:transform}
+.layer{
+  position:absolute;left:-700px;top:-450px;width:1400px;height:900px;max-width:none;
+  transform-style:preserve-3d;backface-visibility:visible;
+  transition:opacity .7s var(--ease);will-change:transform
+}
+.layer img{display:block;width:100%;height:100%;max-width:none}
+.layer.is-dim{opacity:.34}
+.model__shadow{
+  position:absolute;left:-760px;top:-500px;width:1520px;height:1000px;
+  background:radial-gradient(closest-side,rgba(0,0,0,.78),transparent);
+  transform:translateZ(-70px)
+}
+
+/* ============ opening ============ */
+.intro{position:fixed;inset:0;z-index:50;background:var(--ink)}
+.intro[hidden]{display:none}
+.intro__video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 1s var(--ease) .1s}
+.intro__shade{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 100% at 50% 45%,transparent 40%,rgba(8,6,5,.6) 100%),
+             linear-gradient(0deg,rgba(8,6,5,.5),transparent 40%)
+}
+.intro__grain{opacity:.26}
+html.broken .intro__video,html.broken .intro__shade,html.broken .intro__grain{opacity:0;transition:opacity 1s var(--ease) .15s}
+html.broken .intro{background:transparent;transition:background .8s var(--ease)}
+
+.wall{position:absolute;inset:0;pointer-events:none}
+.panel{
+  position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;will-change:transform,opacity,filter;
+  transform:translate3d(0,0,0)
+}
+/* slanted seams: the same diagonal as the A, so the three pieces tessellate */
+.p1{clip-path:polygon(0 0,40% 0,28% 100%,0 100%)}
+.p2{clip-path:polygon(40% 0,72% 0,60% 100%,28% 100%)}
+.p3{clip-path:polygon(72% 0,100% 0,100% 100%,60% 100%)}
+html.forming .panel{opacity:1;transition:opacity .42s var(--ease)}
+html.broken .panel{transition:transform 1.5s var(--ease-wall),opacity 1s var(--ease) .5s,filter 1.4s var(--ease-wall)}
+html.broken .p1{transform:translate3d(-82%,-3%,0) rotate(-8deg);opacity:0;filter:blur(9px)}
+html.broken .p2{transform:translate3d(2%,-112%,0) scale(1.04);opacity:0;filter:blur(7px)}
+html.broken .p3{transform:translate3d(82%,4%,0) rotate(7deg);opacity:0;filter:blur(9px)}
+
+.skip-intro{
+  position:absolute;right:var(--pad);bottom:calc(28px + env(safe-area-inset-bottom,0px));z-index:3;
+  background:none;border:1px solid var(--line-2);border-radius:999px;color:var(--paper);cursor:pointer;
+  font:600 11px/1 var(--f-text);letter-spacing:.18em;text-transform:uppercase;padding:12px 20px;
+  transition:border-color .4s var(--ease),opacity .6s var(--ease)
+}
+.skip-intro:hover{border-color:var(--paper)}
+html.ready .skip-intro{opacity:0;pointer-events:none}
+
+/* ============ 01 hero ============ */
+main{position:relative;z-index:2}
+.hero{height:var(--vh);position:relative}
+.hero__ui{position:absolute;inset:0;will-change:opacity}
+.hero__copy{position:absolute;left:var(--pad);bottom:calc(var(--vh) * .17);max-width:440px}
+.hero__title{font-size:clamp(34px,3.5vw,50px);font-weight:800;letter-spacing:-.025em}
+.hero__sub{margin-top:20px;max-width:38ch;color:var(--grey);font-size:clamp(14.5px,1.15vw,16.5px);font-weight:300;line-height:1.75}
+.hero__cta{display:flex;gap:10px;flex-wrap:nowrap;margin-top:32px}
+.hero__cta .btn{padding:15px 20px;font-size:11.5px}
+
+.choose{position:absolute;right:var(--pad);bottom:calc(var(--vh) * .125 + 16px);width:min(262px,24vw)}
+.choose__label{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--grey-d);font-weight:600;
+  padding-bottom:14px;border-bottom:1px solid var(--line)
+}
+.choose a{
+  display:flex;align-items:center;justify-content:space-between;padding:13px 0;
+  border-bottom:1px solid var(--line);font-family:var(--f-display);font-size:16px;font-weight:600;
+  color:var(--paper);transition:color .4s var(--ease),padding-left .5s var(--ease-out)
+}
+.choose a:hover{color:var(--gold-lift);padding-left:8px}
+
+/* entrance: each piece lifts in once the wall has cleared */
+.rv{opacity:0;transform:translate3d(0,22px,0)}
+html.ready .rv{opacity:1;transform:none;transition:opacity 1.1s var(--ease) var(--d,0s),transform 1.1s var(--ease-out) var(--d,0s)}
+.hero__copy .eyebrow{--d:.05s}.hero__title{--d:.15s}.hero__sub{--d:.28s}.hero__cta{--d:.4s}
+.choose{--d:.5s}.trust{--d:.65s}
+
+/* ============ trust strip ============ */
+.trust{
+  position:absolute;left:0;right:0;bottom:0;height:calc(var(--vh) * .105);min-height:64px;
+  display:flex;align-items:center;gap:clamp(18px,3vw,44px);padding-left:var(--pad);
+  background:linear-gradient(0deg,rgba(21,18,15,.9),rgba(21,18,15,0))
+}
+.trust__label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--grey-d);font-weight:600;flex:none;max-width:200px;line-height:1.5}
+.marquee{flex:1;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.marquee__track{display:flex;align-items:center;gap:clamp(26px,3.4vw,52px);width:max-content;animation:scrollx 52s linear infinite}
+@keyframes scrollx{to{transform:translateX(-50%)}}
+.client{
+  display:inline-flex;align-items:center;gap:10px;white-space:nowrap;
+  font-family:var(--f-display);font-weight:700;font-size:clamp(17px,1.7vw,23px);letter-spacing:-.01em;color:rgba(244,240,232,.5)
+}
+.clogo{height:1em;width:auto;filter:brightness(0) invert(1);opacity:.5}
+.sep{flex:none;width:7px;height:7px;background:var(--gold);opacity:.5;clip-path:polygon(50% 0,100% 100%,0 100%)}
+
+/* ============ 02 anatomy ============ */
+.anatomy{height:calc(var(--vh) * 6);position:relative}
+.anat{position:sticky;top:0;height:var(--vh);overflow:hidden}
+
+.anat__intro{
+  position:absolute;left:var(--pad);top:calc(var(--nav-h) + 3vh);max-width:340px;opacity:0;will-change:opacity,transform
+}
+.anat__title{font-size:clamp(26px,3vw,44px);font-weight:800}
+.anat__sub{margin-top:18px;color:var(--grey);font-size:14.5px;font-weight:300;line-height:1.75}
+
+/* labels sit on the layers and follow them as they lift */
+.lbls{position:absolute;inset:0;pointer-events:none}
+.lbl{
+  position:absolute;left:0;top:0;width:300px;display:flex;align-items:flex-start;
+  opacity:0;will-change:transform
+}
+.lbl__dot{
+  width:9px;height:9px;margin-top:6px;background:var(--gold);flex:none;
+  clip-path:polygon(0 0,100% 0,0 100%);transform:scale(0);transition:transform .5s var(--ease-out)
+}
+.lbl__line{
+  height:1px;width:46px;margin-top:10px;background:var(--gold);flex:none;
+  transform:scaleX(0);transition:transform .7s var(--ease-out) .1s
+}
+.lbl--r .lbl__line{transform-origin:left}
+.lbl--l .lbl__line{transform-origin:right}
+.lbl--l{flex-direction:row-reverse;text-align:right}
+.lbl--l .lbl__dot{transform:scale(0) rotate(90deg)}
+.lbl__txt{padding:0 14px;opacity:0;transform:translate3d(0,8px,0);transition:opacity .6s var(--ease) .25s,transform .7s var(--ease-out) .25s}
+.lbl.on{opacity:1}
+.lbl.on .lbl__dot{transform:scale(1)}
+.lbl--l.on .lbl__dot{transform:scale(1) rotate(90deg)}
+.lbl.on .lbl__line{transform:scaleX(1)}
+.lbl.on .lbl__txt{opacity:1;transform:none}
+.lbl.is-quiet .lbl__txt{opacity:.5}
+.lbl__num{font-size:11px;letter-spacing:.2em;font-weight:600;color:var(--gold-lift)}
+.lbl h3{font-size:19px;margin:6px 0 6px;font-weight:700}
+.lbl p{font-size:13.5px;color:var(--grey);font-weight:300;line-height:1.6;max-width:26ch}
+.lbl--l p{margin-left:auto}
+
+/* the closing statement */
+.day1{
+  position:absolute;left:0;right:0;bottom:0;padding:clamp(16px,2.4vh,28px) var(--pad);
+  display:grid;grid-template-columns:1fr auto;gap:clamp(18px,3vw,56px);align-items:center;
+  background:linear-gradient(0deg,rgba(21,18,15,.96) 55%,rgba(21,18,15,0));
+  opacity:0;pointer-events:none;will-change:opacity,transform
+}
+.day1.on{pointer-events:auto}
+.day1 .eyebrow{margin-bottom:10px}
+.day1__line{font-family:var(--f-display);font-weight:700;font-size:clamp(19px,2.1vw,30px);letter-spacing:-.02em;line-height:1.15;max-width:34ch}
+.day1__cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+
+.card{display:none}
+
+/* ============ people ============ */
+.team{position:relative;z-index:3;background:var(--ink);padding:clamp(80px,11vw,150px) 0;border-top:1px solid var(--line)}
+.sec-head{margin-bottom:clamp(36px,5vw,64px)}
+.sec-title{font-size:clamp(28px,4vw,54px);font-weight:800}
+.sec-sub{margin-top:20px;max-width:56ch;color:var(--grey);font-weight:300}
+.life{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:clamp(8px,1.2vw,16px)}
+.life figure{margin:0;overflow:hidden;border-radius:6px;aspect-ratio:4/5}
+.life figure:first-child{aspect-ratio:auto}
+.life img{width:100%;height:100%;object-fit:cover;transition:transform 1.4s var(--ease-out)}
+.life figure:hover img{transform:scale(1.04)}
+.life__note{margin-top:14px;font-size:12px;color:var(--grey-d);letter-spacing:.04em}
+.people{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(12px,1.6vw,24px);margin-top:clamp(40px,5vw,72px)}
+.member{margin:0}
+.member__ph{
+  aspect-ratio:3/4;border-radius:6px;border-bottom:2px solid var(--gold);position:relative;
+  background:linear-gradient(170deg,var(--ink-3),var(--ink-2))
+}
+.member__ph::after{
+  content:"";position:absolute;left:50%;top:50%;width:24px;height:24px;transform:translate(-50%,-50%);
+  background:var(--line-2);clip-path:polygon(50% 0,100% 100%,0 100%)
+}
+.member figcaption{padding-top:14px;display:flex;flex-direction:column;gap:2px}
+.member b{font-family:var(--f-display);font-size:16px;color:var(--grey)}
+.member span{font-size:13px;color:var(--grey-d)}
+
+/* ============ footer ============ */
+.foot{position:relative;z-index:3;background:var(--ink-2);padding:clamp(70px,9vw,120px) 0 40px}
+.foot__title{font-size:clamp(28px,4vw,52px);font-weight:800}
+.foot__sub{margin-top:20px;max-width:50ch;color:var(--grey);font-weight:300}
+.foot__actions{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:34px}
+.foot__email{font-size:15px;color:var(--grey);word-break:break-all}
+.foot__bar{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  margin-top:clamp(56px,7vw,96px);padding-top:30px;border-top:1px solid var(--line)
+}
+.foot__bar img{height:17px;width:auto}
+.foot__bar p{font-size:12px;color:var(--grey-d)}
+
+/* ============ phones ============
+   Not the desktop layout stacked. The model is smaller and sits high, and one
+   caption card replaces the side labels so nothing fights the model for room. */
+@media (max-width:860px){
+  :root{--nav-h:68px}
+  .nav__links{display:none}
+  .nav__cta{margin-left:auto;padding:11px 16px;font-size:10.5px}
+  .outline{top:34%}
+  .outline span{font-size:14.5vw}
+
+  .hero__copy{left:var(--pad);right:var(--pad);bottom:calc(var(--vh) * .17);max-width:none}
+  .hero__title{font-size:clamp(32px,9.4vw,46px)}
+  .hero__sub{font-size:14px;margin-top:14px}
+  .hero__cta{margin-top:22px}
+  .hero__cta .btn{flex:1;padding:15px 12px;font-size:11.5px}
+  .choose{display:none}
+  .trust{height:calc(var(--vh) * .12);padding-left:var(--pad);flex-direction:column;align-items:flex-start;justify-content:center;gap:8px}
+  .trust__label{max-width:none}
+  .marquee{width:100%;flex:none}
+
+  .anat__intro{max-width:none;right:var(--pad)}
+  .anat__title{font-size:clamp(24px,7vw,32px)}
+  .anat__sub{display:none}
+  .lbls{display:none}
+
+  .card{
+    display:block;position:absolute;left:var(--pad);right:var(--pad);bottom:calc(18px + env(safe-area-inset-bottom,0px));
+    padding:18px 20px;background:rgba(21,18,15,.94);border:1px solid var(--line);border-radius:8px;
+    opacity:0;will-change:opacity,transform
+  }
+  .card__num{font-size:11px;letter-spacing:.2em;font-weight:600;color:var(--gold-lift)}
+  .card__title{font-size:19px;margin:6px 0}
+  .card__txt{font-size:13.5px;color:var(--grey);font-weight:300;line-height:1.6}
+
+  .day1{grid-template-columns:1fr;gap:16px;padding:22px var(--pad) calc(22px + env(safe-area-inset-bottom,0px))}
+  .day1__cta{justify-content:stretch}
+  .day1__cta .btn{flex:1;padding:15px 12px;font-size:11.5px}
+
+  .life{grid-template-columns:1fr}
+  .life figure,.life figure:first-child{aspect-ratio:16/10}
+  .people{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ============ reduced motion ============
+   No opening, no float, no parallax. Scrolling still moves the model, because
+   that is the viewer driving it, but the spin and the tilt overshoot are removed. */
+@media (prefers-reduced-motion:reduce){
+  .haze,.marquee__track{animation:none}
+  .rv{opacity:1;transform:none}
+  .nav{opacity:1;transform:none}
+  .model-wrap{opacity:1;transition:none}
+  .btn,.arr,.choose a,.lbl__dot,.lbl__line,.lbl__txt,.layer{transition-duration:.01ms!important}
+}
+
+/* skipping the intro must land on the finished state, not animate towards it */
+html.no-anim *,html.no-anim *::before,html.no-anim *::after{transition:none!important}

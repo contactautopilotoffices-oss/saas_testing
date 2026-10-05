@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en" class="intro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Autopilot Offices | The workspace enterprises trust</title>
+<meta name="description" content="Autopilot Offices is one partner across the entire workspace lifecycle: sourcing, design and build, ready-to-move-in offices and integrated facility management.">
+<meta name="theme-color" content="#15120F">
+<link rel="canonical" href="https://www.autopilotoffices.com/">
+<meta property="og:site_name" content="Autopilot Offices">
+<meta property="og:title" content="Autopilot Offices | The workspace enterprises trust">
+<meta property="og:description" content="One partner across the entire workspace lifecycle, from finding the space to running it every day.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://www.autopilotoffices.com/assets/img/workspace.webp">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/img/autopilot-logo-black.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sen:wght@400;600;700;800&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="assets/img/hero-video-poster.webp" fetchpriority="high">
+<style>
+/* ============================================================
+   Autopilot Offices: hero and anatomy
+   Tokens first. Everything below reads from them.
+   ============================================================ */
+:root{
+  color-scheme:dark;
+
+  /* colour: black, white and warm greys; gold only as a detail */
+  --ink:#15120F;
+  --ink-2:#1E1A17;
+  --ink-3:#2A2521;
+  --paper:#F4F0E8;
+  --grey:#B7B0A4;
+  --grey-d:#8F887D;
+  --gold:#B79459;
+  --gold-lift:#D2B176;
+  --line:rgba(244,240,232,.16);
+  --line-2:rgba(244,240,232,.34);
+
+  /* type: Sen for display, Montserrat for text and labels */
+  --f-display:'Sen',system-ui,sans-serif;
+  --f-text:'Montserrat',system-ui,sans-serif;
+
+  /* space */
+  --pad:clamp(20px,5vw,84px);
+  --maxw:1280px;
+  --nav-h:84px;
+
+  /* motion */
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-wall:cubic-bezier(.7,0,.2,1);
+
+  /* set by script to the real viewport height, so phone toolbars do not break the scroll maths */
+  --vh:100vh;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--ink)}
+body{
+  margin:0;background:var(--ink);color:var(--paper);
+  font-family:var(--f-text);font-weight:400;font-size:16px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden
+}
+html.intro,html.intro body{overflow:hidden}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0}
+ol,ul{margin:0;padding:0;list-style:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;z-index:100}
+.skip:focus{left:16px;top:16px;background:var(--paper);color:var(--ink);padding:10px 16px}
+
+:where(a,button):focus-visible{outline:2px solid var(--gold-lift);outline-offset:3px;border-radius:2px}
+
+/* the diagonal cut taken from the A in the wordmark */
+.cut{
+  display:inline-block;width:9px;height:9px;margin-right:12px;background:var(--gold);flex:none;
+  clip-path:polygon(0 0,100% 0,0 100%)
+}
+.eyebrow{
+  display:flex;align-items:center;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  font-weight:600;color:var(--gold-lift);margin-bottom:20px
+}
+
+/* ============ buttons ============ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;
+  font-family:var(--f-text);font-size:12.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:16px 30px;border:1px solid transparent;border-radius:4px;
+  transition:background .5s var(--ease),border-color .5s var(--ease),transform .5s var(--ease-out),box-shadow .5s var(--ease)
+}
+.btn:hover{transform:translateY(-2px)}
+.btn--gold{background:var(--gold);color:var(--ink)}
+.btn--gold:hover{background:var(--gold-lift);box-shadow:0 12px 30px -12px rgba(183,148,89,.7)}
+.btn--line{border-color:var(--line-2);color:var(--paper)}
+.btn--line:hover{border-color:rgba(244,240,232,.8);background:rgba(244,240,232,.06)}
+
+/* inline arrow, built from the same diagonal language */
+.arr{
+  display:inline-block;width:16px;height:7px;margin-left:12px;background:currentColor;flex:none;
+  clip-path:polygon(0 42%,66% 42%,66% 0,100% 50%,66% 100%,66% 58%,0 58%);
+  transition:transform .5s var(--ease-out)
+}
+a:hover .arr{transform:translateX(6px)}
+
+/* ============ navigation ============ */
+.nav{
+  position:fixed;inset:0 0 auto;z-index:60;border-bottom:1px solid transparent;
+  opacity:0;transform:translateY(-12px);
+  transition:opacity 1s var(--ease),transform 1s var(--ease-out),background .6s var(--ease),border-color .6s var(--ease)
+}
+html.ready .nav{opacity:1;transform:none}
+.nav.is-solid{background:rgba(21,18,15,.94);border-bottom-color:var(--line)}
+.nav__inner{
+  max-width:var(--maxw);margin:0 auto;height:var(--nav-h);padding:0 var(--pad);
+  padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;gap:40px
+}
+.nav__brand img{height:19px;width:auto}
+.nav__links{display:flex;gap:34px;margin-left:auto;font-size:13.5px;letter-spacing:.03em}
+.nav__links a{position:relative;padding:4px 0;color:var(--paper)}
+.nav__links a::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--gold);
+  transform:scaleX(0);transform-origin:left;transition:transform .5s var(--ease-out)
+}
+.nav__links a:hover::after{transform:scaleX(1)}
+.nav__cta{padding:13px 24px}
+
+/* ============ the studio ============
+   One fixed scene sits behind every section. Sections are transparent over it,
+   so the model never has to be re-created as the page changes. */
+.scene{position:fixed;inset:0;z-index:0;background:var(--ink);overflow:hidden}
+.scene__light{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(52% 46% at 50% 36%,rgba(222,196,152,.16),transparent 72%),
+    radial-gradient(40% 36% at 14% 0%,rgba(222,196,152,.10),transparent 70%),
+    radial-gradient(60% 24% at 50% 100%,rgba(0,0,0,.55),transparent 80%)
+}
+.haze{
+  position:absolute;width:70vmax;height:70vmax;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(205,190,165,.10),transparent);will-change:transform
+}
+.haze--a{left:-22vmax;top:-26vmax;animation:drift-a 38s ease-in-out infinite alternate}
+.haze--b{right:-28vmax;bottom:-30vmax;animation:drift-b 46s ease-in-out infinite alternate}
+@keyframes drift-a{to{transform:translate3d(9vmax,5vmax,0)}}
+@keyframes drift-b{to{transform:translate3d(-8vmax,-6vmax,0)}}
+.scene__vignette{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(130% 100% at 50% 44%,transparent 46%,rgba(8,6,5,.62) 100%)
+}
+.grain,.intro__grain{
+  position:absolute;inset:0;pointer-events:none;opacity:.22;mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  background-size:180px 180px
+}
+
+/* AUTOPILOT, outline only, set behind the model */
+.outline{
+  position:absolute;left:0;right:0;top:37%;display:flex;justify-content:center;
+  transform:translate3d(0,-50%,0);opacity:0;pointer-events:none;will-change:transform,opacity
+}
+.outline span{
+  font-family:var(--f-display);font-weight:800;font-size:9.2vw;line-height:1;letter-spacing:-.02em;
+  color:transparent;-webkit-text-stroke:1.4px rgba(244,240,232,.5);white-space:nowrap
+}
+
+/* the model: five planes, tilted and stacked in CSS 3D */
+.model-wrap{
+  position:absolute;left:50%;top:50%;width:0;height:0;perspective:2600px;
+  opacity:0;transition:opacity 1.6s var(--ease) .35s
+}
+html.revealed .model-wrap{opacity:1}
+.model{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d;will-change:transform}
+.layer{
+  position:absolute;left:-700px;top:-450px;width:1400px;height:900px;max-width:none;
+  transform-style:preserve-3d;backface-visibility:visible;
+  transition:opacity .7s var(--ease);will-change:transform
+}
+.layer img{display:block;width:100%;height:100%;max-width:none}
+.layer.is-dim{opacity:.34}
+.model__shadow{
+  position:absolute;left:-760px;top:-500px;width:1520px;height:1000px;
+  background:radial-gradient(closest-side,rgba(0,0,0,.78),transparent);
+  transform:translateZ(-70px)
+}
+
+/* ============ opening ============ */
+.intro{position:fixed;inset:0;z-index:50;background:var(--ink)}
+.intro[hidden]{display:none}
+.intro__video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 1s var(--ease) .1s}
+.intro__shade{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 100% at 50% 45%,transparent 40%,rgba(8,6,5,.6) 100%),
+             linear-gradient(0deg,rgba(8,6,5,.5),transparent 40%)
+}
+.intro__grain{opacity:.26}
+html.broken .intro__video,html.broken .intro__shade,html.broken .intro__grain{opacity:0;transition:opacity 1s var(--ease) .15s}
+html.broken .intro{background:transparent;transition:background .8s var(--ease)}
+
+.wall{position:absolute;inset:0;pointer-events:none}
+.panel{
+  position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;will-change:transform,opacity,filter;
+  transform:translate3d(0,0,0)
+}
+/* slanted seams: the same diagonal as the A, so the three pieces tessellate */
+.p1{clip-path:polygon(0 0,40% 0,28% 100%,0 100%)}
+.p2{clip-path:polygon(40% 0,72% 0,60% 100%,28% 100%)}
+.p3{clip-path:polygon(72% 0,100% 0,100% 100%,60% 100%)}
+html.forming .panel{opacity:1;transition:opacity .42s var(--ease)}
+html.broken .panel{transition:transform 1.5s var(--ease-wall),opacity 1s var(--ease) .5s,filter 1.4s var(--ease-wall)}
+html.broken .p1{transform:translate3d(-82%,-3%,0) rotate(-8deg);opacity:0;filter:blur(9px)}
+html.broken .p2{transform:translate3d(2%,-112%,0) scale(1.04);opacity:0;filter:blur(7px)}
+html.broken .p3{transform:translate3d(82%,4%,0) rotate(7deg);opacity:0;filter:blur(9px)}
+
+.skip-intro{
+  position:absolute;right:var(--pad);bottom:calc(28px + env(safe-area-inset-bottom,0px));z-index:3;
+  background:none;border:1px solid var(--line-2);border-radius:999px;color:var(--paper);cursor:pointer;
+  font:600 11px/1 var(--f-text);letter-spacing:.18em;text-transform:uppercase;padding:12px 20px;
+  transition:border-color .4s var(--ease),opacity .6s var(--ease)
+}
+.skip-intro:hover{border-color:var(--paper)}
+html.ready .skip-intro{opacity:0;pointer-events:none}
+
+/* ============ 01 hero ============ */
+main{position:relative;z-index:2}
+.hero{height:var(--vh);position:relative}
+.hero__ui{position:absolute;inset:0;will-change:opacity}
+.hero__copy{position:absolute;left:var(--pad);bottom:calc(var(--vh) * .17);max-width:440px}
+.hero__title{font-size:clamp(34px,3.5vw,50px);font-weight:800;letter-spacing:-.025em}
+.hero__sub{margin-top:20px;max-width:38ch;color:var(--grey);font-size:clamp(14.5px,1.15vw,16.5px);font-weight:300;line-height:1.75}
+.hero__cta{display:flex;gap:10px;flex-wrap:nowrap;margin-top:32px}
+.hero__cta .btn{padding:15px 20px;font-size:11.5px}
+
+.choose{position:absolute;right:var(--pad);bottom:calc(var(--vh) * .125 + 16px);width:min(262px,24vw)}
+.choose__label{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--grey-d);font-weight:600;
+  padding-bottom:14px;border-bottom:1px solid var(--line)
+}
+.choose a{
+  display:flex;align-items:center;justify-content:space-between;padding:13px 0;
+  border-bottom:1px solid var(--line);font-family:var(--f-display);font-size:16px;font-weight:600;
+  color:var(--paper);transition:color .4s var(--ease),padding-left .5s var(--ease-out)
+}
+.choose a:hover{color:var(--gold-lift);padding-left:8px}
+
+/* entrance: each piece lifts in once the wall has cleared */
+.rv{opacity:0;transform:translate3d(0,22px,0)}
+html.ready .rv{opacity:1;transform:none;transition:opacity 1.1s var(--ease) var(--d,0s),transform 1.1s var(--ease-out) var(--d,0s)}
+.hero__copy .eyebrow{--d:.05s}.hero__title{--d:.15s}.hero__sub{--d:.28s}.hero__cta{--d:.4s}
+.choose{--d:.5s}.trust{--d:.65s}
+
+/* ============ trust strip ============ */
+.trust{
+  position:absolute;left:0;right:0;bottom:0;height:calc(var(--vh) * .105);min-height:64px;
+  display:flex;align-items:center;gap:clamp(18px,3vw,44px);padding-left:var(--pad);
+  background:linear-gradient(0deg,rgba(21,18,15,.9),rgba(21,18,15,0))
+}
+.trust__label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--grey-d);font-weight:600;flex:none;max-width:200px;line-height:1.5}
+.marquee{flex:1;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.marquee__track{display:flex;align-items:center;gap:clamp(26px,3.4vw,52px);width:max-content;animation:scrollx 52s linear infinite}
+@keyframes scrollx{to{transform:translateX(-50%)}}
+.client{
+  display:inline-flex;align-items:center;gap:10px;white-space:nowrap;
+  font-family:var(--f-display);font-weight:700;font-size:clamp(17px,1.7vw,23px);letter-spacing:-.01em;color:rgba(244,240,232,.5)
+}
+.clogo{height:1em;width:auto;filter:brightness(0) invert(1);opacity:.5}
+.sep{flex:none;width:7px;height:7px;background:var(--gold);opacity:.5;clip-path:polygon(50% 0,100% 100%,0 100%)}
+
+/* ============ 02 anatomy ============ */
+.anatomy{height:calc(var(--vh) * 6);position:relative}
+.anat{position:sticky;top:0;height:var(--vh);overflow:hidden}
+
+.anat__intro{
+  position:absolute;left:var(--pad);top:calc(var(--nav-h) + 3vh);max-width:340px;opacity:0;will-change:opacity,transform
+}
+.anat__title{font-size:clamp(26px,3vw,44px);font-weight:800}
+.anat__sub{margin-top:18px;color:var(--grey);font-size:14.5px;font-weight:300;line-height:1.75}
+
+/* labels sit on the layers and follow them as they lift */
+.lbls{position:absolute;inset:0;pointer-events:none}
+.lbl{
+  position:absolute;left:0;top:0;width:300px;display:flex;align-items:flex-start;
+  opacity:0;will-change:transform
+}
+.lbl__dot{
+  width:9px;height:9px;margin-top:6px;background:var(--gold);flex:none;
+  clip-path:polygon(0 0,100% 0,0 100%);transform:scale(0);transition:transform .5s var(--ease-out)
+}
+.lbl__line{
+  height:1px;width:46px;margin-top:10px;background:var(--gold);flex:none;
+  transform:scaleX(0);transition:transform .7s var(--ease-out) .1s
+}
+.lbl--r .lbl__line{transform-origin:left}
+.lbl--l .lbl__line{transform-origin:right}
+.lbl--l{flex-direction:row-reverse;text-align:right}
+.lbl--l .lbl__dot{transform:scale(0) rotate(90deg)}
+.lbl__txt{padding:0 14px;opacity:0;transform:translate3d(0,8px,0);transition:opacity .6s var(--ease) .25s,transform .7s var(--ease-out) .25s}
+.lbl.on{opacity:1}
+.lbl.on .lbl__dot{transform:scale(1)}
+.lbl--l.on .lbl__dot{transform:scale(1) rotate(90deg)}
+.lbl.on .lbl__line{transform:scaleX(1)}
+.lbl.on .lbl__txt{opacity:1;transform:none}
+.lbl.is-quiet .lbl__txt{opacity:.5}
+.lbl__num{font-size:11px;letter-spacing:.2em;font-weight:600;color:var(--gold-lift)}
+.lbl h3{font-size:19px;margin:6px 0 6px;font-weight:700}
+.lbl p{font-size:13.5px;color:var(--grey);font-weight:300;line-height:1.6;max-width:26ch}
+.lbl--l p{margin-left:auto}
+
+/* the closing statement */
+.day1{
+  position:absolute;left:0;right:0;bottom:0;padding:clamp(16px,2.4vh,28px) var(--pad);
+  display:grid;grid-template-columns:1fr auto;gap:clamp(18px,3vw,56px);align-items:center;
+  background:linear-gradient(0deg,rgba(21,18,15,.96) 55%,rgba(21,18,15,0));
+  opacity:0;pointer-events:none;will-change:opacity,transform
+}
+.day1.on{pointer-events:auto}
+.day1 .eyebrow{margin-bottom:10px}
+.day1__line{font-family:var(--f-display);font-weight:700;font-size:clamp(19px,2.1vw,30px);letter-spacing:-.02em;line-height:1.15;max-width:34ch}
+.day1__cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+
+.card{display:none}
+
+/* ============ people ============ */
+.team{position:relative;z-index:3;background:var(--ink);padding:clamp(80px,11vw,150px) 0;border-top:1px solid var(--line)}
+.sec-head{margin-bottom:clamp(36px,5vw,64px)}
+.sec-title{font-size:clamp(28px,4vw,54px);font-weight:800}
+.sec-sub{margin-top:20px;max-width:56ch;color:var(--grey);font-weight:300}
+.life{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:clamp(8px,1.2vw,16px)}
+.life figure{margin:0;overflow:hidden;border-radius:6px;aspect-ratio:4/5}
+.life figure:first-child{aspect-ratio:auto}
+.life img{width:100%;height:100%;object-fit:cover;transition:transform 1.4s var(--ease-out)}
+.life figure:hover img{transform:scale(1.04)}
+.life__note{margin-top:14px;font-size:12px;color:var(--grey-d);letter-spacing:.04em}
+.people{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(12px,1.6vw,24px);margin-top:clamp(40px,5vw,72px)}
+.member{margin:0}
+.member__ph{
+  aspect-ratio:3/4;border-radius:6px;border-bottom:2px solid var(--gold);position:relative;
+  background:linear-gradient(170deg,var(--ink-3),var(--ink-2))
+}
+.member__ph::after{
+  content:"";position:absolute;left:50%;top:50%;width:24px;height:24px;transform:translate(-50%,-50%);
+  background:var(--line-2);clip-path:polygon(50% 0,100% 100%,0 100%)
+}
+.member figcaption{padding-top:14px;display:flex;flex-direction:column;gap:2px}
+.member b{font-family:var(--f-display);font-size:16px;color:var(--grey)}
+.member span{font-size:13px;color:var(--grey-d)}
+
+/* ============ footer ============ */
+.foot{position:relative;z-index:3;background:var(--ink-2);padding:clamp(70px,9vw,120px) 0 40px}
+.foot__title{font-size:clamp(28px,4vw,52px);font-weight:800}
+.foot__sub{margin-top:20px;max-width:50ch;color:var(--grey);font-weight:300}
+.foot__actions{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:34px}
+.foot__email{font-size:15px;color:var(--grey);word-break:break-all}
+.foot__bar{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  margin-top:clamp(56px,7vw,96px);padding-top:30px;border-top:1px solid var(--line)
+}
+.foot__bar img{height:17px;width:auto}
+.foot__bar p{font-size:12px;color:var(--grey-d)}
+
+/* ============ phones ============
+   Not the desktop layout stacked. The model is smaller and sits high, and one
+   caption card replaces the side labels so nothing fights the model for room. */
+@media (max-width:860px){
+  :root{--nav-h:68px}
+  .nav__links{display:none}
+  .nav__cta{margin-left:auto;padding:11px 16px;font-size:10.5px}
+  .outline{top:34%}
+  .outline span{font-size:14.5vw}
+
+  .hero__copy{left:var(--pad);right:var(--pad);bottom:calc(var(--vh) * .17);max-width:none}
+  .hero__title{font-size:clamp(32px,9.4vw,46px)}
+  .hero__sub{font-size:14px;margin-top:14px}
+  .hero__cta{margin-top:22px}
+  .hero__cta .btn{flex:1;padding:15px 12px;font-size:11.5px}
+  .choose{display:none}
+  .trust{height:calc(var(--vh) * .12);padding-left:var(--pad);flex-direction:column;align-items:flex-start;justify-content:center;gap:8px}
+  .trust__label{max-width:none}
+  .marquee{width:100%;flex:none}
+
+  .anat__intro{max-width:none;right:var(--pad)}
+  .anat__title{font-size:clamp(24px,7vw,32px)}
+  .anat__sub{display:none}
+  .lbls{display:none}
+
+  .card{
+    display:block;position:absolute;left:var(--pad);right:var(--pad);bottom:calc(18px + env(safe-area-inset-bottom,0px));
+    padding:18px 20px;background:rgba(21,18,15,.94);border:1px solid var(--line);border-radius:8px;
+    opacity:0;will-change:opacity,transform
+  }
+  .card__num{font-size:11px;letter-spacing:.2em;font-weight:600;color:var(--gold-lift)}
+  .card__title{font-size:19px;margin:6px 0}
+  .card__txt{font-size:13.5px;color:var(--grey);font-weight:300;line-height:1.6}
+
+  .day1{grid-template-columns:1fr;gap:16px;padding:22px var(--pad) calc(22px + env(safe-area-inset-bottom,0px))}
+  .day1__cta{justify-content:stretch}
+  .day1__cta .btn{flex:1;padding:15px 12px;font-size:11.5px}
+
+  .life{grid-template-columns:1fr}
+  .life figure,.life figure:first-child{aspect-ratio:16/10}
+  .people{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ============ reduced motion ============
+   No opening, no float, no parallax. Scrolling still moves the model, because
+   that is the viewer driving it, but the spin and the tilt overshoot are removed. */
+@media (prefers-reduced-motion:reduce){
+  .haze,.marquee__track{animation:none}
+  .rv{opacity:1;transform:none}
+  .nav{opacity:1;transform:none}
+  .model-wrap{opacity:1;transition:none}
+  .btn,.arr,.choose a,.lbl__dot,.lbl__line,.lbl__txt,.layer{transition-duration:.01ms!important}
+}
+
+/* skipping the intro must land on the finished state, not animate towards it */
+html.no-anim *,html.no-anim *::before,html.no-anim *::after{transition:none!important}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ============ navigation ============ -->
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#top" aria-label="Autopilot Offices, back to the top">
+      <img src="assets/img/autopilot-logo-white.png" alt="Autopilot" width="498" height="63">
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#anatomy">Solutions</a>
+      <a href="#contact">Locations</a>
+      <a href="#anatomy">Why Autopilot</a>
+      <a href="#contact">Case Studies</a>
+      <a href="#team">About</a>
+    </nav>
+    <a class="btn btn--line nav__cta" href="#contact">Book a Consultation</a>
+  </div>
+</header>
+
+<!-- ============ the studio: one fixed scene that carries every section ============ -->
+<div class="scene" id="scene" aria-hidden="true">
+  <div class="scene__light"></div>
+  <div class="haze haze--a"></div>
+  <div class="haze haze--b"></div>
+
+  <div class="outline" id="outline"><span>AUTOPILOT</span></div>
+
+  <div class="model-wrap" id="modelWrap">
+    <div class="model" id="model">
+      <div class="model__shadow"></div>
+      <div class="layer" data-i="1"><img src="assets/img/part_1.webp" alt="" width="1400" height="900" decoding="async"></div>
+      <div class="layer" data-i="2"><img src="assets/img/part_2.webp" alt="" width="1400" height="900" decoding="async"></div>
+      <div class="layer" data-i="3"><img src="assets/img/part_3.webp" alt="" width="1400" height="900" decoding="async"></div>
+      <div class="layer" data-i="4"><img src="assets/img/part_4.webp" alt="" width="1400" height="900" decoding="async"></div>
+      <div class="layer" data-i="5"><img src="assets/img/part_5.webp" alt="" width="1400" height="900" decoding="async"></div>
+    </div>
+  </div>
+
+  <div class="scene__vignette"></div>
+  <div class="grain"></div>
+</div>
+
+<!-- ============ opening: video, then the wall ============ -->
+<div class="intro" id="intro">
+  <video class="intro__video" id="introVideo" muted playsinline preload="auto"
+         poster="assets/img/hero-video-poster.webp" aria-hidden="true" tabindex="-1"></video>
+  <div class="intro__shade"></div>
+  <div class="intro__grain"></div>
+  <div class="wall" id="wall" aria-hidden="true">
+    <div class="panel p1" style="background-image:url('assets/img/split_1.webp')"></div>
+    <div class="panel p2" style="background-image:url('assets/img/split_2.webp')"></div>
+    <div class="panel p3" style="background-image:url('assets/img/split_3.webp')"></div>
+  </div>
+  <button class="skip-intro" id="skipIntro" type="button">Skip intro</button>
+</div>
+
+<main id="main">
+
+  <!-- ============ 01 hero ============ -->
+  <section class="hero" id="top">
+    <div class="hero__ui" id="heroUi">
+      <div class="hero__copy">
+        <p class="eyebrow rv">Enterprise workspace partner</p>
+        <h1 class="hero__title rv">The workspace<br>enterprises trust.</h1>
+        <p class="hero__sub rv">Autopilot takes on the entire workspace lifecycle, from finding the right space to
+          designing, building and running it every day. You get a workplace that simply works.</p>
+        <div class="hero__cta rv">
+          <a class="btn btn--gold" href="#contact">Talk to Autopilot</a>
+          <a class="btn btn--line" href="#contact">View Locations</a>
+        </div>
+      </div>
+
+      <nav class="choose rv" aria-label="What are you looking for?">
+        <p class="choose__label">What are you looking for?</p>
+        <ul>
+          <li><a href="#anatomy" data-target="0.09"><span>Custom-Built Office</span><i class="arr" aria-hidden="true"></i></a></li>
+          <li><a href="#anatomy" data-target="0.50"><span>Ready-to-Move-In</span><i class="arr" aria-hidden="true"></i></a></li>
+          <li><a href="#anatomy" data-target="0.24"><span>Design &amp; Build</span><i class="arr" aria-hidden="true"></i></a></li>
+          <li><a href="#anatomy" data-target="0.65"><span>Facility Management</span><i class="arr" aria-hidden="true"></i></a></li>
+        </ul>
+      </nav>
+
+      <div class="trust rv">
+        <p class="trust__label">Trusted by businesses that demand more</p>
+        <div class="marquee" aria-hidden="true">
+          <div class="marquee__track">
+            <span class="client">MyGate</span><i class="sep"></i>
+            <span class="client">Zepto</span><i class="sep"></i>
+            <span class="client"><img class="clogo" src="assets/img/clients/zerodha.svg" alt="" width="24" height="24">Zerodha</span><i class="sep"></i>
+            <span class="client">Myntra</span><i class="sep"></i>
+            <span class="client">Digitide</span><i class="sep"></i>
+            <span class="client">Altruist</span><i class="sep"></i>
+            <span class="client">MyGate</span><i class="sep"></i>
+            <span class="client">Zepto</span><i class="sep"></i>
+            <span class="client"><img class="clogo" src="assets/img/clients/zerodha.svg" alt="" width="24" height="24">Zerodha</span><i class="sep"></i>
+            <span class="client">Myntra</span><i class="sep"></i>
+            <span class="client">Digitide</span><i class="sep"></i>
+            <span class="client">Altruist</span><i class="sep"></i>
+          </div>
+        </div>
+        <p class="visually-hidden">Clients include MyGate, Zepto, Zerodha, Myntra, Digitide and Altruist.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 about / anatomy ============ -->
+  <section class="anatomy" id="anatomy" aria-labelledby="anatomyTitle">
+    <div class="anat" id="anat">
+
+      <div class="anat__intro" id="anatIntro">
+        <p class="eyebrow"><i class="cut" aria-hidden="true"></i>About Autopilot</p>
+        <h2 class="anat__title" id="anatomyTitle">One floor.<br>Five layers.<br>Nothing left to chance.</h2>
+        <p class="anat__sub">Autopilot is one partner across the entire workspace lifecycle. Keep scrolling to see
+          how a single floor is built up, one layer at a time.</p>
+      </div>
+
+      <ol class="lbls" id="lbls" aria-label="The five layers of a workspace">
+        <li class="lbl lbl--r" data-i="1"><i class="lbl__dot"></i><i class="lbl__line"></i>
+          <div class="lbl__txt"><span class="lbl__num">01</span><h3>Strategy and Sourcing</h3>
+            <p>The building and the location, chosen around how your people work.</p></div></li>
+        <li class="lbl lbl--l" data-i="2"><i class="lbl__dot"></i><i class="lbl__line"></i>
+          <div class="lbl__txt"><span class="lbl__num">02</span><h3>Design and Build</h3>
+            <p>The fit-out and structure, delivered under one schedule and one budget.</p></div></li>
+        <li class="lbl lbl--r" data-i="3"><i class="lbl__dot"></i><i class="lbl__line"></i>
+          <div class="lbl__txt"><span class="lbl__num">03</span><h3>Technology and ATLAS</h3>
+            <p>The systems that run the space, tracked in one platform.</p></div></li>
+        <li class="lbl lbl--l" data-i="4"><i class="lbl__dot"></i><i class="lbl__line"></i>
+          <div class="lbl__txt"><span class="lbl__num">04</span><h3>Ready-to-Move-In</h3>
+            <p>Furniture and finishes, in place before the first person arrives.</p></div></li>
+        <li class="lbl lbl--r" data-i="5"><i class="lbl__dot"></i><i class="lbl__line"></i>
+          <div class="lbl__txt"><span class="lbl__num">05</span><h3>Facility Management</h3>
+            <p>The people and daily service that keep it running to a written standard.</p></div></li>
+      </ol>
+
+      <!-- phones: one card carries the active layer instead of side labels -->
+      <div class="card" id="card" aria-hidden="true">
+        <span class="card__num" id="cardNum">01</span>
+        <h3 class="card__title" id="cardTitle">Strategy and Sourcing</h3>
+        <p class="card__txt" id="cardTxt">The building and the location, chosen around how your people work.</p>
+      </div>
+
+      <div class="day1" id="day1">
+        <div class="day1__txt">
+          <p class="eyebrow"><i class="cut" aria-hidden="true"></i>The Day 1 Standard</p>
+          <p class="day1__line">The office is ready when nobody has to ask for anything.</p>
+        </div>
+        <div class="day1__cta">
+          <a class="btn btn--gold" href="#contact">Explore Solutions</a>
+          <a class="btn btn--line" href="#contact">Book a Consultation</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ people ============ -->
+  <section class="team" id="team" aria-labelledby="teamTitle">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><i class="cut" aria-hidden="true"></i>The people behind it</p>
+        <h2 class="sec-title" id="teamTitle">Meet the people responsible<br>for making this work</h2>
+        <p class="sec-sub">Workspace delivery is not a product you buy. It is a team you rely on.</p>
+      </header>
+
+      <div class="life">
+        <figure><img src="assets/img/hero-1.webp" alt="Colleagues working at shared desks in a bright workspace" loading="lazy" width="1536" height="1024"></figure>
+        <figure><img src="assets/img/hero-2.webp" alt="Three colleagues reviewing a tablet together at a long table" loading="lazy" width="1536" height="1024"></figure>
+        <figure><img src="assets/img/hero-3.webp" alt="A busy open-plan floor with people in conversation" loading="lazy" width="1536" height="1024"></figure>
+      </div>
+      <p class="life__note">Placeholder photography. Replace with images of the Autopilot team and workspaces.</p>
+
+      <div class="people">
+        <figure class="member"><div class="member__ph"></div><figcaption><b>Photograph pending</b><span>Name and role to follow</span></figcaption></figure>
+        <figure class="member"><div class="member__ph"></div><figcaption><b>Photograph pending</b><span>Name and role to follow</span></figcaption></figure>
+        <figure class="member"><div class="member__ph"></div><figcaption><b>Photograph pending</b><span>Name and role to follow</span></figcaption></figure>
+        <figure class="member"><div class="member__ph"></div><figcaption><b>Photograph pending</b><span>Name and role to follow</span></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot" id="contact">
+  <div class="wrap foot__inner">
+    <div class="foot__cta">
+      <h2 class="foot__title">Tell us what your workspace<br>has to do.</h2>
+      <p class="foot__sub">Share headcount, cities and timing, and we will come back with options worth considering.</p>
+      <div class="foot__actions">
+        <a class="btn btn--gold" href="mailto:contact.autopilotoffices@gmail.com">Book a Consultation</a>
+        <span class="foot__email">contact.autopilotoffices@gmail.com</span>
+      </div>
+    </div>
+    <div class="foot__bar">
+      <img src="assets/img/autopilot-logo-white.png" alt="Autopilot" width="498" height="63">
+      <p>&copy; <span id="yr"></span> Autopilot Offices. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Autopilot Offices: hero and anatomy
+ *
+ * One continuous experience:
+ *   video, wall break, workspace reveal, hero, scroll, spin and settle,
+ *   layer separation, anatomy, Day 1 Standard.
+ *
+ * The model is five top-down planes stacked in CSS 3D. Because they are real
+ * planes in 3D space, the spin and the exploded view are genuine rather than
+ * faked with scaling. Everything that moves is a transform or an opacity.
+ */
+(function () {
+  'use strict';
+
+  var doc = document;
+  var root = doc.documentElement;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var phone = window.matchMedia('(max-width: 860px)');
+
+  function $(s, c) { return (c || doc).querySelector(s); }
+  function $$(s, c) { return Array.prototype.slice.call((c || doc).querySelectorAll(s)); }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeIO(t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function easeO(t) { return 1 - Math.pow(1 - t, 3); }
+  function rad(d) { return d * Math.PI / 180; }
+
+  /* ------------------------------------------------------------ elements */
+  var model = $('#model');
+  var wrap = $('#modelWrap');
+  var outline = $('#outline');
+  var heroUi = $('#heroUi');
+  var nav = $('#nav');
+  var anatIntro = $('#anatIntro');
+  var day1 = $('#day1');
+  var card = $('#card');
+  var layers = $$('.layer');
+  var lbls = $$('.lbl');
+
+  /* four invisible anchors on each plane. Their screen positions tell the
+     labels where the left and right edges of each layer currently are. */
+  var CORNERS = [[0, 0], [1400, 0], [0, 900], [1400, 900]];
+  var anchors = layers.map(function (layer) {
+    return CORNERS.map(function (c) {
+      var a = doc.createElement('i');
+      a.style.cssText = 'position:absolute;width:0;height:0;left:' + c[0] + 'px;top:' + c[1] + 'px;pointer-events:none';
+      layer.appendChild(a);
+      return a;
+    });
+  });
+
+  var COPY = lbls.map(function (l) {
+    return { num: $('.lbl__num', l).textContent, title: $('h3', l).textContent, txt: $('p', l).textContent };
+  });
+
+  /* ------------------------------------------------------------ timeline
+     Layers 2 to 5 lift one after another. Each lift raises that layer and
+     everything above it, so the stack opens like a drawer rather than blowing up. */
+  var STEP_START = [0, 0, .12, .25, .38, .51];
+  var STEP_DUR = .10;
+  var DAY1_START = .70;
+  var DIM_END = .74;
+
+  /* ------------------------------------------------------------ layout */
+  var S = { vw: 0, vh: 0, mobile: false, hero: {}, anat: {}, gap: 0 };
+
+  function layout() {
+    S.vw = window.innerWidth;
+    S.vh = window.innerHeight;
+    S.mobile = phone.matches;
+    root.style.setProperty('--vh', S.vh + 'px');
+
+    /* the plan is 1400 x 900. Projected, a spun and tilted plan covers about
+       1657 x 833 plan units, which is what these scales fit to the screen. */
+    var gapScreen;
+    if (!S.mobile) {
+      var fit = Math.min(S.vw * .52 / 1657, S.vh * .52 / 833);
+      /* in the hero the model sits right of centre so the headline has clear air;
+         it travels to the middle as it turns into the anatomy view */
+      S.hero = { scale: fit, tilt: 58, spin: -36, x: S.vw * .085, y: -S.vh * .03 };
+      S.anat = { scale: fit * 1.04, tilt: 63, spin: -396, x: 0, y: S.vh * .07 };
+      gapScreen = S.vh * .08;
+    } else {
+      var fm = S.vw * .98 / 1571;
+      S.hero = { scale: fm, tilt: 52, spin: -36, x: 0, y: -S.vh * .17 };
+      S.anat = { scale: fm * .94, tilt: 50, spin: -396, x: 0, y: S.vh * .035 };
+      gapScreen = S.vh * .056;
+    }
+    S.gap = gapScreen / (S.anat.scale * Math.sin(rad(S.anat.tilt)));
+    anatTop = S.vh;
+  }
+  var anatTop = 0;
+
+  /* ------------------------------------------------------------ input */
+  var mx = 0, my = 0, tmx = 0, tmy = 0;
+  if (!reduce) {
+    window.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch' || S.mobile) return;
+      tmx = (e.clientX / S.vw) * 2 - 1;
+      tmy = (e.clientY / S.vh) * 2 - 1;
+    }, { passive: true });
+  }
+
+  /* ------------------------------------------------------------ the frame */
+  var cur = 0;
+  var revealStart = null;
+  var lastZ = [];
+  var lastActive = -1;
+  var lastDim = null;
+  var lastSolid = null;
+
+  function frame(now) {
+    var target = window.pageYOffset;
+    cur += (target - cur) * (reduce ? 1 : .13);
+    if (Math.abs(target - cur) < .1) cur = target;
+
+    mx += (tmx - mx) * .06;
+    my += (tmy - my) * .06;
+
+    var t1 = clamp(cur / S.vh, 0, 1);
+    var e = easeIO(t1);
+    var pB = clamp((cur - S.vh) / (S.vh * 5), 0, 1);
+
+    /* reveal, driven by time so it holds the same beat as the wall */
+    var reveal = revealStart === null ? 0 : easeO(clamp((now - revealStart) / 1500, 0, 1));
+    if (root.classList.contains('revealed') && revealStart === null) reveal = 1;
+
+    /* pose: spin, tilt and travel */
+    var h = S.hero, a = S.anat;
+    var calm = reduce ? 0 : 1 - e;
+    var spin = lerp(h.spin, a.spin, reduce ? 0 : e) + (reduce ? 0 : mx * 2.4 * calm);
+    if (reduce) spin = lerp(h.spin, a.spin + 360, e);
+    var tilt = lerp(h.tilt, a.tilt, e) + (reduce ? 0 : 11 * Math.sin(Math.PI * e)) - (reduce ? 0 : my * 2 * calm);
+    var scale = lerp(h.scale, a.scale, e) * lerp(.9, 1, reveal);
+    var y = lerp(h.y, a.y, e) + (reduce ? 0 : Math.sin(now / 1150) * 7 * calm);
+    var x = lerp(h.x, a.x, e);
+    model.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0) scale(' + scale.toFixed(4) +
+      ') rotateX(' + tilt.toFixed(2) + 'deg) rotateZ(' + spin.toFixed(2) + 'deg)';
+
+    /* hero furniture leaves as the model turns */
+    var heroFade = 1 - clamp(t1 * 3, 0, 1);
+    heroUi.style.opacity = heroFade.toFixed(3);
+    heroUi.style.visibility = t1 > .6 ? 'hidden' : 'visible';
+    outline.style.opacity = (reveal * (1 - clamp(t1 * 2.2, 0, 1))).toFixed(3);
+    outline.style.transform = 'translate3d(' + (lerp(h.x + S.vw * .02, a.x, e) - mx * 16 * calm).toFixed(1) + 'px,' +
+      (-50 + (-t1 * 9)).toFixed(2) + '%,0)';
+
+    /* anatomy furniture arrives once the model has settled */
+    var introIn = clamp((t1 - .75) / .25, 0, 1);
+    var d = clamp((pB - DAY1_START) / .12, 0, 1);
+    /* the heading steps aside before the layers reach it */
+    var introOut = 1 - clamp((pB - .04) / .09, 0, 1);
+    anatIntro.style.opacity = (introIn * introOut).toFixed(3);
+    anatIntro.style.transform = 'translate3d(0,' + ((1 - introIn) * 18).toFixed(1) + 'px,0)';
+    day1.style.opacity = d.toFixed(3);
+    day1.style.transform = 'translate3d(0,' + ((1 - d) * 24).toFixed(1) + 'px,0)';
+    day1.classList.toggle('on', d > .6);
+
+    /* layer separation */
+    var z = 0, active = 1;
+    var stackZ = [];
+    for (var i = 1; i <= 5; i++) {
+      if (i > 1) {
+        var sep = easeIO(clamp((pB - STEP_START[i]) / STEP_DUR, 0, 1));
+        z += sep * S.gap;
+        if (pB >= STEP_START[i]) active = i;
+      }
+      stackZ[i] = z + (i - 1) * 1.5;
+    }
+    if (pB < .04) active = 0;
+    for (var k = 1; k <= 5; k++) {
+      var zz = stackZ[k].toFixed(2);
+      if (lastZ[k] !== zz) {
+        layers[k - 1].style.transform = 'translateZ(' + zz + 'px)';
+        lastZ[k] = zz;
+      }
+    }
+
+    /* the active layer stays bright; the rest step back until the overview */
+    var dimOn = pB > .05 && pB < DIM_END;
+    var dimKey = dimOn ? active : 0;
+    if (dimKey !== lastDim) {
+      layers.forEach(function (l, idx) { l.classList.toggle('is-dim', dimOn && idx + 1 !== active); });
+      lastDim = dimKey;
+    }
+
+    /* labels and the phone card */
+    if (active !== lastActive) {
+      lbls.forEach(function (l, idx) {
+        var n = idx + 1;
+        l.classList.toggle('on', active >= n);
+        l.classList.toggle('is-quiet', dimOn && active !== n);
+      });
+      if (active > 0) {
+        var c = COPY[active - 1];
+        $('#cardNum').textContent = c.num;
+        $('#cardTitle').textContent = c.title;
+        $('#cardTxt').textContent = c.txt;
+      }
+      lastActive = active;
+    } else {
+      lbls.forEach(function (l, idx) { l.classList.toggle('is-quiet', dimOn && active !== idx + 1); });
+    }
+    if (card) {
+      var cardOn = active > 0 && d < .5 ? 1 : 0;
+      card.style.opacity = cardOn;
+      card.style.transform = 'translate3d(0,' + (cardOn ? 0 : 14) + 'px,0)';
+    }
+
+    if (!S.mobile && t1 > .9 && pB < 1.001) placeLabels();
+
+    var solid = cur > 40;
+    if (solid !== lastSolid) { nav.classList.toggle('is-solid', solid); lastSolid = solid; }
+
+    window.requestAnimationFrame(frame);
+  }
+
+  /* hang each label off the edge of its layer */
+  function placeLabels() {
+    for (var i = 0; i < 5; i++) {
+      var pts = anchors[i].map(function (el) {
+        var r = el.getBoundingClientRect();
+        return { x: r.left, y: r.top };
+      });
+      var right = lbls[i].classList.contains('lbl--r');
+      var p = pts[0];
+      for (var j = 1; j < 4; j++) {
+        if (right ? pts[j].x > p.x : pts[j].x < p.x) p = pts[j];
+      }
+      var tx = right ? p.x : p.x - 300;
+      tx = clamp(tx, 6, S.vw - 306);
+      lbls[i].style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + (p.y - 9).toFixed(1) + 'px,0)';
+    }
+  }
+
+  /* ------------------------------------------------------------ the opening */
+  var timers = [];
+  function later(fn, ms) { timers.push(window.setTimeout(fn, ms)); }
+
+  function startIntro() {
+    if (reduce) { finish(true); return; }
+
+    var v = $('#introVideo');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var base = S.mobile ? 'hero-portrait' : (S.vw * dpr >= 1440 ? 'hero-1080' : 'hero-720');
+
+    /* offer both formats and let the browser take the first it can decode */
+    [['.webm', 'video/webm; codecs="vp9"'], ['.mp4', 'video/mp4']].forEach(function (f) {
+      var s = doc.createElement('source');
+      s.src = 'assets/video/' + base + f[0];
+      s.type = f[1];
+      v.appendChild(s);
+    });
+    v.muted = true;
+    v.load();
+
+    var begun = false;
+    function begin() {
+      if (begun) return;
+      begun = true;
+      schedule();
+    }
+    v.addEventListener('playing', begin, { once: true });
+    var p = v.play();
+    if (p && p.catch) p.catch(function () { /* the poster frame stands in */ });
+    later(begin, 1400);        // if the video cannot play, the poster carries the beat
+  }
+
+  /* video, then the wall forms, then it breaks. Phones get a shorter beat. */
+  function schedule() {
+    var T = S.mobile ? 1000 : 2000;
+    later(function () { root.classList.add('forming'); }, T - 280);
+    later(function () {
+      root.classList.add('broken');
+    }, T + 150);
+    later(function () {
+      root.classList.add('revealed');
+      revealStart = performance.now();
+    }, T + 400);
+    later(function () { root.classList.add('ready'); }, T + 1150);
+    later(function () { root.classList.remove('intro'); }, T + 1800);
+    later(function () { $('#intro').hidden = true; }, T + 2900);
+  }
+
+  function finish(instant) {
+    timers.forEach(window.clearTimeout);
+    timers = [];
+    if (instant) root.classList.add('no-anim');
+    root.classList.add('forming', 'broken', 'revealed', 'ready');
+    root.classList.remove('intro');
+    $('#intro').hidden = true;
+    revealStart = null;
+    if (instant) {
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () { root.classList.remove('no-anim'); });
+      });
+    }
+  }
+
+  var skip = $('#skipIntro');
+  if (skip) skip.addEventListener('click', function () { finish(true); });
+  doc.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && root.classList.contains('intro')) finish(true);
+  });
+
+  /* ------------------------------------------------------------ links */
+  /* the hero choices open the layer that delivers that offering */
+  $$('.choose a[data-target]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var p = parseFloat(a.getAttribute('data-target'));
+      window.scrollTo({ top: S.vh + p * S.vh * 5, behavior: reduce ? 'auto' : 'smooth' });
+    });
+  });
+
+  var yr = $('#yr');
+  if (yr) yr.textContent = new Date().getFullYear();
+
+  /* ------------------------------------------------------------ go */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+  layout();
+  window.addEventListener('resize', layout, { passive: true });
+  startIntro();
+  window.requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>
